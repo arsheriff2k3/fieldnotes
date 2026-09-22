@@ -1,24 +1,86 @@
-# Files and directories created by pub
+# Operating-system metadata
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
+
+# Editors and local IDE state
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+*.swp
+*.swo
+*~
+
+# Dart, Flutter, and Pub caches
 .dart_tool/
 .packages
-
-# Pubspec overrides
+.pub-cache/
+.pub/
+.flutter-plugins
+.flutter-plugins-dependencies
 pubspec_overrides.yaml
+**/doc/api/
 
-# Agents
-.dart_skills/
-.agents/
-.claude/
-.gemini/
-.cursor/
-.vscode/mcp.json
-.codex/
-.mcp.json
+# Build outputs and test artifacts
+build/
+coverage/
+test-results/
+*.apk
+*.aab
+*.ipa
+*.app.dSYM.zip
+*.symbols
+app.*.map.json
+
+# Android, iOS, macOS, Linux, and Windows generated files
+**/.gradle/
+**/.cxx/
+**/local.properties
+**/key.properties
+**/*.keystore
+**/*.jks
+**/Pods/
+**/.symlinks/
+**/DerivedData/
+**/xcuserdata/
+**/Flutter/ephemeral/
+**/flutter/ephemeral/
+
+# Serverpod local runtime and generated web application
+.serverpod/
+fieldnotes_server/web/app/
+.scloud/
+
+# Logs, temporary files, crash dumps, and local databases
+*.log
+*.tmp
+*.temp
+*.bak
+*.orig
+*.pid
+*.stackdump
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+**/sp_*.db*
 
 # Local secrets. Copy .env.example to .env and never commit .env.
 .env
 .env.*
 !.env.example
+fieldnotes_server/config/passwords.yaml
+fieldnotes_server/config/firebase_service_account_key.json
 
-# Serverpod Cloud CLI
-.scloud/
+# Local AI agent and MCP configuration
+.appstudio/
+.dart_skills/
+.agents/
+.claude/
+.gemini/
+.cursor/
+.codex/
+.mcp.json
