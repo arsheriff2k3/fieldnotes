@@ -1,0 +1,14 @@
+class: ReviewDecision
+table: fieldnote_review_decision
+fields:
+  observationId: int, relation(parent=fieldnote_observation)
+  reviewerAuthUserId: UuidValue
+  outcome: ReviewOutcome
+  previousCondition: ObservationCondition
+  finalCondition: ObservationCondition
+  notes: String
+  createdAt: DateTime, default=now
+indexes:
+  fieldnote_review_observation_idx:
+    fields: observationId
+

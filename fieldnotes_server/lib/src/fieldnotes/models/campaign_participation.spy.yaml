@@ -1,0 +1,21 @@
+class: CampaignParticipation
+table: fieldnote_campaign_participation
+fields:
+  campaignId: int, relation(parent=fieldnote_campaign)
+  volunteerAuthUserId: UuidValue
+  status: ParticipationStatus
+  joinedAt: DateTime, default=now
+  checkedInAt: DateTime?
+  completedAt: DateTime?
+  checkInLatitude: double?
+  checkInLongitude: double?
+  checkInAccuracyMeters: double?
+  locationIntegrityStatus: String?
+  locationIntegrityReasons: String?
+  locationIsDemo: bool, default=false
+indexes:
+  fieldnote_participation_campaign_volunteer_idx:
+    fields: campaignId, volunteerAuthUserId
+    unique: true
+  fieldnote_participation_volunteer_idx:
+    fields: volunteerAuthUserId

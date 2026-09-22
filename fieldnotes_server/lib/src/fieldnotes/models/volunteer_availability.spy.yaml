@@ -1,0 +1,15 @@
+class: VolunteerAvailability
+table: fieldnote_volunteer_availability
+fields:
+  volunteerAuthUserId: UuidValue, unique
+  isAvailable: bool, default=true
+  availableToday: bool, default=false
+  weekdays: String
+  startMinutes: int
+  endMinutes: int
+  maximumTravelKm: double
+  latitude: double?
+  longitude: double?
+  locationLabel: String
+  updatedAt: DateTime, default=now
+

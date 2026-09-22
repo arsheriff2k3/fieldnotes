@@ -1,0 +1,18 @@
+class: Asset
+table: fieldnote_asset
+fields:
+  campaignId: int, relation(parent=fieldnote_campaign)
+  externalId: String
+  species: String?
+  plantedAt: DateTime?
+  latitude: double
+  longitude: double
+  notes: String?
+  createdAt: DateTime, default=now
+indexes:
+  fieldnote_asset_campaign_external_idx:
+    fields: campaignId, externalId
+    unique: true
+  fieldnote_asset_campaign_idx:
+    fields: campaignId
+

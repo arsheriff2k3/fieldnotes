@@ -1,0 +1,20 @@
+class: CompletionEvidence
+table: fieldnote_completion_evidence
+fields:
+  participationId: int, relation(parent=fieldnote_campaign_participation)
+  photographPath: String?
+  originalNote: String
+  confirmedSummary: String
+  structuredResults: String
+  latitude: double
+  longitude: double
+  locationAccuracyMeters: double
+  locationIntegrityStatus: String, default='verified'
+  locationIntegrityReasons: String, default='Location checks passed'
+  locationIsDemo: bool, default=false
+  moderationStatus: String, default='passed'
+  submittedAt: DateTime, default=now
+indexes:
+  fieldnote_evidence_participation_idx:
+    fields: participationId
+    unique: true

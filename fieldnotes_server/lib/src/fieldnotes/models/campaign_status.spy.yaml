@@ -1,0 +1,6 @@
+enum: CampaignStatus
+values:
+  - draft
+  - active
+  - completed
+

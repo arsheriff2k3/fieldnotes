@@ -1,0 +1,10 @@
+class: TrustCenterSummary
+fields:
+  consent: LegalConsent?
+  recentEvents: List<AuditEvent>
+  privacyPolicyVersion: String
+  termsVersion: String
+  locationProtection: String
+  moderationProtection: String
+  paymentProtection: String
+  retentionNotice: String

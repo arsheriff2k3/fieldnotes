@@ -1,0 +1,9 @@
+enum: ObservationCondition
+values:
+  - healthy
+  - stressed
+  - damaged
+  - dead
+  - missing
+  - uncertain
+

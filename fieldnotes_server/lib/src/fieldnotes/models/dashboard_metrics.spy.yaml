@@ -1,0 +1,18 @@
+class: DashboardMetrics
+fields:
+  campaignId: int
+  expectedAssets: int
+  observedAssets: int
+  reviewedObservations: int
+  pendingReview: int
+  healthy: int
+  stressed: int
+  damaged: int
+  dead: int
+  missing: int
+  uncertain: int
+  openTasks: int
+  completedTasks: int
+  coveragePercent: double
+  survivalPercent: double
+

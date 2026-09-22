@@ -1,0 +1,4 @@
+exception: FieldnoteException
+fields:
+  message: String
+  code: String

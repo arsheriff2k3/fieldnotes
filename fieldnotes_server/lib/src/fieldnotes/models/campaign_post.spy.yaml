@@ -1,0 +1,13 @@
+class: CampaignPost
+table: fieldnote_campaign_post
+fields:
+  campaignId: int, relation(parent=fieldnote_campaign)
+  authorSponsorAuthUserId: UuidValue
+  title: String
+  body: String
+  photographPath: String?
+  createdAt: DateTime, default=now
+indexes:
+  fieldnote_post_campaign_idx:
+    fields: campaignId
+

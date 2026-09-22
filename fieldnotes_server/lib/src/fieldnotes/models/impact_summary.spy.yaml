@@ -1,0 +1,11 @@
+class: ImpactSummary
+fields:
+  campaignId: int
+  sponsorshipTotal: double
+  fundingGoal: double
+  joinedVolunteers: int
+  completedVolunteers: int
+  evidenceCount: int
+  summary: String
+  recentEvidence: List<CompletionEvidence>
+

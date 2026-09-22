@@ -1,0 +1,5 @@
+enum: AccountRole
+values:
+  - sponsor
+  - volunteer
+

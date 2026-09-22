@@ -1,0 +1,6 @@
+class: CampaignLiveUpdate
+fields:
+  campaignId: int
+  event: String
+  message: String
+  occurredAt: DateTime

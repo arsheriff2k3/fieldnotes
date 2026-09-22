@@ -1,0 +1,14 @@
+class: AuditEvent
+table: fieldnote_audit_event
+fields:
+  actorAuthUserId: UuidValue
+  event: String
+  entityType: String
+  entityId: String?
+  outcome: String
+  riskLevel: String
+  detail: String
+  occurredAt: DateTime, default=now
+indexes:
+  fieldnote_audit_actor_idx:
+    fields: actorAuthUserId

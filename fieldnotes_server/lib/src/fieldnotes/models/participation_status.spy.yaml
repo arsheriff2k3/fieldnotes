@@ -1,0 +1,6 @@
+enum: ParticipationStatus
+values:
+  - joined
+  - checkedIn
+  - completed
+

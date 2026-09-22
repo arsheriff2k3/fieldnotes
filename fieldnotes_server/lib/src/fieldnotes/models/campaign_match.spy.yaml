@@ -1,0 +1,8 @@
+class: CampaignMatch
+fields:
+  campaign: Campaign
+  score: double
+  distanceKm: double
+  availabilityMatches: bool
+  reasons: List<String>
+

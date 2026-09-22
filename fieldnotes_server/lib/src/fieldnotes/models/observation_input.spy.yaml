@@ -1,0 +1,17 @@
+class: ObservationInput
+fields:
+  clientId: String
+  campaignId: int
+  assetId: int?
+  capturedAt: DateTime
+  latitude: double
+  longitude: double
+  accuracyMeters: double
+  originalNote: String
+  species: String?
+  condition: ObservationCondition
+  issues: List<String>
+  recommendedFollowUp: String
+  aiConfidence: AiConfidence
+  aiRationale: String
+

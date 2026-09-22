@@ -1,0 +1,24 @@
+# Files and directories created by pub
+.dart_tool/
+.packages
+
+# Pubspec overrides
+pubspec_overrides.yaml
+
+# Agents
+.dart_skills/
+.agents/
+.claude/
+.gemini/
+.cursor/
+.vscode/mcp.json
+.codex/
+.mcp.json
+
+# Local secrets. Copy .env.example to .env and never commit .env.
+.env
+.env.*
+!.env.example
+
+# Serverpod Cloud CLI
+.scloud/

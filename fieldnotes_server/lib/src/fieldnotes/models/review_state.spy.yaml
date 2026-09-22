@@ -1,0 +1,7 @@
+enum: ReviewState
+values:
+  - awaitingReview
+  - approved
+  - changesRequested
+  - rejected
+

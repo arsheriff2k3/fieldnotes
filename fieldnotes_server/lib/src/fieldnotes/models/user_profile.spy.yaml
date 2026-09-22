@@ -1,0 +1,14 @@
+class: FieldnoteUserProfile
+table: fieldnote_user_profile
+fields:
+  authUserId: UuidValue, unique
+  role: AccountRole
+  displayName: String
+  sponsorType: String?
+  organizationName: String?
+  city: String
+  interests: String
+  skills: String
+  createdAt: DateTime, default=now
+  updatedAt: DateTime, default=now
+

@@ -1,0 +1,6 @@
+enum: AiConfidence
+values:
+  - low
+  - medium
+  - high
+
