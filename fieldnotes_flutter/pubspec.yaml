@@ -37,6 +37,7 @@ dependencies:
   record: ^7.1.1
   shared_preferences: ^2.5.5
   speech_to_text: ^7.3.0
+  web: ^1.1.1
   fieldnotes_client:
     path: ../fieldnotes_client
   serverpod_flutter: 4.0.0
