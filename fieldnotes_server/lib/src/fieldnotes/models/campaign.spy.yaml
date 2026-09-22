@@ -1,0 +1,29 @@
+class: Campaign
+table: fieldnote_campaign
+fields:
+  organizationId: int, relation(parent=fieldnote_organization)
+  name: String
+  description: String
+  locationName: String
+  startsAt: DateTime
+  endsAt: DateTime?
+  status: CampaignStatus
+  createdBy: UuidValue
+  fundingGoal: double, default=0
+  sponsoredAmount: double, default=0
+  latitude: double, default=18.5204
+  longitude: double, default=73.8567
+  geofenceMeters: double, default=200
+  volunteerCapacity: int, default=10
+  requiredSkills: String, default=''
+  checklist: String, default=''
+  evidenceInstructions: String, default=''
+  tags: String, default=''
+  aiGenerated: bool, default=false
+  coverImagePath: String?
+  publishedAt: DateTime?
+  createdAt: DateTime, default=now
+  updatedAt: DateTime, default=now
+indexes:
+  fieldnote_campaign_organization_idx:
+    fields: organizationId

@@ -1,0 +1,6 @@
+enum: ReviewOutcome
+values:
+  - approved
+  - corrected
+  - rejected
+

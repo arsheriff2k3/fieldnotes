@@ -1,0 +1,1138 @@
+/* AUTOMATICALLY GENERATED CODE DO NOT MODIFY */
+/*   To generate run: "serverpod generate"    */
+
+// ignore_for_file: implementation_imports
+// ignore_for_file: library_private_types_in_public_api
+// ignore_for_file: non_constant_identifier_names
+// ignore_for_file: public_member_api_docs
+// ignore_for_file: type_literal_in_constant_pattern
+// ignore_for_file: use_super_parameters
+// ignore_for_file: invalid_use_of_internal_member
+
+// ignore_for_file: no_leading_underscores_for_library_prefixes
+import 'dart:typed_data' as _idt;
+import 'package:fieldnotes_server/src/generated/fieldnotes/models/campaign_proposal.dart'
+    as _imistozd;
+import 'package:serverpod/serverpod.dart' as _is;
+import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
+    as _iacs;
+import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
+    as _iais;
+import '../auth/email_idp_endpoint.dart' as _iuc1hd5t;
+import '../auth/jwt_refresh_endpoint.dart' as _inwq3ztq;
+import '../fieldnotes/fieldnote_endpoint.dart' as _i4pdwwji;
+import '../greetings/greeting_endpoint.dart' as _il624ik7;
+
+class Endpoints extends _is.EndpointDispatch {
+  @override
+  void initializeEndpoints(_is.Server server) {
+    var endpoints = <String, _is.Endpoint>{
+      'emailIdp': _iuc1hd5t.EmailIdpEndpoint()
+        ..initialize(
+          server,
+          'emailIdp',
+          null,
+        ),
+      'jwtRefresh': _inwq3ztq.JwtRefreshEndpoint()
+        ..initialize(
+          server,
+          'jwtRefresh',
+          null,
+        ),
+      'fieldnote': _i4pdwwji.FieldnoteEndpoint()
+        ..initialize(
+          server,
+          'fieldnote',
+          null,
+        ),
+      'greeting': _il624ik7.GreetingEndpoint()
+        ..initialize(
+          server,
+          'greeting',
+          null,
+        ),
+    };
+    connectors['emailIdp'] = _is.EndpointConnector(
+      name: 'emailIdp',
+      endpoint: endpoints['emailIdp']!,
+      methodConnectors: {
+        'login': _is.MethodConnector(
+          name: 'login',
+          params: {
+            'email': _is.ParameterDescription(
+              name: 'email',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'password': _is.ParameterDescription(
+              name: 'password',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['emailIdp'] as _iuc1hd5t.EmailIdpEndpoint).login(
+                    session,
+                    email: params['email'],
+                    password: params['password'],
+                  ),
+        ),
+        'startRegistration': _is.MethodConnector(
+          name: 'startRegistration',
+          params: {
+            'email': _is.ParameterDescription(
+              name: 'email',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['emailIdp'] as _iuc1hd5t.EmailIdpEndpoint)
+                  .startRegistration(
+                    session,
+                    email: params['email'],
+                  ),
+        ),
+        'verifyRegistrationCode': _is.MethodConnector(
+          name: 'verifyRegistrationCode',
+          params: {
+            'accountRequestId': _is.ParameterDescription(
+              name: 'accountRequestId',
+              type: _is.getType<_is.UuidValue>(),
+              nullable: false,
+            ),
+            'verificationCode': _is.ParameterDescription(
+              name: 'verificationCode',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['emailIdp'] as _iuc1hd5t.EmailIdpEndpoint)
+                  .verifyRegistrationCode(
+                    session,
+                    accountRequestId: params['accountRequestId'],
+                    verificationCode: params['verificationCode'],
+                  ),
+        ),
+        'finishRegistration': _is.MethodConnector(
+          name: 'finishRegistration',
+          params: {
+            'registrationToken': _is.ParameterDescription(
+              name: 'registrationToken',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'password': _is.ParameterDescription(
+              name: 'password',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['emailIdp'] as _iuc1hd5t.EmailIdpEndpoint)
+                  .finishRegistration(
+                    session,
+                    registrationToken: params['registrationToken'],
+                    password: params['password'],
+                  ),
+        ),
+        'startPasswordReset': _is.MethodConnector(
+          name: 'startPasswordReset',
+          params: {
+            'email': _is.ParameterDescription(
+              name: 'email',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['emailIdp'] as _iuc1hd5t.EmailIdpEndpoint)
+                  .startPasswordReset(
+                    session,
+                    email: params['email'],
+                  ),
+        ),
+        'verifyPasswordResetCode': _is.MethodConnector(
+          name: 'verifyPasswordResetCode',
+          params: {
+            'passwordResetRequestId': _is.ParameterDescription(
+              name: 'passwordResetRequestId',
+              type: _is.getType<_is.UuidValue>(),
+              nullable: false,
+            ),
+            'verificationCode': _is.ParameterDescription(
+              name: 'verificationCode',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['emailIdp'] as _iuc1hd5t.EmailIdpEndpoint)
+                  .verifyPasswordResetCode(
+                    session,
+                    passwordResetRequestId: params['passwordResetRequestId'],
+                    verificationCode: params['verificationCode'],
+                  ),
+        ),
+        'finishPasswordReset': _is.MethodConnector(
+          name: 'finishPasswordReset',
+          params: {
+            'finishPasswordResetToken': _is.ParameterDescription(
+              name: 'finishPasswordResetToken',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'newPassword': _is.ParameterDescription(
+              name: 'newPassword',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['emailIdp'] as _iuc1hd5t.EmailIdpEndpoint)
+                  .finishPasswordReset(
+                    session,
+                    finishPasswordResetToken:
+                        params['finishPasswordResetToken'],
+                    newPassword: params['newPassword'],
+                  ),
+        ),
+        'hasAccount': _is.MethodConnector(
+          name: 'hasAccount',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['emailIdp'] as _iuc1hd5t.EmailIdpEndpoint)
+                  .hasAccount(session),
+        ),
+      },
+    );
+    connectors['jwtRefresh'] = _is.EndpointConnector(
+      name: 'jwtRefresh',
+      endpoint: endpoints['jwtRefresh']!,
+      methodConnectors: {
+        'refreshAccessToken': _is.MethodConnector(
+          name: 'refreshAccessToken',
+          params: {
+            'refreshToken': _is.ParameterDescription(
+              name: 'refreshToken',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['jwtRefresh'] as _inwq3ztq.JwtRefreshEndpoint)
+                      .refreshAccessToken(
+                        session,
+                        refreshToken: params['refreshToken'],
+                      ),
+        ),
+      },
+    );
+    connectors['fieldnote'] = _is.EndpointConnector(
+      name: 'fieldnote',
+      endpoint: endpoints['fieldnote']!,
+      methodConnectors: {
+        'getMyProfile': _is.MethodConnector(
+          name: 'getMyProfile',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .getMyProfile(session),
+        ),
+        'getMyLegalConsent': _is.MethodConnector(
+          name: 'getMyLegalConsent',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .getMyLegalConsent(session),
+        ),
+        'acceptLegalConsent': _is.MethodConnector(
+          name: 'acceptLegalConsent',
+          params: {
+            'locationConsent': _is.ParameterDescription(
+              name: 'locationConsent',
+              type: _is.getType<bool>(),
+              nullable: false,
+            ),
+            'aiProcessingConsent': _is.ParameterDescription(
+              name: 'aiProcessingConsent',
+              type: _is.getType<bool>(),
+              nullable: false,
+            ),
+            'evidenceSharingConsent': _is.ParameterDescription(
+              name: 'evidenceSharingConsent',
+              type: _is.getType<bool>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .acceptLegalConsent(
+                    session,
+                    params['locationConsent'],
+                    params['aiProcessingConsent'],
+                    params['evidenceSharingConsent'],
+                  ),
+        ),
+        'getTrustCenter': _is.MethodConnector(
+          name: 'getTrustCenter',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .getTrustCenter(session),
+        ),
+        'exportMyData': _is.MethodConnector(
+          name: 'exportMyData',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .exportMyData(session),
+        ),
+        'requestAccountDeletion': _is.MethodConnector(
+          name: 'requestAccountDeletion',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .requestAccountDeletion(session),
+        ),
+        'completeSponsorProfile': _is.MethodConnector(
+          name: 'completeSponsorProfile',
+          params: {
+            'displayName': _is.ParameterDescription(
+              name: 'displayName',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'sponsorType': _is.ParameterDescription(
+              name: 'sponsorType',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'organizationName': _is.ParameterDescription(
+              name: 'organizationName',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
+            'city': _is.ParameterDescription(
+              name: 'city',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'interests': _is.ParameterDescription(
+              name: 'interests',
+              type: _is.getType<List<String>>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .completeSponsorProfile(
+                    session,
+                    params['displayName'],
+                    params['sponsorType'],
+                    params['organizationName'],
+                    params['city'],
+                    params['interests'],
+                  ),
+        ),
+        'completeVolunteerProfile': _is.MethodConnector(
+          name: 'completeVolunteerProfile',
+          params: {
+            'displayName': _is.ParameterDescription(
+              name: 'displayName',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'city': _is.ParameterDescription(
+              name: 'city',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'interests': _is.ParameterDescription(
+              name: 'interests',
+              type: _is.getType<List<String>>(),
+              nullable: false,
+            ),
+            'skills': _is.ParameterDescription(
+              name: 'skills',
+              type: _is.getType<List<String>>(),
+              nullable: false,
+            ),
+            'isAvailable': _is.ParameterDescription(
+              name: 'isAvailable',
+              type: _is.getType<bool>(),
+              nullable: false,
+            ),
+            'availableToday': _is.ParameterDescription(
+              name: 'availableToday',
+              type: _is.getType<bool>(),
+              nullable: false,
+            ),
+            'weekdays': _is.ParameterDescription(
+              name: 'weekdays',
+              type: _is.getType<List<int>>(),
+              nullable: false,
+            ),
+            'startMinutes': _is.ParameterDescription(
+              name: 'startMinutes',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'endMinutes': _is.ParameterDescription(
+              name: 'endMinutes',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'maximumTravelKm': _is.ParameterDescription(
+              name: 'maximumTravelKm',
+              type: _is.getType<double>(),
+              nullable: false,
+            ),
+            'latitude': _is.ParameterDescription(
+              name: 'latitude',
+              type: _is.getType<double?>(),
+              nullable: true,
+            ),
+            'longitude': _is.ParameterDescription(
+              name: 'longitude',
+              type: _is.getType<double?>(),
+              nullable: true,
+            ),
+            'locationLabel': _is.ParameterDescription(
+              name: 'locationLabel',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .completeVolunteerProfile(
+                    session,
+                    params['displayName'],
+                    params['city'],
+                    params['interests'],
+                    params['skills'],
+                    params['isAvailable'],
+                    params['availableToday'],
+                    params['weekdays'],
+                    params['startMinutes'],
+                    params['endMinutes'],
+                    params['maximumTravelKm'],
+                    params['latitude'],
+                    params['longitude'],
+                    params['locationLabel'],
+                  ),
+        ),
+        'getMyAvailability': _is.MethodConnector(
+          name: 'getMyAvailability',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .getMyAvailability(session),
+        ),
+        'updateAvailability': _is.MethodConnector(
+          name: 'updateAvailability',
+          params: {
+            'isAvailable': _is.ParameterDescription(
+              name: 'isAvailable',
+              type: _is.getType<bool>(),
+              nullable: false,
+            ),
+            'availableToday': _is.ParameterDescription(
+              name: 'availableToday',
+              type: _is.getType<bool>(),
+              nullable: false,
+            ),
+            'weekdays': _is.ParameterDescription(
+              name: 'weekdays',
+              type: _is.getType<List<int>>(),
+              nullable: false,
+            ),
+            'startMinutes': _is.ParameterDescription(
+              name: 'startMinutes',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'endMinutes': _is.ParameterDescription(
+              name: 'endMinutes',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'maximumTravelKm': _is.ParameterDescription(
+              name: 'maximumTravelKm',
+              type: _is.getType<double>(),
+              nullable: false,
+            ),
+            'latitude': _is.ParameterDescription(
+              name: 'latitude',
+              type: _is.getType<double?>(),
+              nullable: true,
+            ),
+            'longitude': _is.ParameterDescription(
+              name: 'longitude',
+              type: _is.getType<double?>(),
+              nullable: true,
+            ),
+            'locationLabel': _is.ParameterDescription(
+              name: 'locationLabel',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .updateAvailability(
+                    session,
+                    params['isAvailable'],
+                    params['availableToday'],
+                    params['weekdays'],
+                    params['startMinutes'],
+                    params['endMinutes'],
+                    params['maximumTravelKm'],
+                    params['latitude'],
+                    params['longitude'],
+                    params['locationLabel'],
+                  ),
+        ),
+        'transcribeDictation': _is.MethodConnector(
+          name: 'transcribeDictation',
+          params: {
+            'audio': _is.ParameterDescription(
+              name: 'audio',
+              type: _is.getType<_idt.ByteData>(),
+              nullable: false,
+            ),
+            'fileName': _is.ParameterDescription(
+              name: 'fileName',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'mimeType': _is.ParameterDescription(
+              name: 'mimeType',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .transcribeDictation(
+                    session,
+                    params['audio'],
+                    params['fileName'],
+                    params['mimeType'],
+                  ),
+        ),
+        'proposeCampaign': _is.MethodConnector(
+          name: 'proposeCampaign',
+          params: {
+            'prompt': _is.ParameterDescription(
+              name: 'prompt',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .proposeCampaign(
+                    session,
+                    params['prompt'],
+                  ),
+        ),
+        'createCampaignFromProposal': _is.MethodConnector(
+          name: 'createCampaignFromProposal',
+          params: {
+            'proposal': _is.ParameterDescription(
+              name: 'proposal',
+              type: _is.getType<_imistozd.CampaignProposal>(),
+              nullable: false,
+            ),
+            'latitude': _is.ParameterDescription(
+              name: 'latitude',
+              type: _is.getType<double>(),
+              nullable: false,
+            ),
+            'longitude': _is.ParameterDescription(
+              name: 'longitude',
+              type: _is.getType<double>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .createCampaignFromProposal(
+                    session,
+                    params['proposal'],
+                    params['latitude'],
+                    params['longitude'],
+                  ),
+        ),
+        'listCampaigns': _is.MethodConnector(
+          name: 'listCampaigns',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .listCampaigns(session),
+        ),
+        'listMyCreatedCampaigns': _is.MethodConnector(
+          name: 'listMyCreatedCampaigns',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .listMyCreatedCampaigns(session),
+        ),
+        'createRazorpayOrder': _is.MethodConnector(
+          name: 'createRazorpayOrder',
+          params: {
+            'campaignId': _is.ParameterDescription(
+              name: 'campaignId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'amount': _is.ParameterDescription(
+              name: 'amount',
+              type: _is.getType<double>(),
+              nullable: false,
+            ),
+            'message': _is.ParameterDescription(
+              name: 'message',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .createRazorpayOrder(
+                    session,
+                    params['campaignId'],
+                    params['amount'],
+                    params['message'],
+                  ),
+        ),
+        'verifyRazorpayPayment': _is.MethodConnector(
+          name: 'verifyRazorpayPayment',
+          params: {
+            'sponsorshipId': _is.ParameterDescription(
+              name: 'sponsorshipId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'orderId': _is.ParameterDescription(
+              name: 'orderId',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'paymentId': _is.ParameterDescription(
+              name: 'paymentId',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'signature': _is.ParameterDescription(
+              name: 'signature',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .verifyRazorpayPayment(
+                    session,
+                    params['sponsorshipId'],
+                    params['orderId'],
+                    params['paymentId'],
+                    params['signature'],
+                  ),
+        ),
+        'recordRazorpayFailure': _is.MethodConnector(
+          name: 'recordRazorpayFailure',
+          params: {
+            'sponsorshipId': _is.ParameterDescription(
+              name: 'sponsorshipId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'reason': _is.ParameterDescription(
+              name: 'reason',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .recordRazorpayFailure(
+                    session,
+                    params['sponsorshipId'],
+                    params['reason'],
+                  ),
+        ),
+        'listMySponsorships': _is.MethodConnector(
+          name: 'listMySponsorships',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .listMySponsorships(session),
+        ),
+        'getCampaignMatches': _is.MethodConnector(
+          name: 'getCampaignMatches',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .getCampaignMatches(session),
+        ),
+        'joinCampaign': _is.MethodConnector(
+          name: 'joinCampaign',
+          params: {
+            'campaignId': _is.ParameterDescription(
+              name: 'campaignId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .joinCampaign(
+                    session,
+                    params['campaignId'],
+                  ),
+        ),
+        'listMyParticipations': _is.MethodConnector(
+          name: 'listMyParticipations',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .listMyParticipations(session),
+        ),
+        'checkIn': _is.MethodConnector(
+          name: 'checkIn',
+          params: {
+            'participationId': _is.ParameterDescription(
+              name: 'participationId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'latitude': _is.ParameterDescription(
+              name: 'latitude',
+              type: _is.getType<double>(),
+              nullable: false,
+            ),
+            'longitude': _is.ParameterDescription(
+              name: 'longitude',
+              type: _is.getType<double>(),
+              nullable: false,
+            ),
+            'accuracyMeters': _is.ParameterDescription(
+              name: 'accuracyMeters',
+              type: _is.getType<double>(),
+              nullable: false,
+            ),
+            'deviceReportedMock': _is.ParameterDescription(
+              name: 'deviceReportedMock',
+              type: _is.getType<bool>(),
+              nullable: false,
+            ),
+            'explicitDemo': _is.ParameterDescription(
+              name: 'explicitDemo',
+              type: _is.getType<bool>(),
+              nullable: false,
+            ),
+            'capturedAt': _is.ParameterDescription(
+              name: 'capturedAt',
+              type: _is.getType<DateTime>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .checkIn(
+                    session,
+                    params['participationId'],
+                    params['latitude'],
+                    params['longitude'],
+                    params['accuracyMeters'],
+                    params['deviceReportedMock'],
+                    params['explicitDemo'],
+                    params['capturedAt'],
+                  ),
+        ),
+        'analyzeCompletion': _is.MethodConnector(
+          name: 'analyzeCompletion',
+          params: {
+            'participationId': _is.ParameterDescription(
+              name: 'participationId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'note': _is.ParameterDescription(
+              name: 'note',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'photograph': _is.ParameterDescription(
+              name: 'photograph',
+              type: _is.getType<_idt.ByteData?>(),
+              nullable: true,
+            ),
+            'photographMimeType': _is.ParameterDescription(
+              name: 'photographMimeType',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .analyzeCompletion(
+                    session,
+                    params['participationId'],
+                    params['note'],
+                    params['photograph'],
+                    params['photographMimeType'],
+                  ),
+        ),
+        'getEvidenceUploadDescription': _is.MethodConnector(
+          name: 'getEvidenceUploadDescription',
+          params: {
+            'participationId': _is.ParameterDescription(
+              name: 'participationId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'extension': _is.ParameterDescription(
+              name: 'extension',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .getEvidenceUploadDescription(
+                    session,
+                    params['participationId'],
+                    params['extension'],
+                  ),
+        ),
+        'completeParticipation': _is.MethodConnector(
+          name: 'completeParticipation',
+          params: {
+            'participationId': _is.ParameterDescription(
+              name: 'participationId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'photoExtension': _is.ParameterDescription(
+              name: 'photoExtension',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'originalNote': _is.ParameterDescription(
+              name: 'originalNote',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'confirmedSummary': _is.ParameterDescription(
+              name: 'confirmedSummary',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'structuredResults': _is.ParameterDescription(
+              name: 'structuredResults',
+              type: _is.getType<List<String>>(),
+              nullable: false,
+            ),
+            'latitude': _is.ParameterDescription(
+              name: 'latitude',
+              type: _is.getType<double>(),
+              nullable: false,
+            ),
+            'longitude': _is.ParameterDescription(
+              name: 'longitude',
+              type: _is.getType<double>(),
+              nullable: false,
+            ),
+            'accuracyMeters': _is.ParameterDescription(
+              name: 'accuracyMeters',
+              type: _is.getType<double>(),
+              nullable: false,
+            ),
+            'deviceReportedMock': _is.ParameterDescription(
+              name: 'deviceReportedMock',
+              type: _is.getType<bool>(),
+              nullable: false,
+            ),
+            'explicitDemo': _is.ParameterDescription(
+              name: 'explicitDemo',
+              type: _is.getType<bool>(),
+              nullable: false,
+            ),
+            'capturedAt': _is.ParameterDescription(
+              name: 'capturedAt',
+              type: _is.getType<DateTime>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .completeParticipation(
+                    session,
+                    params['participationId'],
+                    params['photoExtension'],
+                    params['originalNote'],
+                    params['confirmedSummary'],
+                    params['structuredResults'],
+                    params['latitude'],
+                    params['longitude'],
+                    params['accuracyMeters'],
+                    params['deviceReportedMock'],
+                    params['explicitDemo'],
+                    params['capturedAt'],
+                  ),
+        ),
+        'getEvidenceDownloadUrl': _is.MethodConnector(
+          name: 'getEvidenceDownloadUrl',
+          params: {
+            'evidenceId': _is.ParameterDescription(
+              name: 'evidenceId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .getEvidenceDownloadUrl(
+                    session,
+                    params['evidenceId'],
+                  ),
+        ),
+        'getImpact': _is.MethodConnector(
+          name: 'getImpact',
+          params: {
+            'campaignId': _is.ParameterDescription(
+              name: 'campaignId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .getImpact(
+                    session,
+                    params['campaignId'],
+                  ),
+        ),
+        'createCampaignPost': _is.MethodConnector(
+          name: 'createCampaignPost',
+          params: {
+            'campaignId': _is.ParameterDescription(
+              name: 'campaignId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'title': _is.ParameterDescription(
+              name: 'title',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'body': _is.ParameterDescription(
+              name: 'body',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .createCampaignPost(
+                    session,
+                    params['campaignId'],
+                    params['title'],
+                    params['body'],
+                  ),
+        ),
+        'listCampaignPosts': _is.MethodConnector(
+          name: 'listCampaignPosts',
+          params: {
+            'campaignId': _is.ParameterDescription(
+              name: 'campaignId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .listCampaignPosts(
+                    session,
+                    params['campaignId'],
+                  ),
+        ),
+        'watchCampaign': _is.MethodStreamConnector(
+          name: 'watchCampaign',
+          params: {
+            'campaignId': _is.ParameterDescription(
+              name: 'campaignId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          streamParams: {},
+          returnType: _is.MethodStreamReturnType.streamType,
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+                Map<String, Stream> streamParams,
+              ) => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .watchCampaign(
+                    session,
+                    params['campaignId'],
+                  ),
+        ),
+      },
+    );
+    connectors['greeting'] = _is.EndpointConnector(
+      name: 'greeting',
+      endpoint: endpoints['greeting']!,
+      methodConnectors: {
+        'hello': _is.MethodConnector(
+          name: 'hello',
+          params: {
+            'name': _is.ParameterDescription(
+              name: 'name',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['greeting'] as _il624ik7.GreetingEndpoint).hello(
+                    session,
+                    params['name'],
+                  ),
+        ),
+      },
+    );
+    modules['serverpod_auth_idp'] = _iais.Endpoints()
+      ..initializeEndpoints(server);
+    modules['serverpod_auth_core'] = _iacs.Endpoints()
+      ..initializeEndpoints(server);
+  }
+}

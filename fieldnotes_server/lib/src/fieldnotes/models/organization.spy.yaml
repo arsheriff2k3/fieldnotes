@@ -1,0 +1,10 @@
+class: Organization
+table: fieldnote_organization
+fields:
+  name: String
+  createdBy: UuidValue
+  createdAt: DateTime, default=now
+indexes:
+  fieldnote_organization_name_idx:
+    fields: name
+

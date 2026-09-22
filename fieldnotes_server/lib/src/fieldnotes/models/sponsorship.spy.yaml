@@ -1,0 +1,21 @@
+class: Sponsorship
+table: fieldnote_sponsorship
+fields:
+  campaignId: int, relation(parent=fieldnote_campaign)
+  sponsorAuthUserId: UuidValue
+  amount: double
+  message: String?
+  paymentProvider: String, default='razorpay'
+  paymentStatus: String, default='created'
+  providerOrderId: String?
+  providerPaymentId: String?
+  verifiedAt: DateTime?
+  createdAt: DateTime, default=now
+indexes:
+  fieldnote_sponsorship_campaign_idx:
+    fields: campaignId
+  fieldnote_sponsorship_sponsor_idx:
+    fields: sponsorAuthUserId
+  fieldnote_sponsorship_provider_order_idx:
+    fields: providerOrderId
+    unique: true

@@ -1,0 +1,9 @@
+class: ObservationProposal
+fields:
+  species: String?
+  condition: ObservationCondition
+  issues: List<String>
+  recommendedFollowUp: String
+  confidence: AiConfidence
+  rationale: String
+

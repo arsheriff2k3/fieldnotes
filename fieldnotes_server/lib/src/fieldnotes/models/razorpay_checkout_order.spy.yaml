@@ -1,0 +1,9 @@
+class: RazorpayCheckoutOrder
+fields:
+  sponsorshipId: int
+  orderId: String
+  keyId: String
+  amountPaise: int
+  currency: String
+  campaignName: String
+  description: String

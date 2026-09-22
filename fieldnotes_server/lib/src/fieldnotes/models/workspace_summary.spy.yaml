@@ -1,0 +1,6 @@
+class: WorkspaceSummary
+fields:
+  organization: Organization
+  membership: OrganizationMember
+  campaigns: List<Campaign>
+

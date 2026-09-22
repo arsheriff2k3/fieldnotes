@@ -1,0 +1,8 @@
+class: CompletionProposal
+fields:
+  summary: String
+  structuredResults: List<String>
+  suggestedFollowUp: String
+  confidence: AiConfidence
+  rationale: String
+

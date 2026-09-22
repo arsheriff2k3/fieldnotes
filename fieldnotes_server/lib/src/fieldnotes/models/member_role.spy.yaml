@@ -1,0 +1,6 @@
+enum: MemberRole
+values:
+  - coordinator
+  - volunteer
+  - reviewer
+

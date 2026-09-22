@@ -1,0 +1,7 @@
+enum: TaskStatus
+values:
+  - open
+  - inProgress
+  - completed
+  - cancelled
+

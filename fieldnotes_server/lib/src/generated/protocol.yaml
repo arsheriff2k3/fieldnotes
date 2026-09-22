@@ -1,0 +1,45 @@
+emailIdp:
+  - login:
+  - startRegistration:
+  - verifyRegistrationCode:
+  - finishRegistration:
+  - startPasswordReset:
+  - verifyPasswordResetCode:
+  - finishPasswordReset:
+  - hasAccount:
+jwtRefresh:
+  - refreshAccessToken:
+fieldnote:
+  - getMyProfile:
+  - getMyLegalConsent:
+  - acceptLegalConsent:
+  - getTrustCenter:
+  - exportMyData:
+  - requestAccountDeletion:
+  - completeSponsorProfile:
+  - completeVolunteerProfile:
+  - getMyAvailability:
+  - updateAvailability:
+  - transcribeDictation:
+  - proposeCampaign:
+  - createCampaignFromProposal:
+  - listCampaigns:
+  - listMyCreatedCampaigns:
+  - createRazorpayOrder:
+  - verifyRazorpayPayment:
+  - recordRazorpayFailure:
+  - listMySponsorships:
+  - getCampaignMatches:
+  - joinCampaign:
+  - listMyParticipations:
+  - checkIn:
+  - analyzeCompletion:
+  - getEvidenceUploadDescription:
+  - completeParticipation:
+  - getEvidenceDownloadUrl:
+  - getImpact:
+  - createCampaignPost:
+  - listCampaignPosts:
+  - watchCampaign:
+greeting:
+  - hello:
