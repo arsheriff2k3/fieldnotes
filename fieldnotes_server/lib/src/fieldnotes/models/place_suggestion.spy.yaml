@@ -1,0 +1,8 @@
+### A single Google Places autocomplete candidate.
+### Only the opaque place id and the display texts cross the wire; the
+### Places API key stays in Serverpod passwords.
+class: PlaceSuggestion
+fields:
+  placeId: String
+  primaryText: String
+  secondaryText: String

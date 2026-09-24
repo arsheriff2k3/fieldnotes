@@ -19,7 +19,9 @@ Core workflow:
 - The Trust area shows versioned consent, payment/location/moderation audit events, JSON data export, and a locally queued deletion request.
 - Live GPS checks freshness, accuracy, valid bounds, device mock flags, geofence, and movement continuity. Explicit hackathon GPS remains labeled as demo data.
 
-Hand-written backend code lives under `fieldnotes_server/lib/src/fieldnotes/`. Data contracts are `.spy.yaml` files under `models/`; `fieldnote_endpoint.dart` is the RPC boundary; `services/gemini_ai_service.dart` is the hosted structured/multimodal AI provider and `services/hackathon_ai_service.dart` is its credential-free development fallback. Never put business logic in generated files.
+Hand-written backend code lives under `fieldnotes_server/lib/src/fieldnotes/`. Data contracts are `.spy.yaml` files under `models/`; `fieldnote_endpoint.dart` is the RPC boundary; `services/gemini_ai_service.dart` is the hosted structured/multimodal AI provider and `services/hackathon_ai_service.dart` is its credential-free development fallback. `services/google_maps_service.dart` holds the billed Google Maps web-service calls (Places, Geocoding, Routes) behind the `googleMapsApiKey` password. Never put business logic in generated files.
+
+Google Maps is additive and never load-bearing. Map tiles use platform-restricted client keys from `fieldnotes_flutter/.env.maps`; when the current platform's key is absent every map renders a coordinate fallback panel and the app behaves exactly as it did before Maps. Geofence admission in `checkIn` uses the server's own haversine maths and must never depend on a Google call. Routes travel time refines match *ranking* only. Sponsor reach previews return k-anonymised buckets, never individual volunteer coordinates. See `docs/SECRETS_AND_EXTERNAL_SERVICES.md`.
 
 The Flutter app uses a small MVVM/repository layout:
 

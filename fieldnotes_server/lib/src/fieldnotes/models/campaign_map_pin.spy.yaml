@@ -1,0 +1,17 @@
+### One plottable point of proof on the sponsor campaign map: either a GPS
+### check-in or a completed evidence submission. Integrity status and the demo
+### flag travel with the pin so simulated GPS is never drawn as verified.
+class: CampaignMapPin
+fields:
+  participationId: int
+  evidenceId: int?
+  kind: String
+  latitude: double
+  longitude: double
+  accuracyMeters: double
+  distanceMeters: double
+  integrityStatus: String
+  integrityReasons: String
+  isDemo: bool
+  label: String
+  occurredAt: DateTime

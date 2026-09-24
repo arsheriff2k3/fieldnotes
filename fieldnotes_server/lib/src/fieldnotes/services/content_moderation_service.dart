@@ -8,7 +8,7 @@ class ModerationDecision {
   final List<String> categories;
 }
 
-/// Fast, deterministic first-pass moderation for the local demo.
+/// Fast, deterministic first-pass moderation before content is stored.
 ///
 /// Gemini still provides its provider safety filters for AI calls. This layer
 /// keeps obviously unsafe text from being stored or sent to a provider and is

@@ -30,8 +30,10 @@ dependencies:
   flutter:
     sdk: flutter
   google_fonts: ^8.1.0
+  google_maps_flutter: ^2.9.0
   geolocator: ^14.0.2
   image_picker: ^1.2.1
+  url_launcher: ^6.3.0
   intl: ^0.20.2
   razorpay_flutter: ^1.4.7
   record: ^7.1.1
@@ -77,6 +79,7 @@ flutter:
   # https://flutter.dev/assets-and-images/#from-packages
   assets:
     - assets/config.json
+    - .env.maps
 
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a

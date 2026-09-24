@@ -8,23 +8,33 @@ import 'package:intl/intl.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 import '../../../data/services/device_location_service.dart';
+import '../../../data/services/map_launcher_service.dart';
+import '../../core/fieldnote_map.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/widgets.dart';
-import '../shell/hackathon_view_model.dart';
+import '../shell/fieldnote_view_model.dart';
 import '../sponsor/sponsor_views.dart';
 
-class VolunteerMatchesView extends StatelessWidget {
+class VolunteerMatchesView extends StatefulWidget {
   const VolunteerMatchesView({super.key, required this.viewModel});
 
-  final HackathonViewModel viewModel;
+  final FieldnoteViewModel viewModel;
+
+  @override
+  State<VolunteerMatchesView> createState() => _VolunteerMatchesViewState();
+}
+
+class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
+  bool _mapView = false;
+
+  FieldnoteViewModel get viewModel => widget.viewModel;
 
   @override
   Widget build(BuildContext context) {
     final availability = viewModel.availability;
     return RefreshIndicator(
       onRefresh: viewModel.refresh,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(24, 28, 24, 100),
+      child: FieldnotePageList(
         children: [
           SectionHeading(
             eyebrow: 'AI opportunity matching',
@@ -43,7 +53,29 @@ class VolunteerMatchesView extends StatelessWidget {
                   : Icons.pause,
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 18),
+          if (viewModel.matches.isNotEmpty && mapsAvailable)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: SegmentedButton<bool>(
+                segments: const [
+                  ButtonSegment(
+                    value: false,
+                    icon: Icon(Icons.view_agenda_outlined),
+                    label: Text('List'),
+                  ),
+                  ButtonSegment(
+                    value: true,
+                    icon: Icon(Icons.map_outlined),
+                    label: Text('Map'),
+                  ),
+                ],
+                selected: {_mapView},
+                onSelectionChanged: (value) =>
+                    setState(() => _mapView = value.first),
+              ),
+            ),
+          const SizedBox(height: 18),
           if (viewModel.matches.isEmpty)
             EmptyPanel(
               icon: Icons.travel_explore,
@@ -52,39 +84,112 @@ class VolunteerMatchesView extends StatelessWidget {
                   ? 'Try increasing your travel radius or choosing more available days.'
                   : 'Turn on availability to let AI recommend campaigns.',
             )
+          else if (_mapView && mapsAvailable)
+            _MatchMap(
+              matches: viewModel.matches,
+              availability: availability,
+              onOpen: _openMatch,
+            )
           else
-            LayoutBuilder(
-              builder: (context, constraints) => GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: viewModel.matches.length,
-                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 520,
-                  mainAxisExtent: 390,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                ),
-                itemBuilder: (context, index) {
-                  final match = viewModel.matches[index];
-                  final joined = viewModel.participationFor(match.campaign.id!);
-                  return CampaignCard(
-                    campaign: match.campaign,
-                    score: match.score,
-                    reasons: [
-                      ...match.reasons,
-                      '${match.distanceKm.toStringAsFixed(1)} km away',
-                    ],
-                    actionLabel: joined == null
-                        ? 'Join campaign'
-                        : 'View my work',
-                    onAction: joined == null
-                        ? () => _join(context, match.campaign)
-                        : () => viewModel.selectSection(1),
-                  );
-                },
-              ),
+            ResponsiveCardGrid(
+              children: [
+                for (var index = 0; index < viewModel.matches.length; index++)
+                  Builder(
+                    builder: (context) {
+                      final match = viewModel.matches[index];
+                      final joined = viewModel.participationFor(
+                        match.campaign.id!,
+                      );
+                      return CampaignCard(
+                        campaign: match.campaign,
+                        score: match.score,
+                        reasons: [...match.reasons, distanceLabel(match)],
+                        actionLabel: joined == null
+                            ? 'Join campaign'
+                            : 'View my work',
+                        onAction: joined == null
+                            ? () => _join(context, match.campaign)
+                            : () => viewModel.selectSection(1),
+                      );
+                    },
+                  ),
+              ],
             ),
         ],
+      ),
+    );
+  }
+
+  void _openMatch(CampaignMatch match) {
+    showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                match.campaign.name,
+                style: Theme.of(sheetContext).textTheme.headlineMedium,
+              ),
+              const SizedBox(height: 6),
+              Text(match.campaign.locationName),
+              const SizedBox(height: 14),
+              ...[...match.reasons, distanceLabel(match)].map(
+                (reason) => Padding(
+                  padding: const EdgeInsets.only(bottom: 7),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.check_circle_outline, size: 17),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(reason)),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => MapLauncher.openDirections(
+                        latitude: match.campaign.latitude,
+                        longitude: match.campaign.longitude,
+                      ),
+                      icon: const Icon(Icons.directions_outlined),
+                      label: const Text('Directions'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed:
+                          viewModel.participationFor(match.campaign.id!) == null
+                          ? () {
+                              Navigator.pop(sheetContext);
+                              _join(context, match.campaign);
+                            }
+                          : () {
+                              Navigator.pop(sheetContext);
+                              viewModel.selectSection(1);
+                            },
+                      icon: const Icon(Icons.how_to_reg_outlined),
+                      label: Text(
+                        viewModel.participationFor(match.campaign.id!) == null
+                            ? 'Join'
+                            : 'My work',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -103,17 +208,125 @@ class VolunteerMatchesView extends StatelessWidget {
   }
 }
 
+/// Prefers the Routes API travel time over straight-line distance, because
+/// "18 min drive" is what a volunteer actually decides on. Falls back to the
+/// haversine figure whenever Routes is unconfigured or unreachable.
+String distanceLabel(CampaignMatch match) {
+  final minutes = match.travelMinutes;
+  if (minutes == null) {
+    return '${match.distanceKm.toStringAsFixed(1)} km away (straight line)';
+  }
+  final byRoad = match.travelDistanceKm ?? match.distanceKm;
+  return '$minutes min drive · ${byRoad.toStringAsFixed(1)} km by road';
+}
+
+/// Every match as a pin inside the volunteer's own travel radius.
+class _MatchMap extends StatelessWidget {
+  const _MatchMap({
+    required this.matches,
+    required this.availability,
+    required this.onOpen,
+  });
+
+  final List<CampaignMatch> matches;
+  final VolunteerAvailability? availability;
+  final void Function(CampaignMatch match) onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final homeLatitude = availability?.latitude;
+    final homeLongitude = availability?.longitude;
+    final home = homeLatitude == null || homeLongitude == null
+        ? null
+        : LatLng(homeLatitude, homeLongitude);
+    final points = [
+      ?home,
+      for (final match in matches)
+        LatLng(match.campaign.latitude, match.campaign.longitude),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        FieldnoteMap(
+          target: points.first,
+          height: 420,
+          semanticLabel: 'Map of matched campaigns inside your travel radius',
+          fitBounds: points,
+          markers: {
+            if (home != null)
+              Marker(
+                markerId: const MarkerId('home'),
+                position: home,
+                icon: BitmapDescriptor.defaultMarkerWithHue(
+                  FieldnoteMapPalette.volunteer,
+                ),
+                infoWindow: InfoWindow(
+                  title: 'Your area',
+                  snippet: availability?.locationLabel,
+                ),
+              ),
+            for (final match in matches)
+              Marker(
+                markerId: MarkerId('campaign-${match.campaign.id}'),
+                position: LatLng(
+                  match.campaign.latitude,
+                  match.campaign.longitude,
+                ),
+                // Strong matches stay green; weaker ones fade to orange so the
+                // map carries the same ranking the list does.
+                icon: BitmapDescriptor.defaultMarkerWithHue(
+                  match.score >= 70
+                      ? FieldnoteMapPalette.campaign
+                      : match.score >= 45
+                      ? BitmapDescriptor.hueYellow
+                      : BitmapDescriptor.hueOrange,
+                ),
+                infoWindow: InfoWindow(
+                  title: '${match.campaign.name} · ${match.score.round()}%',
+                  snippet: distanceLabel(match),
+                ),
+                onTap: () => onOpen(match),
+              ),
+          },
+          circles: {
+            if (home != null && availability != null)
+              radiusCircle(
+                id: 'travel-radius',
+                center: home,
+                radiusMeters: availability!.maximumTravelKm * 1000,
+                color: FieldnoteColors.forest,
+              ),
+          },
+        ),
+        const SizedBox(height: 10),
+        const MapLegend(
+          entries: [
+            (color: FieldnoteColors.forest, label: 'Strong match'),
+            (color: Color(0xFFE0B341), label: 'Moderate match'),
+            (color: FieldnoteColors.clay, label: 'Weaker match'),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Tap a pin for the full score explanation. The ring is your saved '
+          'travel radius.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ],
+    );
+  }
+}
+
 class VolunteerWorkView extends StatelessWidget {
   const VolunteerWorkView({super.key, required this.viewModel});
 
-  final HackathonViewModel viewModel;
+  final FieldnoteViewModel viewModel;
 
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
       onRefresh: viewModel.refresh,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(24, 28, 24, 100),
+      child: FieldnotePageList(
         children: [
           const SectionHeading(
             eyebrow: 'Volunteer mission control',
@@ -157,7 +370,7 @@ class _MissionCard extends StatefulWidget {
 
   final Campaign campaign;
   final CampaignParticipation participation;
-  final HackathonViewModel viewModel;
+  final FieldnoteViewModel viewModel;
 
   @override
   State<_MissionCard> createState() => _MissionCardState();
@@ -212,7 +425,7 @@ class _MissionCardState extends State<_MissionCard> {
     if (mounted) setState(() => _tracking = false);
   }
 
-  Future<void> _checkIn({bool demo = false}) async {
+  Future<void> _checkIn() async {
     setState(() => _working = true);
     try {
       final recentLive = _liveLocation;
@@ -220,14 +433,9 @@ class _MissionCardState extends State<_MissionCard> {
           recentLive != null &&
           DateTime.now().toUtc().difference(recentLive.capturedAt).abs() <
               const Duration(seconds: 30);
-      final location = demo
-          ? DeviceLocation.demoAt(
-              widget.campaign.latitude,
-              widget.campaign.longitude,
-            )
-          : canUseTrackedLocation
+      final location = canUseTrackedLocation
           ? recentLive
-          : await _locationService.current(allowDemoFallback: false);
+          : await _locationService.current();
       await widget.viewModel.checkIn(
         widget.participation,
         location.latitude,
@@ -241,43 +449,16 @@ class _MissionCardState extends State<_MissionCard> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            demo
-                ? 'Demo GPS check-in confirmed.'
-                : 'On-site GPS check-in confirmed.',
+            'On-site GPS check-in confirmed.',
           ),
         ),
       );
     } catch (error) {
       if (!mounted) return;
-      await _offerDemoCheckIn(error);
+      _showError(context, error, 'Live GPS check-in was not available.');
     } finally {
       if (mounted) setState(() => _working = false);
     }
-  }
-
-  Future<void> _offerDemoCheckIn(Object error) async {
-    final useDemo = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Outside the campaign area'),
-        content: Text(
-          '${_errorText(error, 'Live GPS check-in was not available.')}\n\n'
-          'For a local hackathon demo, you can simulate standing at the campaign pin. This is clearly labeled and never used silently.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton.icon(
-            onPressed: () => Navigator.pop(context, true),
-            icon: const Icon(Icons.science_outlined),
-            label: const Text('Use demo GPS'),
-          ),
-        ],
-      ),
-    );
-    if (useDemo == true && mounted) await _checkIn(demo: true);
   }
 
   @override
@@ -440,7 +621,9 @@ class _MissionCardState extends State<_MissionCard> {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
+          _approachMap(context, location, distance, inside),
+          const SizedBox(height: 12),
           if (location == null && _locationError == null)
             const Text(
               'Start tracking to request Precise Location and show live coordinates, accuracy, mock-location status, and geofence distance.',
@@ -487,14 +670,28 @@ class _MissionCardState extends State<_MissionCard> {
             ),
           ],
           const SizedBox(height: 10),
-          OutlinedButton.icon(
-            onPressed: _tracking ? _stopTracking : _startTracking,
-            icon: Icon(
-              _tracking ? Icons.stop_circle_outlined : Icons.my_location,
-            ),
-            label: Text(
-              _tracking ? 'Stop live tracking' : 'Enable live location',
-            ),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              OutlinedButton.icon(
+                onPressed: _tracking ? _stopTracking : _startTracking,
+                icon: Icon(
+                  _tracking ? Icons.stop_circle_outlined : Icons.my_location,
+                ),
+                label: Text(
+                  _tracking ? 'Stop live tracking' : 'Enable live location',
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => MapLauncher.openDirections(
+                  latitude: widget.campaign.latitude,
+                  longitude: widget.campaign.longitude,
+                ),
+                icon: const Icon(Icons.directions_walk),
+                label: const Text('Navigate here'),
+              ),
+            ],
           ),
           const SizedBox(height: 4),
           const Text(
@@ -503,6 +700,116 @@ class _MissionCardState extends State<_MissionCard> {
           ),
         ],
       ),
+    );
+  }
+
+  /// The approach map. Before this existed a volunteer who failed the geofence
+  /// check was told only "you are 412 m away" with no indication of which way
+  /// to walk, which was the highest-friction moment in the whole flow.
+  Widget _approachMap(
+    BuildContext context,
+    DeviceLocation? location,
+    double? distance,
+    bool inside,
+  ) {
+    final campaignPoint = LatLng(
+      widget.campaign.latitude,
+      widget.campaign.longitude,
+    );
+    final here = location == null
+        ? null
+        : LatLng(location.latitude, location.longitude);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        FieldnoteMap(
+          target: campaignPoint,
+          zoom: zoomForRadius(widget.campaign.geofenceMeters),
+          height: 210,
+          semanticLabel:
+              'Map showing the campaign geofence and your live position',
+          fitBounds: here == null ? null : [campaignPoint, here],
+          myLocationEnabled: _tracking,
+          markers: {
+            Marker(
+              markerId: const MarkerId('campaign'),
+              position: campaignPoint,
+              icon: BitmapDescriptor.defaultMarkerWithHue(
+                FieldnoteMapPalette.campaign,
+              ),
+              infoWindow: InfoWindow(
+                title: widget.campaign.name,
+                snippet: widget.campaign.locationName,
+              ),
+            ),
+            if (here != null)
+              Marker(
+                markerId: const MarkerId('me'),
+                position: here,
+                icon: BitmapDescriptor.defaultMarkerWithHue(
+                  inside
+                      ? FieldnoteMapPalette.verified
+                      : FieldnoteMapPalette.volunteer,
+                ),
+                infoWindow: InfoWindow(
+                  title: 'You are here',
+                  snippet: distance == null
+                      ? null
+                      : '${distance.round()} m from the pin',
+                ),
+              ),
+          },
+          circles: {
+            radiusCircle(
+              id: 'geofence',
+              center: campaignPoint,
+              radiusMeters: widget.campaign.geofenceMeters,
+              color: inside ? FieldnoteColors.forest : FieldnoteColors.clay,
+            ),
+            if (here != null && location != null)
+              radiusCircle(
+                id: 'accuracy',
+                center: here,
+                radiusMeters: location.accuracyMeters,
+                color: FieldnoteColors.moss,
+                strokeWidth: 1,
+              ),
+          },
+          polylines: {
+            if (here != null)
+              Polyline(
+                polylineId: const PolylineId('approach'),
+                points: [here, campaignPoint],
+                color: FieldnoteColors.clay.withValues(alpha: .7),
+                width: 3,
+                patterns: const [],
+              ),
+          },
+          fallback: MapUnavailableNotice(
+            message: distance == null
+                ? 'Map preview is off. Enable live location for a distance '
+                      'readout, or add a Maps key to draw the geofence.'
+                : 'Map preview is off. You are ${distance.round()} m from the '
+                      'campaign pin (geofence '
+                      '${widget.campaign.geofenceMeters.round()} m).',
+          ),
+        ),
+        if (mapsAvailable) ...[
+          const SizedBox(height: 8),
+          MapLegend(
+            entries: [
+              (color: FieldnoteColors.forest, label: 'Campaign pin'),
+              (
+                color: inside ? FieldnoteColors.forest : FieldnoteColors.clay,
+                label:
+                    'Geofence '
+                    '${widget.campaign.geofenceMeters.round()} m',
+              ),
+              (color: FieldnoteColors.moss, label: 'Your GPS accuracy'),
+            ],
+          ),
+        ],
+      ],
     );
   }
 }
@@ -543,7 +850,7 @@ class CompletionEvidenceSheet extends StatefulWidget {
 
   final Campaign campaign;
   final CampaignParticipation participation;
-  final HackathonViewModel viewModel;
+  final FieldnoteViewModel viewModel;
 
   @override
   State<CompletionEvidenceSheet> createState() =>
@@ -673,12 +980,7 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
     }
     setState(() => _working = true);
     try {
-      final gps = widget.participation.locationIsDemo
-          ? DeviceLocation.demoAt(
-              widget.campaign.latitude,
-              widget.campaign.longitude,
-            )
-          : await _location.current(allowDemoFallback: false);
+      final gps = await _location.current();
       await widget.viewModel.repository.completeWithEvidence(
         participationId: widget.participation.id!,
         photograph: _photo!,
@@ -732,7 +1034,7 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
             eyebrow: 'AI evidence assistant',
             title: 'Show what changed',
             description:
-                'Capture one photo, dictate the result, then confirm the AI-generated summary.',
+                'Capture one photo, describe the result, then confirm the structured summary.',
           ),
           const SizedBox(height: 20),
           GestureDetector(
@@ -767,7 +1069,7 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
             label: const Text('Choose from gallery'),
           ),
           const SizedBox(height: 16),
-          TextField(
+          FieldnoteTextField(
             controller: _note,
             minLines: 3,
             maxLines: 6,
@@ -801,7 +1103,7 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
                     icon: Icons.auto_awesome,
                   ),
                   const SizedBox(height: 12),
-                  TextField(
+                  FieldnoteTextField(
                     controller: _summary,
                     minLines: 2,
                     maxLines: 4,
@@ -844,7 +1146,7 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
 class VolunteerAvailabilityView extends StatefulWidget {
   const VolunteerAvailabilityView({super.key, required this.viewModel});
 
-  final HackathonViewModel viewModel;
+  final FieldnoteViewModel viewModel;
 
   @override
   State<VolunteerAvailabilityView> createState() =>
@@ -860,6 +1162,13 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
   DeviceLocation? _location;
   bool _saving = false;
 
+  /// True once the volunteer has dragged or tapped the pin themselves, which
+  /// makes the saved area a deliberate choice rather than wherever the device
+  /// happened to be.
+  bool _pinnedByHand = false;
+  String? _areaName;
+  int _geocodeRequest = 0;
+
   @override
   void initState() {
     super.initState();
@@ -872,17 +1181,54 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
         value.weekdays.split(',').map(int.tryParse).whereType<int>(),
       );
       if (value.latitude != null && value.longitude != null) {
+        _areaName = value.locationLabel;
         _location = DeviceLocation(
           latitude: value.latitude!,
           longitude: value.longitude!,
           accuracyMeters: 50,
-          isLive: value.locationLabel != 'Hackathon demo venue',
-          isMocked: value.locationLabel == 'Hackathon demo venue',
+          isLive: true,
+          isMocked: false,
           capturedAt: DateTime.now().toUtc(),
-          isDemo: value.locationLabel == 'Hackathon demo venue',
+          isDemo: false,
         );
       }
     }
+  }
+
+  /// Moves the saved area pin and asks the server to name it. Reverse
+  /// geocoding is best-effort: a null answer just leaves the previous label.
+  Future<void> _movePin(LatLng point) async {
+    setState(() {
+      _pinnedByHand = true;
+      _areaName = null;
+      _location = DeviceLocation(
+        latitude: point.latitude,
+        longitude: point.longitude,
+        accuracyMeters: 50,
+        isLive: true,
+        isMocked: false,
+        capturedAt: DateTime.now().toUtc(),
+        isDemo: false,
+      );
+    });
+    final request = ++_geocodeRequest;
+    try {
+      final place = await widget.viewModel.repository.describeCoordinates(
+        point.latitude,
+        point.longitude,
+      );
+      // Ignore a slow answer that lost the race to a newer drag.
+      if (!mounted || request != _geocodeRequest || place == null) return;
+      setState(() => _areaName = place.name.isEmpty ? null : place.name);
+    } on Object {
+      // Naming the pin is a nicety; the coordinates are what matter.
+    }
+  }
+
+  String get _savedLabel {
+    final name = _areaName?.trim();
+    if (name != null && name.isNotEmpty) return name;
+    return _pinnedByHand ? 'Chosen map area' : 'Current GPS area';
   }
 
   Future<void> _save() async {
@@ -898,9 +1244,7 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
         maximumTravelKm: _radius,
         latitude: _location!.latitude,
         longitude: _location!.longitude,
-        locationLabel: _location!.isLive
-            ? 'Current GPS area'
-            : 'Hackathon demo venue',
+        locationLabel: _savedLabel,
       );
       await widget.viewModel.availabilityUpdated();
       if (mounted) {
@@ -928,8 +1272,7 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
       6: 'Sat',
       7: 'Sun',
     };
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 28, 24, 100),
+    return FieldnotePageList(
       children: [
         const SectionHeading(
           eyebrow: 'Your most important setting',
@@ -982,6 +1325,19 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
               ),
               const SizedBox(height: 22),
               Text(
+                'Where you can travel from',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Drag the pin to the area you actually set out from. The ring '
+                'is the radius below, drawn to scale.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 12),
+              _areaMap(context),
+              const SizedBox(height: 16),
+              Text(
                 'Maximum travel · ${_radius.round()} km',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
@@ -997,15 +1353,22 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
               OutlinedButton.icon(
                 onPressed: () async {
                   final location = await _locationService.current();
-                  if (mounted) setState(() => _location = location);
+                  if (!mounted) return;
+                  setState(() {
+                    _location = location;
+                    _pinnedByHand = false;
+                    _areaName = null;
+                  });
                 },
                 icon: const Icon(Icons.my_location),
                 label: Text(
                   _location == null
-                      ? 'Update my GPS area'
+                      ? 'Use my current GPS area'
+                      : _pinnedByHand
+                      ? 'Reset to my current GPS area'
                       : _location!.isLive
                       ? 'Live GPS area selected'
-                      : 'Hackathon demo venue selected',
+                      : 'Location selected',
                 ),
               ),
               const SizedBox(height: 24),
@@ -1029,6 +1392,78 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
             ],
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _areaMap(BuildContext context) {
+    final location = _location;
+    // Before any area is chosen, open at a neutral country-level view. This
+    // point is never saved; saving requires an actual device location.
+    final point = location == null
+        ? LatLng(
+            20.5937,
+            78.9629,
+          )
+        : LatLng(location.latitude, location.longitude);
+    final radiusMeters = _radius * 1000;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        FieldnoteMap(
+          target: point,
+          zoom: zoomForRadius(radiusMeters),
+          height: 260,
+          semanticLabel: 'Draggable map pin for your travel area',
+          onTap: _movePin,
+          markers: {
+            Marker(
+              markerId: const MarkerId('area'),
+              position: point,
+              draggable: true,
+              onDragEnd: _movePin,
+              icon: BitmapDescriptor.defaultMarkerWithHue(
+                FieldnoteMapPalette.volunteer,
+              ),
+              infoWindow: InfoWindow(
+                title: 'Your travel area',
+                snippet: _areaName ?? _savedLabel,
+              ),
+            ),
+          },
+          circles: {
+            radiusCircle(
+              id: 'radius',
+              center: point,
+              radiusMeters: radiusMeters,
+              color: FieldnoteColors.forest,
+            ),
+          },
+          fallback: MapUnavailableNotice(
+            message: location == null
+                ? 'Map preview is off. Use the GPS button below to set your '
+                      'area.'
+                : 'Map preview is off. Saved area: '
+                      '${point.latitude.toStringAsFixed(4)}, '
+                      '${point.longitude.toStringAsFixed(4)} '
+                      '(${_radius.round()} km radius).',
+          ),
+        ),
+        if (mapsAvailable) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.place_outlined, size: 16),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  _areaName ?? _savedLabel,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }

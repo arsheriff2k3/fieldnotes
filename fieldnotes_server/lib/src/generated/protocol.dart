@@ -19,6 +19,8 @@ import 'package:fieldnotes_server/src/generated/fieldnotes/models/campaign_parti
     as _i363uv3e;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/campaign_post.dart'
     as _id4uw0jw;
+import 'package:fieldnotes_server/src/generated/fieldnotes/models/place_suggestion.dart'
+    as _i18eudx8;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/sponsorship.dart'
     as _iwnubjux;
 import 'package:serverpod/protocol.dart' as _isp;
@@ -33,10 +35,13 @@ import 'fieldnotes/models/asset.dart' as _iyem7tcm;
 import 'fieldnotes/models/audit_event.dart' as _i3s6sm3e;
 import 'fieldnotes/models/campaign.dart' as _imoyt016;
 import 'fieldnotes/models/campaign_live_update.dart' as _ixbyjocu;
+import 'fieldnotes/models/campaign_map_overview.dart' as _ia1ix8k0;
+import 'fieldnotes/models/campaign_map_pin.dart' as _iaixb6xr;
 import 'fieldnotes/models/campaign_match.dart' as _isbhm9y0;
 import 'fieldnotes/models/campaign_participation.dart' as _i8osbdqi;
 import 'fieldnotes/models/campaign_post.dart' as _iz4wi5fy;
 import 'fieldnotes/models/campaign_proposal.dart' as _ibvzmbaz;
+import 'fieldnotes/models/campaign_reach.dart' as _i22k3mw4;
 import 'fieldnotes/models/campaign_status.dart' as _iyus928a;
 import 'fieldnotes/models/completion_evidence.dart' as _i8shrtkg;
 import 'fieldnotes/models/completion_proposal.dart' as _i60r3uxn;
@@ -54,7 +59,10 @@ import 'fieldnotes/models/observation_proposal.dart' as _i805ku85;
 import 'fieldnotes/models/organization.dart' as _if13xums;
 import 'fieldnotes/models/organization_member.dart' as _ifgsfd6p;
 import 'fieldnotes/models/participation_status.dart' as _imreqlyp;
+import 'fieldnotes/models/place_suggestion.dart' as _i3jo3ess;
 import 'fieldnotes/models/razorpay_checkout_order.dart' as _iuc10yd2;
+import 'fieldnotes/models/reach_cell.dart' as _il88if3j;
+import 'fieldnotes/models/resolved_place.dart' as _illv04vj;
 import 'fieldnotes/models/review_decision.dart' as _iotfc67y;
 import 'fieldnotes/models/review_outcome.dart' as _imia3a4e;
 import 'fieldnotes/models/review_state.dart' as _iulscgnl;
@@ -71,10 +79,13 @@ export 'fieldnotes/models/asset.dart';
 export 'fieldnotes/models/audit_event.dart';
 export 'fieldnotes/models/campaign.dart';
 export 'fieldnotes/models/campaign_live_update.dart';
+export 'fieldnotes/models/campaign_map_overview.dart';
+export 'fieldnotes/models/campaign_map_pin.dart';
 export 'fieldnotes/models/campaign_match.dart';
 export 'fieldnotes/models/campaign_participation.dart';
 export 'fieldnotes/models/campaign_post.dart';
 export 'fieldnotes/models/campaign_proposal.dart';
+export 'fieldnotes/models/campaign_reach.dart';
 export 'fieldnotes/models/campaign_status.dart';
 export 'fieldnotes/models/completion_evidence.dart';
 export 'fieldnotes/models/completion_proposal.dart';
@@ -92,7 +103,10 @@ export 'fieldnotes/models/observation_proposal.dart';
 export 'fieldnotes/models/organization.dart';
 export 'fieldnotes/models/organization_member.dart';
 export 'fieldnotes/models/participation_status.dart';
+export 'fieldnotes/models/place_suggestion.dart';
 export 'fieldnotes/models/razorpay_checkout_order.dart';
+export 'fieldnotes/models/reach_cell.dart';
+export 'fieldnotes/models/resolved_place.dart';
 export 'fieldnotes/models/review_decision.dart';
 export 'fieldnotes/models/review_outcome.dart';
 export 'fieldnotes/models/review_state.dart';
@@ -1745,6 +1759,30 @@ class Protocol extends _is.DatabaseSerializationManager {
           dartType: 'String',
         ),
         _isp.ColumnDefinition(
+          name: 'locationAddress',
+          columnType: _isp.ColumnType.text,
+          isNullable: true,
+          dartType: 'String?',
+        ),
+        _isp.ColumnDefinition(
+          name: 'locationPlaceId',
+          columnType: _isp.ColumnType.text,
+          isNullable: true,
+          dartType: 'String?',
+        ),
+        _isp.ColumnDefinition(
+          name: 'locationLatitude',
+          columnType: _isp.ColumnType.doublePrecision,
+          isNullable: true,
+          dartType: 'double?',
+        ),
+        _isp.ColumnDefinition(
+          name: 'locationLongitude',
+          columnType: _isp.ColumnType.doublePrecision,
+          isNullable: true,
+          dartType: 'double?',
+        ),
+        _isp.ColumnDefinition(
           name: 'interests',
           columnType: _isp.ColumnType.text,
           isNullable: false,
@@ -1941,6 +1979,12 @@ class Protocol extends _is.DatabaseSerializationManager {
     if (t == _ixbyjocu.CampaignLiveUpdate) {
       return _ixbyjocu.CampaignLiveUpdate.fromJson(data) as T;
     }
+    if (t == _ia1ix8k0.CampaignMapOverview) {
+      return _ia1ix8k0.CampaignMapOverview.fromJson(data) as T;
+    }
+    if (t == _iaixb6xr.CampaignMapPin) {
+      return _iaixb6xr.CampaignMapPin.fromJson(data) as T;
+    }
     if (t == _isbhm9y0.CampaignMatch) {
       return _isbhm9y0.CampaignMatch.fromJson(data) as T;
     }
@@ -1952,6 +1996,9 @@ class Protocol extends _is.DatabaseSerializationManager {
     }
     if (t == _ibvzmbaz.CampaignProposal) {
       return _ibvzmbaz.CampaignProposal.fromJson(data) as T;
+    }
+    if (t == _i22k3mw4.CampaignReach) {
+      return _i22k3mw4.CampaignReach.fromJson(data) as T;
     }
     if (t == _iyus928a.CampaignStatus) {
       return _iyus928a.CampaignStatus.fromJson(data) as T;
@@ -2004,8 +2051,17 @@ class Protocol extends _is.DatabaseSerializationManager {
     if (t == _imreqlyp.ParticipationStatus) {
       return _imreqlyp.ParticipationStatus.fromJson(data) as T;
     }
+    if (t == _i3jo3ess.PlaceSuggestion) {
+      return _i3jo3ess.PlaceSuggestion.fromJson(data) as T;
+    }
     if (t == _iuc10yd2.RazorpayCheckoutOrder) {
       return _iuc10yd2.RazorpayCheckoutOrder.fromJson(data) as T;
+    }
+    if (t == _il88if3j.ReachCell) {
+      return _il88if3j.ReachCell.fromJson(data) as T;
+    }
+    if (t == _illv04vj.ResolvedPlace) {
+      return _illv04vj.ResolvedPlace.fromJson(data) as T;
     }
     if (t == _iotfc67y.ReviewDecision) {
       return _iotfc67y.ReviewDecision.fromJson(data) as T;
@@ -2056,6 +2112,16 @@ class Protocol extends _is.DatabaseSerializationManager {
       return (data != null ? _ixbyjocu.CampaignLiveUpdate.fromJson(data) : null)
           as T;
     }
+    if (t == _is.getType<_ia1ix8k0.CampaignMapOverview?>()) {
+      return (data != null
+              ? _ia1ix8k0.CampaignMapOverview.fromJson(data)
+              : null)
+          as T;
+    }
+    if (t == _is.getType<_iaixb6xr.CampaignMapPin?>()) {
+      return (data != null ? _iaixb6xr.CampaignMapPin.fromJson(data) : null)
+          as T;
+    }
     if (t == _is.getType<_isbhm9y0.CampaignMatch?>()) {
       return (data != null ? _isbhm9y0.CampaignMatch.fromJson(data) : null)
           as T;
@@ -2071,6 +2137,10 @@ class Protocol extends _is.DatabaseSerializationManager {
     }
     if (t == _is.getType<_ibvzmbaz.CampaignProposal?>()) {
       return (data != null ? _ibvzmbaz.CampaignProposal.fromJson(data) : null)
+          as T;
+    }
+    if (t == _is.getType<_i22k3mw4.CampaignReach?>()) {
+      return (data != null ? _i22k3mw4.CampaignReach.fromJson(data) : null)
           as T;
     }
     if (t == _is.getType<_iyus928a.CampaignStatus?>()) {
@@ -2142,10 +2212,21 @@ class Protocol extends _is.DatabaseSerializationManager {
               : null)
           as T;
     }
+    if (t == _is.getType<_i3jo3ess.PlaceSuggestion?>()) {
+      return (data != null ? _i3jo3ess.PlaceSuggestion.fromJson(data) : null)
+          as T;
+    }
     if (t == _is.getType<_iuc10yd2.RazorpayCheckoutOrder?>()) {
       return (data != null
               ? _iuc10yd2.RazorpayCheckoutOrder.fromJson(data)
               : null)
+          as T;
+    }
+    if (t == _is.getType<_il88if3j.ReachCell?>()) {
+      return (data != null ? _il88if3j.ReachCell.fromJson(data) : null) as T;
+    }
+    if (t == _is.getType<_illv04vj.ResolvedPlace?>()) {
+      return (data != null ? _illv04vj.ResolvedPlace.fromJson(data) : null)
           as T;
     }
     if (t == _is.getType<_iotfc67y.ReviewDecision?>()) {
@@ -2188,8 +2269,20 @@ class Protocol extends _is.DatabaseSerializationManager {
     if (t == _is.getType<_izw8z7ou.Greeting?>()) {
       return (data != null ? _izw8z7ou.Greeting.fromJson(data) : null) as T;
     }
+    if (t == List<_iaixb6xr.CampaignMapPin>) {
+      return (data as List)
+              .map((e) => deserialize<_iaixb6xr.CampaignMapPin>(e))
+              .toList()
+          as T;
+    }
     if (t == List<String>) {
       return (data as List).map((e) => deserialize<String>(e)).toList() as T;
+    }
+    if (t == List<_il88if3j.ReachCell>) {
+      return (data as List)
+              .map((e) => deserialize<_il88if3j.ReachCell>(e))
+              .toList()
+          as T;
     }
     if (t == List<_i8shrtkg.CompletionEvidence>) {
       return (data as List)
@@ -2218,6 +2311,12 @@ class Protocol extends _is.DatabaseSerializationManager {
     if (t == List<_iuzdi22u.Campaign>) {
       return (data as List)
               .map((e) => deserialize<_iuzdi22u.Campaign>(e))
+              .toList()
+          as T;
+    }
+    if (t == List<_i18eudx8.PlaceSuggestion>) {
+      return (data as List)
+              .map((e) => deserialize<_i18eudx8.PlaceSuggestion>(e))
               .toList()
           as T;
     }
@@ -2265,10 +2364,13 @@ class Protocol extends _is.DatabaseSerializationManager {
       _i3s6sm3e.AuditEvent => 'AuditEvent',
       _imoyt016.Campaign => 'Campaign',
       _ixbyjocu.CampaignLiveUpdate => 'CampaignLiveUpdate',
+      _ia1ix8k0.CampaignMapOverview => 'CampaignMapOverview',
+      _iaixb6xr.CampaignMapPin => 'CampaignMapPin',
       _isbhm9y0.CampaignMatch => 'CampaignMatch',
       _i8osbdqi.CampaignParticipation => 'CampaignParticipation',
       _iz4wi5fy.CampaignPost => 'CampaignPost',
       _ibvzmbaz.CampaignProposal => 'CampaignProposal',
+      _i22k3mw4.CampaignReach => 'CampaignReach',
       _iyus928a.CampaignStatus => 'CampaignStatus',
       _i8shrtkg.CompletionEvidence => 'CompletionEvidence',
       _i60r3uxn.CompletionProposal => 'CompletionProposal',
@@ -2286,7 +2388,10 @@ class Protocol extends _is.DatabaseSerializationManager {
       _if13xums.Organization => 'Organization',
       _ifgsfd6p.OrganizationMember => 'OrganizationMember',
       _imreqlyp.ParticipationStatus => 'ParticipationStatus',
+      _i3jo3ess.PlaceSuggestion => 'PlaceSuggestion',
       _iuc10yd2.RazorpayCheckoutOrder => 'RazorpayCheckoutOrder',
+      _il88if3j.ReachCell => 'ReachCell',
+      _illv04vj.ResolvedPlace => 'ResolvedPlace',
       _iotfc67y.ReviewDecision => 'ReviewDecision',
       _imia3a4e.ReviewOutcome => 'ReviewOutcome',
       _iulscgnl.ReviewState => 'ReviewState',
@@ -2323,6 +2428,10 @@ class Protocol extends _is.DatabaseSerializationManager {
         return 'Campaign';
       case _ixbyjocu.CampaignLiveUpdate():
         return 'CampaignLiveUpdate';
+      case _ia1ix8k0.CampaignMapOverview():
+        return 'CampaignMapOverview';
+      case _iaixb6xr.CampaignMapPin():
+        return 'CampaignMapPin';
       case _isbhm9y0.CampaignMatch():
         return 'CampaignMatch';
       case _i8osbdqi.CampaignParticipation():
@@ -2331,6 +2440,8 @@ class Protocol extends _is.DatabaseSerializationManager {
         return 'CampaignPost';
       case _ibvzmbaz.CampaignProposal():
         return 'CampaignProposal';
+      case _i22k3mw4.CampaignReach():
+        return 'CampaignReach';
       case _iyus928a.CampaignStatus():
         return 'CampaignStatus';
       case _i8shrtkg.CompletionEvidence():
@@ -2365,8 +2476,14 @@ class Protocol extends _is.DatabaseSerializationManager {
         return 'OrganizationMember';
       case _imreqlyp.ParticipationStatus():
         return 'ParticipationStatus';
+      case _i3jo3ess.PlaceSuggestion():
+        return 'PlaceSuggestion';
       case _iuc10yd2.RazorpayCheckoutOrder():
         return 'RazorpayCheckoutOrder';
+      case _il88if3j.ReachCell():
+        return 'ReachCell';
+      case _illv04vj.ResolvedPlace():
+        return 'ResolvedPlace';
       case _iotfc67y.ReviewDecision():
         return 'ReviewDecision';
       case _imia3a4e.ReviewOutcome():
@@ -2431,6 +2548,12 @@ class Protocol extends _is.DatabaseSerializationManager {
     if (dataClassName == 'CampaignLiveUpdate') {
       return deserialize<_ixbyjocu.CampaignLiveUpdate>(data['data']);
     }
+    if (dataClassName == 'CampaignMapOverview') {
+      return deserialize<_ia1ix8k0.CampaignMapOverview>(data['data']);
+    }
+    if (dataClassName == 'CampaignMapPin') {
+      return deserialize<_iaixb6xr.CampaignMapPin>(data['data']);
+    }
     if (dataClassName == 'CampaignMatch') {
       return deserialize<_isbhm9y0.CampaignMatch>(data['data']);
     }
@@ -2442,6 +2565,9 @@ class Protocol extends _is.DatabaseSerializationManager {
     }
     if (dataClassName == 'CampaignProposal') {
       return deserialize<_ibvzmbaz.CampaignProposal>(data['data']);
+    }
+    if (dataClassName == 'CampaignReach') {
+      return deserialize<_i22k3mw4.CampaignReach>(data['data']);
     }
     if (dataClassName == 'CampaignStatus') {
       return deserialize<_iyus928a.CampaignStatus>(data['data']);
@@ -2494,8 +2620,17 @@ class Protocol extends _is.DatabaseSerializationManager {
     if (dataClassName == 'ParticipationStatus') {
       return deserialize<_imreqlyp.ParticipationStatus>(data['data']);
     }
+    if (dataClassName == 'PlaceSuggestion') {
+      return deserialize<_i3jo3ess.PlaceSuggestion>(data['data']);
+    }
     if (dataClassName == 'RazorpayCheckoutOrder') {
       return deserialize<_iuc10yd2.RazorpayCheckoutOrder>(data['data']);
+    }
+    if (dataClassName == 'ReachCell') {
+      return deserialize<_il88if3j.ReachCell>(data['data']);
+    }
+    if (dataClassName == 'ResolvedPlace') {
+      return deserialize<_illv04vj.ResolvedPlace>(data['data']);
     }
     if (dataClassName == 'ReviewDecision') {
       return deserialize<_iotfc67y.ReviewDecision>(data['data']);

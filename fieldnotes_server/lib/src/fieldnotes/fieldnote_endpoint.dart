@@ -8,32 +8,44 @@ import '../generated/protocol.dart';
 import 'services/content_moderation_service.dart';
 import 'services/gemini_ai_service.dart';
 import 'services/gemini_speech_service.dart';
-import 'services/hackathon_ai_service.dart';
+import 'services/google_maps_service.dart';
+import 'services/structured_summary_service.dart';
 import 'services/location_integrity_service.dart';
 import 'services/razorpay_payment_service.dart';
 
 class FieldnoteEndpoint extends Endpoint {
   FieldnoteEndpoint({
-    HackathonAiService? aiService,
+    StructuredSummaryService? aiService,
     GeminiAiService? geminiService,
     GeminiSpeechService? speechService,
     ContentModerationService? moderationService,
     LocationIntegrityService? locationIntegrityService,
     RazorpayPaymentService? paymentService,
-  }) : _ai = aiService ?? const HackathonAiService(),
+    GoogleMapsService? mapsService,
+  }) : _ai = aiService ?? const StructuredSummaryService(),
        _gemini = geminiService ?? const GeminiAiService(),
        _speech = speechService ?? GeminiSpeechService(),
        _moderation = moderationService ?? const ContentModerationService(),
        _locationIntegrity =
            locationIntegrityService ?? const LocationIntegrityService(),
-       _payments = paymentService ?? const RazorpayPaymentService();
+       _payments = paymentService ?? const RazorpayPaymentService(),
+       _maps = mapsService ?? _sharedMaps;
 
-  final HackathonAiService _ai;
+  /// Shared so the Routes API response cache survives across requests. A new
+  /// endpoint instance is constructed per call by Serverpod.
+  static final GoogleMapsService _sharedMaps = GoogleMapsService();
+
+  final StructuredSummaryService _ai;
   final GeminiAiService _gemini;
   final GeminiSpeechService _speech;
   final ContentModerationService _moderation;
   final LocationIntegrityService _locationIntegrity;
   final RazorpayPaymentService _payments;
+  final GoogleMapsService _maps;
+
+  /// Volunteer coverage is only ever returned to sponsors in buckets of at
+  /// least this many people, rounded to roughly a kilometre.
+  static const _reachCellAnonymityThreshold = 3;
 
   static const privacyPolicyVersion = '2026-09-22';
   static const termsVersion = '2026-09-22';
@@ -42,7 +54,6 @@ class FieldnoteEndpoint extends Endpoint {
   bool get requireLogin => true;
 
   Future<FieldnoteUserProfile?> getMyProfile(Session session) async {
-    await _ensureDemoCampaigns(session);
     return FieldnoteUserProfile.db.findFirstRow(
       session,
       where: (t) => t.authUserId.equals(_userId(session)),
@@ -65,7 +76,7 @@ class FieldnoteEndpoint extends Endpoint {
     if (!locationConsent || !aiProcessingConsent || !evidenceSharingConsent) {
       throw FieldnoteException(
         message:
-            'Location, AI processing, and evidence sharing consent are required for this demo workflow.',
+            'Location, AI processing, and evidence sharing consent are required to continue.',
         code: 'consent_required',
       );
     }
@@ -126,13 +137,13 @@ class FieldnoteEndpoint extends Endpoint {
       privacyPolicyVersion: privacyPolicyVersion,
       termsVersion: termsVersion,
       locationProtection:
-          'Freshness, coordinate bounds, accuracy, device mock flags, geofence, and movement continuity are checked. Demo GPS is always labeled.',
+          'Freshness, coordinate bounds, accuracy, device mock flags, geofence, and movement continuity are checked.',
       moderationProtection:
           'Unsafe text and exposed identifiers are blocked before storage; Gemini provider safety also applies to AI requests.',
       paymentProtection:
           'Razorpay orders are created by the server and successful checkout signatures are verified server-side before impact totals change.',
       retentionNotice:
-          'This local MVP keeps account, payment references, approximate GPS evidence, and private photographs until deletion is requested.',
+          'FieldNote keeps account data, payment references, approximate GPS evidence, and private photographs until deletion is requested.',
     );
   }
 
@@ -173,7 +184,7 @@ class FieldnoteEndpoint extends Endpoint {
       outcome: 'queued',
       riskLevel: 'info',
       detail:
-          'Deletion request recorded for operator review. Local demo data has not yet been erased.',
+          'Deletion request recorded for operator review. Shared campaign records are retained until the request is processed.',
     );
   }
 
@@ -183,15 +194,25 @@ class FieldnoteEndpoint extends Endpoint {
     String sponsorType,
     String? organizationName,
     String city,
+    String? cityPlaceId,
     List<String> interests,
   ) async {
+    final verifiedLocation = await _verifiedSponsorLocation(
+      session,
+      typedLocation: city,
+      placeId: cityPlaceId,
+    );
     return _upsertProfile(
       session,
       role: AccountRole.sponsor,
       displayName: displayName,
       sponsorType: sponsorType,
       organizationName: organizationName,
-      city: city,
+      city: verifiedLocation.name,
+      locationAddress: verifiedLocation.address,
+      locationPlaceId: verifiedLocation.placeId,
+      locationLatitude: verifiedLocation.latitude,
+      locationLongitude: verifiedLocation.longitude,
       interests: interests,
       skills: const [],
     );
@@ -240,6 +261,46 @@ class FieldnoteEndpoint extends Endpoint {
       locationLabel: locationLabel,
     );
     return profile;
+  }
+
+  /// Updates the editable account details while preserving the role and legal
+  /// consent selected during account creation.
+  Future<FieldnoteUserProfile> updateMyProfile(
+    Session session,
+    String displayName,
+    String? sponsorType,
+    String? organizationName,
+    String city,
+    String? cityPlaceId,
+    List<String> interests,
+    List<String> skills,
+  ) async {
+    final current = await _requireProfile(session);
+    await _requireRole(session, current.role);
+    final verifiedLocation = current.role == AccountRole.sponsor
+        ? await _verifiedSponsorLocation(
+            session,
+            typedLocation: city,
+            placeId: cityPlaceId,
+            current: current,
+          )
+        : null;
+    return _upsertProfile(
+      session,
+      role: current.role,
+      displayName: displayName,
+      sponsorType: current.role == AccountRole.sponsor ? sponsorType : null,
+      organizationName: current.role == AccountRole.sponsor
+          ? organizationName
+          : null,
+      city: verifiedLocation?.name ?? city,
+      locationAddress: verifiedLocation?.address,
+      locationPlaceId: verifiedLocation?.placeId,
+      locationLatitude: verifiedLocation?.latitude,
+      locationLongitude: verifiedLocation?.longitude,
+      interests: interests,
+      skills: current.role == AccountRole.volunteer ? skills : const [],
+    );
   }
 
   Future<VolunteerAvailability?> getMyAvailability(Session session) async {
@@ -371,7 +432,11 @@ class FieldnoteEndpoint extends Endpoint {
     final now = DateTime.now();
     final apiKey = session.passwords['geminiApiKey']?.trim();
     if (apiKey == null || apiKey.isEmpty) {
-      return _ai.proposeCampaign(prompt.trim(), now);
+      throw FieldnoteException(
+        message:
+            'AI campaign generation is not configured. Add geminiApiKey to the server or create the campaign manually.',
+        code: 'ai_not_configured',
+      );
     }
     try {
       final proposal = await _gemini.proposeCampaign(
@@ -399,11 +464,18 @@ class FieldnoteEndpoint extends Endpoint {
     }
   }
 
+  /// Publishes a proposal at a map pin.
+  ///
+  /// [locationName] and [geofenceMeters] come from the sponsor's map: the pin
+  /// can be dragged anywhere and named from Places, so the published campaign
+  /// is no longer tied to where the sponsor's own device happened to be.
   Future<Campaign> createCampaignFromProposal(
     Session session,
     CampaignProposal proposal,
     double latitude,
     double longitude,
+    String? locationName,
+    double? geofenceMeters,
   ) async {
     final sponsor = await _requireRole(session, AccountRole.sponsor);
     await _moderateOrThrow(
@@ -411,6 +483,9 @@ class FieldnoteEndpoint extends Endpoint {
       '${proposal.title}\n${proposal.description}\n${proposal.checklist.join('\n')}',
       'campaignProposal',
     );
+    _requireValidCoordinates(latitude, longitude);
+    final pinName = _blankToNull(locationName) ?? proposal.locationName.trim();
+    await _moderateOrThrow(session, pinName, 'campaignLocationName');
     final organization = await _platformOrganization(session);
     final start = proposal.startsAt.toUtc();
     final campaign = await Campaign.db.insertRow(
@@ -419,7 +494,7 @@ class FieldnoteEndpoint extends Endpoint {
         organizationId: organization.id!,
         name: proposal.title.trim(),
         description: proposal.description.trim(),
-        locationName: proposal.locationName.trim(),
+        locationName: pinName,
         startsAt: start,
         endsAt: start.add(Duration(minutes: proposal.durationMinutes)),
         status: CampaignStatus.active,
@@ -428,7 +503,7 @@ class FieldnoteEndpoint extends Endpoint {
         sponsoredAmount: 0,
         latitude: latitude,
         longitude: longitude,
-        geofenceMeters: 200,
+        geofenceMeters: (geofenceMeters ?? 200).clamp(50, 2000).toDouble(),
         volunteerCapacity: proposal.volunteerCapacity,
         requiredSkills: proposal.requiredSkills.join(' | '),
         checklist: proposal.checklist.join(' | '),
@@ -449,7 +524,6 @@ class FieldnoteEndpoint extends Endpoint {
 
   Future<List<Campaign>> listCampaigns(Session session) async {
     await _requireProfile(session);
-    await _ensureDemoCampaigns(session);
     return Campaign.db.find(
       session,
       where: (t) => t.status.equals(CampaignStatus.active),
@@ -466,6 +540,371 @@ class FieldnoteEndpoint extends Endpoint {
     );
   }
 
+  // ---------------------------------------------------------------------------
+
+  /// Whether Google Places autocomplete is available during account setup.
+  /// This deliberately requires authentication but not an existing profile,
+  /// because it is called before onboarding creates the profile row.
+  Future<bool> isCitySearchAvailable(Session session) async {
+    _userId(session);
+    return _mapsKey(session) != null;
+  }
+
+  /// City-only Google Places autocomplete retained for volunteer profiles.
+  Future<List<PlaceSuggestion>> searchCities(
+    Session session,
+    String query,
+  ) async {
+    _userId(session);
+    final trimmed = query.trim();
+    if (trimmed.length < 2) return const [];
+    if (trimmed.length > 100) {
+      throw FieldnoteException(
+        message: 'Shorten the city search.',
+        code: 'invalid_city_query',
+      );
+    }
+    final apiKey = _mapsKey(session);
+    if (apiKey == null) return const [];
+    try {
+      return await _maps.autocomplete(
+        apiKey: apiKey,
+        query: trimmed,
+        citiesOnly: true,
+      );
+    } on GoogleMapsException catch (error, stackTrace) {
+      session.log(
+        'City autocomplete failed.',
+        level: LogLevel.warning,
+        exception: error,
+        stackTrace: stackTrace,
+      );
+      return const [];
+    }
+  }
+
+  /// Full Google Places autocomplete for sponsor account setup. Unlike the
+  /// campaign search endpoint, this works before the profile row exists.
+  Future<List<PlaceSuggestion>> searchSponsorLocations(
+    Session session,
+    String query,
+  ) async {
+    _userId(session);
+    final trimmed = query.trim();
+    if (trimmed.length < 2) return const [];
+    if (trimmed.length > 200) {
+      throw FieldnoteException(
+        message: 'Shorten the location search.',
+        code: 'invalid_location_query',
+      );
+    }
+    final apiKey = _mapsKey(session);
+    if (apiKey == null) return const [];
+    try {
+      return await _maps.autocomplete(apiKey: apiKey, query: trimmed);
+    } on GoogleMapsException catch (error, stackTrace) {
+      session.log(
+        'Sponsor location autocomplete failed.',
+        level: LogLevel.warning,
+        exception: error,
+        stackTrace: stackTrace,
+      );
+      return const [];
+    }
+  }
+
+  // Google Maps Platform
+  //
+  // Places, Geocoding and Routes are billed per call and are reached with the
+  // `googleMapsApiKey` Serverpod password. The key never leaves the server; the
+  // Flutter app renders tiles with its own separately restricted client key.
+  // Every one of these degrades to the app's original offline behaviour when
+  // the key is absent or the provider is unreachable.
+  // ---------------------------------------------------------------------------
+
+  /// Whether server-side Places, Geocoding and Routes calls are available.
+  /// The client uses this to hide search affordances it cannot fulfil.
+  Future<bool> isPlaceSearchAvailable(Session session) async {
+    await _requireProfile(session);
+    return _mapsKey(session) != null;
+  }
+
+  /// Google Places autocomplete for naming a campaign pin.
+  Future<List<PlaceSuggestion>> searchPlaces(
+    Session session,
+    String query,
+    double? biasLatitude,
+    double? biasLongitude,
+  ) async {
+    await _requireProfile(session);
+    final trimmed = query.trim();
+    if (trimmed.length < 3) return const [];
+    if (trimmed.length > 200) {
+      throw FieldnoteException(
+        message: 'Shorten the place search.',
+        code: 'invalid_place_query',
+      );
+    }
+    final apiKey = _mapsKey(session);
+    if (apiKey == null) return const [];
+    try {
+      return await _maps.autocomplete(
+        apiKey: apiKey,
+        query: trimmed,
+        biasLatitude: biasLatitude,
+        biasLongitude: biasLongitude,
+      );
+    } on GoogleMapsException catch (error, stackTrace) {
+      session.log(
+        'Places autocomplete failed.',
+        level: LogLevel.warning,
+        exception: error,
+        stackTrace: stackTrace,
+      );
+      return const [];
+    }
+  }
+
+  /// Turns a Places autocomplete selection into a campaign pin.
+  Future<ResolvedPlace> resolvePlace(Session session, String placeId) async {
+    await _requireProfile(session);
+    final trimmed = placeId.trim();
+    if (trimmed.isEmpty || trimmed.length > 300) {
+      throw FieldnoteException(
+        message: 'That place could not be resolved.',
+        code: 'invalid_place_id',
+      );
+    }
+    final apiKey = _mapsKey(session);
+    if (apiKey == null) {
+      throw FieldnoteException(
+        message:
+            'Place search is not configured. Add googleMapsApiKey to Serverpod '
+            'passwords, or drag the pin on the map instead.',
+        code: 'maps_not_configured',
+      );
+    }
+    try {
+      final place = await _maps.placeDetails(apiKey: apiKey, placeId: trimmed);
+      _requireValidCoordinates(place.latitude, place.longitude);
+      return place;
+    } on GoogleMapsException catch (error, stackTrace) {
+      session.log(
+        'Place details lookup failed.',
+        level: LogLevel.warning,
+        exception: error,
+        stackTrace: stackTrace,
+      );
+      throw FieldnoteException(
+        message: 'Google could not resolve that place. Drag the pin instead.',
+        code: 'maps_unavailable',
+      );
+    }
+  }
+
+  /// Names a dragged map pin. Returns null rather than throwing so the map
+  /// keeps working with a typed label when geocoding is off or offline.
+  Future<ResolvedPlace?> describeCoordinates(
+    Session session,
+    double latitude,
+    double longitude,
+  ) async {
+    await _requireProfile(session);
+    _requireValidCoordinates(latitude, longitude);
+    final apiKey = _mapsKey(session);
+    if (apiKey == null) return null;
+    try {
+      return await _maps.reverseGeocode(
+        apiKey: apiKey,
+        latitude: latitude,
+        longitude: longitude,
+      );
+    } on GoogleMapsException catch (error, stackTrace) {
+      session.log(
+        'Reverse geocoding failed.',
+        level: LogLevel.info,
+        exception: error,
+        stackTrace: stackTrace,
+      );
+      return null;
+    }
+  }
+
+  /// How many volunteers could actually reach a proposed pin, before the
+  /// sponsor commits money to it.
+  ///
+  /// Individual volunteer coordinates are never returned. Coverage is bucketed
+  /// to roughly a kilometre and any bucket holding fewer than
+  /// [_reachCellAnonymityThreshold] volunteers is suppressed entirely.
+  Future<CampaignReach> previewCampaignReach(
+    Session session,
+    double latitude,
+    double longitude,
+  ) async {
+    await _requireRole(session, AccountRole.sponsor);
+    _requireValidCoordinates(latitude, longitude);
+    final availabilities = await VolunteerAvailability.db.find(
+      session,
+      where: (t) => t.isAvailable.equals(true),
+    );
+    final distances = <double>[];
+    final cells = <String, _ReachBucket>{};
+    for (final availability in availabilities) {
+      final volunteerLatitude = availability.latitude;
+      final volunteerLongitude = availability.longitude;
+      if (volunteerLatitude == null || volunteerLongitude == null) continue;
+      final distanceKm =
+          _distanceMeters(
+            volunteerLatitude,
+            volunteerLongitude,
+            latitude,
+            longitude,
+          ) /
+          1000;
+      if (distanceKm > availability.maximumTravelKm) continue;
+      distances.add(distanceKm);
+      // Two decimal places is about 1.1 km at the equator.
+      final cellLatitude = double.parse(volunteerLatitude.toStringAsFixed(2));
+      final cellLongitude = double.parse(volunteerLongitude.toStringAsFixed(2));
+      final key = '$cellLatitude,$cellLongitude';
+      final bucket = cells[key] ??= _ReachBucket(cellLatitude, cellLongitude);
+      bucket.count++;
+    }
+    distances.sort();
+    final coverage = [
+      for (final bucket in cells.values)
+        if (bucket.count >= _reachCellAnonymityThreshold)
+          ReachCell(
+            latitude: bucket.latitude,
+            longitude: bucket.longitude,
+            volunteerCount: bucket.count,
+          ),
+    ]..sort((a, b) => b.volunteerCount.compareTo(a.volunteerCount));
+
+    return CampaignReach(
+      latitude: latitude,
+      longitude: longitude,
+      volunteersInRange: distances.length,
+      availableVolunteers: availabilities.length,
+      nearestDistanceKm: distances.isEmpty ? null : distances.first,
+      medianDistanceKm: distances.isEmpty
+          ? null
+          : distances[distances.length ~/ 2],
+      coverageCells: coverage,
+      summary: switch (distances.length) {
+        0 =>
+          'No available volunteer has this pin inside their travel radius yet. '
+              'Consider moving the pin closer to a populated area.',
+        1 =>
+          '1 available volunteer has this pin inside their travel radius, '
+              '${distances.first.toStringAsFixed(1)} km away.',
+        _ =>
+          '${distances.length} of ${availabilities.length} available volunteers '
+              'have this pin inside their travel radius. Nearest is '
+              '${distances.first.toStringAsFixed(1)} km away.',
+      },
+    );
+  }
+
+  /// Every check-in and evidence point for one campaign, for the sponsor live
+  /// map. Restricted to the sponsor who created the campaign.
+  Future<CampaignMapOverview> getCampaignMap(
+    Session session,
+    int campaignId,
+  ) async {
+    final sponsor = await _requireRole(session, AccountRole.sponsor);
+    final campaign = await _campaign(session, campaignId);
+    if (campaign.createdBy != sponsor.authUserId) {
+      throw FieldnoteException(
+        message: 'Only the campaign creator can open the campaign map.',
+        code: 'forbidden',
+      );
+    }
+    final participations = await CampaignParticipation.db.find(
+      session,
+      where: (t) => t.campaignId.equals(campaignId),
+      orderBy: (t) => t.joinedAt,
+    );
+    final participationIds = participations
+        .map((item) => item.id)
+        .whereType<int>()
+        .toSet();
+    final evidence = participationIds.isEmpty
+        ? <CompletionEvidence>[]
+        : await CompletionEvidence.db.find(
+            session,
+            where: (t) => t.participationId.inSet(participationIds),
+            orderBy: (t) => t.submittedAt,
+          );
+
+    final pins = <CampaignMapPin>[];
+    var index = 0;
+    for (final participation in participations) {
+      index++;
+      final latitude = participation.checkInLatitude;
+      final longitude = participation.checkInLongitude;
+      if (latitude == null || longitude == null) continue;
+      pins.add(
+        CampaignMapPin(
+          participationId: participation.id!,
+          kind: 'checkIn',
+          latitude: latitude,
+          longitude: longitude,
+          accuracyMeters: participation.checkInAccuracyMeters ?? 0,
+          distanceMeters: _distanceMeters(
+            latitude,
+            longitude,
+            campaign.latitude,
+            campaign.longitude,
+          ),
+          integrityStatus: participation.locationIntegrityStatus ?? 'unknown',
+          integrityReasons: participation.locationIntegrityReasons ?? '',
+          isDemo: participation.locationIsDemo,
+          // Volunteer identity is deliberately not placed on the sponsor map.
+          label: 'Volunteer $index check-in',
+          occurredAt: participation.checkedInAt ?? participation.joinedAt,
+        ),
+      );
+    }
+    for (final item in evidence) {
+      pins.add(
+        CampaignMapPin(
+          participationId: item.participationId,
+          evidenceId: item.id,
+          kind: 'evidence',
+          latitude: item.latitude,
+          longitude: item.longitude,
+          accuracyMeters: item.locationAccuracyMeters,
+          distanceMeters: _distanceMeters(
+            item.latitude,
+            item.longitude,
+            campaign.latitude,
+            campaign.longitude,
+          ),
+          integrityStatus: item.locationIntegrityStatus,
+          integrityReasons: item.locationIntegrityReasons,
+          isDemo: item.locationIsDemo,
+          label: item.confirmedSummary,
+          occurredAt: item.submittedAt,
+        ),
+      );
+    }
+    pins.sort((a, b) => a.occurredAt.compareTo(b.occurredAt));
+
+    return CampaignMapOverview(
+      campaign: campaign,
+      pins: pins,
+      joinedCount: participations.length,
+      checkedInCount: participations
+          .where((item) => item.checkedInAt != null)
+          .length,
+      completedCount: participations
+          .where((item) => item.status == ParticipationStatus.completed)
+          .length,
+      demoCount: pins.where((item) => item.isDemo).length,
+    );
+  }
+
   Future<RazorpayCheckoutOrder> createRazorpayOrder(
     Session session,
     int campaignId,
@@ -473,13 +912,28 @@ class FieldnoteEndpoint extends Endpoint {
     String? message,
   ) async {
     final sponsor = await _requireRole(session, AccountRole.sponsor);
-    if (!amount.isFinite || amount < 100 || amount > 1000000) {
+    if (!amount.isFinite || amount < 1 || amount > 1000000) {
       throw FieldnoteException(
-        message: 'Choose a sponsorship between ₹100 and ₹10,00,000.',
+        message: 'Choose a sponsorship between ₹1 and ₹10,00,000.',
         code: 'invalid_amount',
       );
     }
     final campaign = await _campaign(session, campaignId);
+    final remainingAmount = campaign.fundingGoal - campaign.sponsoredAmount;
+    if (remainingAmount <= 0) {
+      throw FieldnoteException(
+        message: 'This campaign is already fully funded.',
+        code: 'campaign_fully_funded',
+      );
+    }
+    if (amount > remainingAmount + 0.001) {
+      throw FieldnoteException(
+        message:
+            'Choose an amount up to the remaining campaign balance of '
+            '₹${remainingAmount.toStringAsFixed(2)}.',
+        code: 'amount_exceeds_campaign_balance',
+      );
+    }
     await _moderateOrThrow(session, message ?? '', 'sponsorMessage');
     final keyId = _requiredPassword(session, 'razorpayKeyId');
     final keySecret = _requiredPassword(session, 'razorpayKeySecret');
@@ -534,8 +988,7 @@ class FieldnoteEndpoint extends Endpoint {
       entityId: '${sponsorship.id}',
       outcome: 'created',
       riskLevel: 'info',
-      detail:
-          'Razorpay Test Mode order ${order.id} created for $amountPaise paise.',
+      detail: 'Razorpay order ${order.id} created for $amountPaise paise.',
     );
     return RazorpayCheckoutOrder(
       sponsorshipId: sponsorship.id!,
@@ -608,7 +1061,7 @@ class FieldnoteEndpoint extends Endpoint {
       session,
       campaign.id!,
       'sponsorshipAdded',
-      'A Razorpay-verified Test Mode sponsorship of ₹${sponsorship.amount.toStringAsFixed(0)} was recorded.',
+      'A Razorpay-verified sponsorship of ₹${sponsorship.amount.toStringAsFixed(0)} was recorded.',
     );
     await _audit(
       session,
@@ -677,24 +1130,86 @@ class FieldnoteEndpoint extends Endpoint {
     }
     if (!availability.isAvailable) return const [];
     final campaigns = await listCampaigns(session);
-    final matches = <CampaignMatch>[];
+
+    // Straight-line distance is the admission filter: it is free, offline, and
+    // never depends on a third party being reachable. It also bounds how many
+    // destinations the billed Routes call has to price.
+    final candidates = <(Campaign, int)>[];
     for (final campaign in campaigns) {
       final participations = await CampaignParticipation.db.find(
         session,
         where: (t) => t.campaignId.equals(campaign.id!),
       );
-      final match = _matchCampaign(
+      final preview = _matchCampaign(
         campaign,
         availability,
         volunteer,
         participations.length,
       );
-      if (match.distanceKm <= availability.maximumTravelKm) {
-        matches.add(match);
+      if (preview.distanceKm <= availability.maximumTravelKm) {
+        candidates.add((campaign, participations.length));
       }
     }
+
+    // Real travel time only refines the ranking of campaigns that already
+    // passed the filter above.
+    final travel = await _travelTimes(session, availability, [
+      for (final candidate in candidates) candidate.$1,
+    ]);
+    final matches = [
+      for (final candidate in candidates)
+        _matchCampaign(
+          candidate.$1,
+          availability,
+          volunteer,
+          candidate.$2,
+          travel: travel[candidate.$1.id],
+        ),
+    ];
     matches.sort((a, b) => b.score.compareTo(a.score));
     return matches;
+  }
+
+  /// Best-effort Routes API lookup, keyed by campaign id.
+  ///
+  /// Returns an empty map when the key is missing, the volunteer has not
+  /// shared a location, or the provider is unreachable, which leaves every
+  /// match on its straight-line score.
+  Future<Map<int, RouteLeg>> _travelTimes(
+    Session session,
+    VolunteerAvailability availability,
+    List<Campaign> campaigns,
+  ) async {
+    final originLatitude = availability.latitude;
+    final originLongitude = availability.longitude;
+    if (originLatitude == null || originLongitude == null) return const {};
+    if (campaigns.isEmpty) return const {};
+    final apiKey = _mapsKey(session);
+    if (apiKey == null) return const {};
+    try {
+      final legs = await _maps.travelMatrix(
+        apiKey: apiKey,
+        originLatitude: originLatitude,
+        originLongitude: originLongitude,
+        destinations: [
+          for (final campaign in campaigns)
+            (latitude: campaign.latitude, longitude: campaign.longitude),
+        ],
+      );
+      return {
+        for (final leg in legs)
+          if (leg.destinationIndex < campaigns.length)
+            campaigns[leg.destinationIndex].id!: leg,
+      };
+    } on GoogleMapsException catch (error, stackTrace) {
+      session.log(
+        'Routes travel matrix failed; falling back to straight-line distance.',
+        level: LogLevel.warning,
+        exception: error,
+        stackTrace: stackTrace,
+      );
+      return const {};
+    }
   }
 
   Future<CampaignParticipation> joinCampaign(
@@ -857,7 +1372,11 @@ class FieldnoteEndpoint extends Endpoint {
     }
     final apiKey = session.passwords['geminiApiKey']?.trim();
     if (apiKey == null || apiKey.isEmpty) {
-      return _ai.analyzeCompletion(note.trim());
+      throw FieldnoteException(
+        message:
+            'AI evidence analysis is not configured. Add geminiApiKey to the server.',
+        code: 'ai_not_configured',
+      );
     }
     try {
       final proposal = await _gemini.analyzeCompletion(
@@ -1137,6 +1656,10 @@ class FieldnoteEndpoint extends Endpoint {
     required List<String> skills,
     String? sponsorType,
     String? organizationName,
+    String? locationAddress,
+    String? locationPlaceId,
+    double? locationLatitude,
+    double? locationLongitude,
   }) async {
     final userId = _userId(session);
     final existing = await FieldnoteUserProfile.db.findFirstRow(
@@ -1165,6 +1688,10 @@ class FieldnoteEndpoint extends Endpoint {
           sponsorType: _blankToNull(sponsorType),
           organizationName: _blankToNull(organizationName),
           city: city.trim(),
+          locationAddress: _blankToNull(locationAddress),
+          locationPlaceId: _blankToNull(locationPlaceId),
+          locationLatitude: locationLatitude,
+          locationLongitude: locationLongitude,
           interests: interests.join(' | '),
           skills: skills.join(' | '),
         ),
@@ -1174,10 +1701,86 @@ class FieldnoteEndpoint extends Endpoint {
     existing.sponsorType = _blankToNull(sponsorType);
     existing.organizationName = _blankToNull(organizationName);
     existing.city = city.trim();
+    existing.locationAddress = _blankToNull(locationAddress);
+    existing.locationPlaceId = _blankToNull(locationPlaceId);
+    existing.locationLatitude = locationLatitude;
+    existing.locationLongitude = locationLongitude;
     existing.interests = interests.join(' | ');
     existing.skills = skills.join(' | ');
     existing.updatedAt = DateTime.now().toUtc();
     return FieldnoteUserProfile.db.updateRow(session, existing);
+  }
+
+  Future<_ProfileLocation> _verifiedSponsorLocation(
+    Session session, {
+    required String typedLocation,
+    required String? placeId,
+    FieldnoteUserProfile? current,
+  }) async {
+    final fallback = typedLocation.trim();
+    if (fallback.length < 2) {
+      throw FieldnoteException(
+        message: 'Choose your location.',
+        code: 'invalid_location',
+      );
+    }
+
+    final apiKey = _mapsKey(session);
+    if (apiKey == null) {
+      return _ProfileLocation(name: fallback, address: fallback);
+    }
+    final safePlaceId = placeId?.trim() ?? '';
+    final savedAddress = current?.locationAddress?.trim();
+    if (safePlaceId.isEmpty &&
+        (fallback == savedAddress || fallback == current?.city.trim())) {
+      return _ProfileLocation(
+        name: current!.city,
+        address: savedAddress?.isNotEmpty == true
+            ? savedAddress!
+            : current.city,
+        placeId: current.locationPlaceId,
+        latitude: current.locationLatitude,
+        longitude: current.locationLongitude,
+      );
+    }
+    if (safePlaceId.isEmpty || safePlaceId.length > 300) {
+      throw FieldnoteException(
+        message: 'Select a location from the Google suggestions.',
+        code: 'location_selection_required',
+      );
+    }
+
+    try {
+      final place = await _maps.placeDetails(
+        apiKey: apiKey,
+        placeId: safePlaceId,
+      );
+      final name = place.name.trim();
+      final address = place.address.trim();
+      if (name.length < 2 || address.length < 2) {
+        throw const GoogleMapsException(
+          'Google Places returned an incomplete location.',
+        );
+      }
+      return _ProfileLocation(
+        name: name,
+        address: address,
+        placeId: safePlaceId,
+        latitude: place.latitude,
+        longitude: place.longitude,
+      );
+    } on GoogleMapsException catch (error, stackTrace) {
+      session.log(
+        'Profile location verification failed.',
+        level: LogLevel.warning,
+        exception: error,
+        stackTrace: stackTrace,
+      );
+      throw FieldnoteException(
+        message: 'Google could not verify that location. Choose it again.',
+        code: 'location_verification_failed',
+      );
+    }
   }
 
   Future<VolunteerAvailability> _upsertAvailability(
@@ -1302,8 +1905,9 @@ class FieldnoteEndpoint extends Endpoint {
     Campaign campaign,
     VolunteerAvailability availability,
     FieldnoteUserProfile volunteer,
-    int participationCount,
-  ) {
+    int participationCount, {
+    RouteLeg? travel,
+  }) {
     final days = availability.weekdays
         .split(',')
         .map(int.tryParse)
@@ -1336,8 +1940,17 @@ class FieldnoteEndpoint extends Endpoint {
     final withinRadius =
         availability.latitude == null ||
         distance <= availability.maximumTravelKm;
+    // The volunteer sets a radius in kilometres, so a travel-time score needs
+    // an equivalent budget. 20 km/h is a realistic effective urban door-to-door
+    // speed once parking and the last hundred metres on foot are included.
+    final travelBudgetMinutes = math.max(
+      availability.maximumTravelKm * 3,
+      10.0,
+    );
     final distanceScore = availability.latitude == null
         ? 15.0
+        : travel != null
+        ? 30 * (1 - (travel.minutes / travelBudgetMinutes).clamp(0, 1))
         : 30 *
               (1 -
                   (distance / math.max(availability.maximumTravelKm, 1)).clamp(
@@ -1381,7 +1994,10 @@ class FieldnoteEndpoint extends Endpoint {
         'Matches your ${_weekday(campaign.startsAt.toLocal().weekday)} availability'
       else
         'Schedule does not fully overlap your saved availability',
-      if (availability.latitude != null)
+      if (availability.latitude != null && travel != null)
+        '${travel.minutes} min drive · ${travel.distanceKm.toStringAsFixed(1)} km '
+            'by road — ${withinRadius ? 'inside' : 'outside'} your travel radius'
+      else if (availability.latitude != null)
         withinRadius
             ? '${distance.toStringAsFixed(1)} km away — inside your travel radius'
             : '${distance.toStringAsFixed(1)} km away — outside your travel radius'
@@ -1403,89 +2019,10 @@ class FieldnoteEndpoint extends Endpoint {
       distanceKm: distance,
       availabilityMatches: availabilityMatches,
       reasons: reasons,
+      travelMinutes: travel?.minutes,
+      travelDistanceKm: travel?.distanceKm,
+      travelMode: travel == null ? null : 'drive',
     );
-  }
-
-  Future<void> _ensureDemoCampaigns(Session session) async {
-    final organization = await _platformOrganization(session);
-    final demoCreator = UuidValue.withValidation(
-      '00000000-0000-4000-8000-000000000001',
-    );
-    final now = DateTime.now();
-    final seeds = [
-      (
-        'Campus Tree Care Day',
-        'Care for young campus trees through watering, guard repair, and cleanup.',
-        50000.0,
-        32500.0,
-        20,
-        18.52040,
-        73.85670,
-        'tree care | environment | outdoors',
-      ),
-      (
-        'Riverside Cleanup',
-        'Remove visible waste and document a cleaner riverside public space.',
-        30000.0,
-        12000.0,
-        15,
-        18.52110,
-        73.85810,
-        'cleanup | environment | community',
-      ),
-      (
-        'Community Garden Revival',
-        'Restore planting beds and prepare the neighbourhood garden for the season.',
-        75000.0,
-        48000.0,
-        25,
-        18.51920,
-        73.85530,
-        'gardening | community | outdoors',
-      ),
-    ];
-    for (var i = 0; i < seeds.length; i++) {
-      final seed = seeds[i];
-      final existing = await Campaign.db.findFirstRow(
-        session,
-        where: (t) => t.name.equals(seed.$1),
-      );
-      if (existing != null) continue;
-      final start = _nextWeekday(now, DateTime.saturday).copyWith(
-        hour: 8 + i,
-        minute: 0,
-        second: 0,
-        millisecond: 0,
-        microsecond: 0,
-      );
-      await Campaign.db.insertRow(
-        session,
-        Campaign(
-          organizationId: organization.id!,
-          name: seed.$1,
-          description: seed.$2,
-          locationName: i == 0 ? 'University Campus' : 'Pune Community Zone',
-          startsAt: start.toUtc(),
-          endsAt: start.add(const Duration(hours: 3)).toUtc(),
-          status: CampaignStatus.active,
-          createdBy: demoCreator,
-          fundingGoal: seed.$3,
-          sponsoredAmount: seed.$4,
-          latitude: seed.$6,
-          longitude: seed.$7,
-          geofenceMeters: 200,
-          volunteerCapacity: seed.$5,
-          requiredSkills: 'No specialist skills | Comfortable outdoors',
-          checklist:
-              'Check in at the campaign pin | Complete the published work | Submit one photograph and note',
-          evidenceInstructions:
-              'Submit a location-verified photograph and describe completed work.',
-          tags: seed.$8,
-          aiGenerated: true,
-          publishedAt: DateTime.now().toUtc(),
-        ),
-      );
-    }
   }
 
   Future<Organization> _platformOrganization(Session session) async {
@@ -1619,11 +2156,30 @@ class FieldnoteEndpoint extends Endpoint {
     if (value == null || value.isEmpty) {
       throw FieldnoteException(
         message:
-            'Razorpay Test Mode is not configured on the server. Add $name to Serverpod passwords.',
+            'Razorpay is not configured on the server. Add $name to Serverpod passwords.',
         code: 'payment_not_configured',
       );
     }
     return value;
+  }
+
+  /// The server-side Google Maps Platform key, or null when Maps web services
+  /// are not configured. Callers must degrade instead of failing.
+  static String? _mapsKey(Session session) {
+    final value = session.passwords['googleMapsApiKey']?.trim();
+    return value == null || value.isEmpty ? null : value;
+  }
+
+  static void _requireValidCoordinates(double latitude, double longitude) {
+    if (!latitude.isFinite ||
+        !longitude.isFinite ||
+        latitude.abs() > 90 ||
+        longitude.abs() > 180) {
+      throw FieldnoteException(
+        message: 'That map point is outside valid geographic bounds.',
+        code: 'invalid_coordinates',
+      );
+    }
   }
 
   static String _transcriptionModel(Session session) {
@@ -1672,12 +2228,6 @@ class FieldnoteEndpoint extends Endpoint {
     return radius * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
   }
 
-  static DateTime _nextWeekday(DateTime from, int weekday) {
-    var days = (weekday - from.weekday) % 7;
-    if (days == 0) days = 7;
-    return from.add(Duration(days: days));
-  }
-
   static String _weekday(int day) => const [
     'Monday',
     'Tuesday',
@@ -1687,4 +2237,28 @@ class FieldnoteEndpoint extends Endpoint {
     'Saturday',
     'Sunday',
   ][day - 1];
+}
+
+class _ProfileLocation {
+  const _ProfileLocation({
+    required this.name,
+    required this.address,
+    this.placeId,
+    this.latitude,
+    this.longitude,
+  });
+
+  final String name;
+  final String address;
+  final String? placeId;
+  final double? latitude;
+  final double? longitude;
+}
+
+class _ReachBucket {
+  _ReachBucket(this.latitude, this.longitude);
+
+  final double latitude;
+  final double longitude;
+  int count = 0;
 }

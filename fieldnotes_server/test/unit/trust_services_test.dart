@@ -64,7 +64,7 @@ void main() {
       expect(result.reasons.join(' '), contains('mock location'));
     });
 
-    test('allows explicit demo GPS but labels it demo', () {
+    test('rejects simulated GPS even when explicitly requested', () {
       final result = service.assess(
         latitude: 18.5204,
         longitude: 73.8567,
@@ -74,8 +74,9 @@ void main() {
         capturedAt: now,
         now: now,
       );
-      expect(result.allowed, isTrue);
-      expect(result.status, 'demo');
+      expect(result.allowed, isFalse);
+      expect(result.status, 'rejected');
+      expect(result.reasons, contains('Simulated locations are not accepted'));
     });
   });
 

@@ -23,6 +23,10 @@ abstract class FieldnoteUserProfile
     this.sponsorType,
     this.organizationName,
     required this.city,
+    this.locationAddress,
+    this.locationPlaceId,
+    this.locationLatitude,
+    this.locationLongitude,
     required this.interests,
     required this.skills,
     DateTime? createdAt,
@@ -38,6 +42,10 @@ abstract class FieldnoteUserProfile
     String? sponsorType,
     String? organizationName,
     required String city,
+    String? locationAddress,
+    String? locationPlaceId,
+    double? locationLatitude,
+    double? locationLongitude,
     required String interests,
     required String skills,
     DateTime? createdAt,
@@ -59,6 +67,12 @@ abstract class FieldnoteUserProfile
       sponsorType: jsonSerialization['sponsorType'] as String?,
       organizationName: jsonSerialization['organizationName'] as String?,
       city: jsonSerialization['city'] as String,
+      locationAddress: jsonSerialization['locationAddress'] as String?,
+      locationPlaceId: jsonSerialization['locationPlaceId'] as String?,
+      locationLatitude: (jsonSerialization['locationLatitude'] as num?)
+          ?.toDouble(),
+      locationLongitude: (jsonSerialization['locationLongitude'] as num?)
+          ?.toDouble(),
       interests: jsonSerialization['interests'] as String,
       skills: jsonSerialization['skills'] as String,
       createdAt: jsonSerialization['createdAt'] == null
@@ -87,6 +101,14 @@ abstract class FieldnoteUserProfile
 
   String city;
 
+  String? locationAddress;
+
+  String? locationPlaceId;
+
+  double? locationLatitude;
+
+  double? locationLongitude;
+
   String interests;
 
   String skills;
@@ -106,6 +128,10 @@ abstract class FieldnoteUserProfile
     String? sponsorType,
     String? organizationName,
     String? city,
+    String? locationAddress,
+    String? locationPlaceId,
+    double? locationLatitude,
+    double? locationLongitude,
     String? interests,
     String? skills,
     DateTime? createdAt,
@@ -122,6 +148,10 @@ abstract class FieldnoteUserProfile
       if (sponsorType != null) 'sponsorType': sponsorType,
       if (organizationName != null) 'organizationName': organizationName,
       'city': city,
+      if (locationAddress != null) 'locationAddress': locationAddress,
+      if (locationPlaceId != null) 'locationPlaceId': locationPlaceId,
+      if (locationLatitude != null) 'locationLatitude': locationLatitude,
+      if (locationLongitude != null) 'locationLongitude': locationLongitude,
       'interests': interests,
       'skills': skills,
       'createdAt': createdAt.toJson(),
@@ -140,6 +170,10 @@ abstract class FieldnoteUserProfile
       if (sponsorType != null) 'sponsorType': sponsorType,
       if (organizationName != null) 'organizationName': organizationName,
       'city': city,
+      if (locationAddress != null) 'locationAddress': locationAddress,
+      if (locationPlaceId != null) 'locationPlaceId': locationPlaceId,
+      if (locationLatitude != null) 'locationLatitude': locationLatitude,
+      if (locationLongitude != null) 'locationLongitude': locationLongitude,
       'interests': interests,
       'skills': skills,
       'createdAt': createdAt.toJson(),
@@ -164,6 +198,10 @@ class _FieldnoteUserProfileImpl extends FieldnoteUserProfile {
     String? sponsorType,
     String? organizationName,
     required String city,
+    String? locationAddress,
+    String? locationPlaceId,
+    double? locationLatitude,
+    double? locationLongitude,
     required String interests,
     required String skills,
     DateTime? createdAt,
@@ -176,6 +214,10 @@ class _FieldnoteUserProfileImpl extends FieldnoteUserProfile {
          sponsorType: sponsorType,
          organizationName: organizationName,
          city: city,
+         locationAddress: locationAddress,
+         locationPlaceId: locationPlaceId,
+         locationLatitude: locationLatitude,
+         locationLongitude: locationLongitude,
          interests: interests,
          skills: skills,
          createdAt: createdAt,
@@ -194,6 +236,10 @@ class _FieldnoteUserProfileImpl extends FieldnoteUserProfile {
     Object? sponsorType = _Undefined,
     Object? organizationName = _Undefined,
     String? city,
+    Object? locationAddress = _Undefined,
+    Object? locationPlaceId = _Undefined,
+    Object? locationLatitude = _Undefined,
+    Object? locationLongitude = _Undefined,
     String? interests,
     String? skills,
     DateTime? createdAt,
@@ -209,6 +255,18 @@ class _FieldnoteUserProfileImpl extends FieldnoteUserProfile {
           ? organizationName
           : this.organizationName,
       city: city ?? this.city,
+      locationAddress: locationAddress is String?
+          ? locationAddress
+          : this.locationAddress,
+      locationPlaceId: locationPlaceId is String?
+          ? locationPlaceId
+          : this.locationPlaceId,
+      locationLatitude: locationLatitude is double?
+          ? locationLatitude
+          : this.locationLatitude,
+      locationLongitude: locationLongitude is double?
+          ? locationLongitude
+          : this.locationLongitude,
       interests: interests ?? this.interests,
       skills: skills ?? this.skills,
       createdAt: createdAt ?? this.createdAt,

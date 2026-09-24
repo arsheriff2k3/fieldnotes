@@ -1,0 +1,9 @@
+### A coarse, k-anonymised bucket of volunteers used to draw sponsor reach
+### coverage. Coordinates are rounded to roughly a kilometre and cells below
+### the anonymity threshold are never emitted, so no volunteer home location
+### can be recovered from this data.
+class: ReachCell
+fields:
+  latitude: double
+  longitude: double
+  volunteerCount: int

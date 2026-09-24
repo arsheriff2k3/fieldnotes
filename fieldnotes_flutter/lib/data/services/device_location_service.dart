@@ -1,4 +1,24 @@
+import 'dart:async';
+
 import 'package:geolocator/geolocator.dart';
+
+enum LocationAccessIssue {
+  serviceDisabled,
+  permissionDenied,
+  permissionDeniedForever,
+  timedOut,
+  unavailable,
+}
+
+class LocationAccessException implements Exception {
+  const LocationAccessException(this.issue, this.message);
+
+  final LocationAccessIssue issue;
+  final String message;
+
+  @override
+  String toString() => message;
+}
 
 class DeviceLocation {
   const DeviceLocation({
@@ -18,45 +38,47 @@ class DeviceLocation {
   final bool isMocked;
   final DateTime capturedAt;
   final bool isDemo;
-
-  static DeviceLocation get demoVenue => DeviceLocation(
-    latitude: 18.52040,
-    longitude: 73.85670,
-    accuracyMeters: 8,
-    isLive: false,
-    isMocked: true,
-    capturedAt: DateTime.now().toUtc(),
-    isDemo: true,
-  );
-
-  static DeviceLocation demoAt(double latitude, double longitude) =>
-      DeviceLocation(
-        latitude: latitude,
-        longitude: longitude,
-        accuracyMeters: 8,
-        isLive: false,
-        isMocked: true,
-        capturedAt: DateTime.now().toUtc(),
-        isDemo: true,
-      );
 }
 
 class DeviceLocationService {
-  Future<DeviceLocation> current({bool allowDemoFallback = true}) async {
+  Future<DeviceLocation> current() async {
+    await _ensureReady();
     try {
-      await _ensureReady();
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 12),
+          timeLimit: Duration(seconds: 15),
         ),
       );
       return _fromPosition(position);
-    } catch (_) {
-      if (allowDemoFallback) return DeviceLocation.demoVenue;
+    } on TimeoutException {
+      throw const LocationAccessException(
+        LocationAccessIssue.timedOut,
+        'A precise location could not be obtained in time. Move near a window and try again.',
+      );
+    } on LocationServiceDisabledException {
+      throw const LocationAccessException(
+        LocationAccessIssue.serviceDisabled,
+        'Location is turned off. Enable Location on this device and try again.',
+      );
+    } on PermissionDeniedException {
+      throw const LocationAccessException(
+        LocationAccessIssue.permissionDenied,
+        'FieldNote does not have permission to use this device location.',
+      );
+    } on LocationAccessException {
       rethrow;
+    } on Object {
+      throw const LocationAccessException(
+        LocationAccessIssue.unavailable,
+        'The device location is currently unavailable. Check Location settings and try again.',
+      );
     }
   }
+
+  Future<bool> openLocationSettings() => Geolocator.openLocationSettings();
+
+  Future<bool> openAppSettings() => Geolocator.openAppSettings();
 
   Stream<DeviceLocation> watch() async* {
     await _ensureReady();
@@ -80,23 +102,28 @@ class DeviceLocationService {
   );
 
   Future<void> _ensureReady() async {
-    final enabled = await Geolocator.isLocationServiceEnabled();
-    if (!enabled) {
-      throw StateError(
-        'Location services are disabled. Enable Location on this device.',
-      );
-    }
     var permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
     if (permission == LocationPermission.deniedForever) {
-      throw StateError(
-        'Location permission is permanently denied. Enable Precise Location for FieldNote in device Settings.',
+      throw const LocationAccessException(
+        LocationAccessIssue.permissionDeniedForever,
+        'Location permission is blocked. Enable Precise Location for FieldNote in device Settings.',
       );
     }
     if (permission == LocationPermission.denied) {
-      throw StateError('Location permission was not granted.');
+      throw const LocationAccessException(
+        LocationAccessIssue.permissionDenied,
+        'Location permission was not granted. Allow it and try again.',
+      );
+    }
+    final enabled = await Geolocator.isLocationServiceEnabled();
+    if (!enabled) {
+      throw const LocationAccessException(
+        LocationAccessIssue.serviceDisabled,
+        'Location is turned off. Enable Location on this device and try again.',
+      );
     }
   }
 

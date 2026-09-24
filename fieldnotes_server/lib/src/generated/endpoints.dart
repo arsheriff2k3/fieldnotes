@@ -366,6 +366,11 @@ class Endpoints extends _is.EndpointDispatch {
               type: _is.getType<String>(),
               nullable: false,
             ),
+            'cityPlaceId': _is.ParameterDescription(
+              name: 'cityPlaceId',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
             'interests': _is.ParameterDescription(
               name: 'interests',
               type: _is.getType<List<String>>(),
@@ -383,6 +388,7 @@ class Endpoints extends _is.EndpointDispatch {
                     params['sponsorType'],
                     params['organizationName'],
                     params['city'],
+                    params['cityPlaceId'],
                     params['interests'],
                   ),
         ),
@@ -475,6 +481,61 @@ class Endpoints extends _is.EndpointDispatch {
                     params['latitude'],
                     params['longitude'],
                     params['locationLabel'],
+                  ),
+        ),
+        'updateMyProfile': _is.MethodConnector(
+          name: 'updateMyProfile',
+          params: {
+            'displayName': _is.ParameterDescription(
+              name: 'displayName',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'sponsorType': _is.ParameterDescription(
+              name: 'sponsorType',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
+            'organizationName': _is.ParameterDescription(
+              name: 'organizationName',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
+            'city': _is.ParameterDescription(
+              name: 'city',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'cityPlaceId': _is.ParameterDescription(
+              name: 'cityPlaceId',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
+            'interests': _is.ParameterDescription(
+              name: 'interests',
+              type: _is.getType<List<String>>(),
+              nullable: false,
+            ),
+            'skills': _is.ParameterDescription(
+              name: 'skills',
+              type: _is.getType<List<String>>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .updateMyProfile(
+                    session,
+                    params['displayName'],
+                    params['sponsorType'],
+                    params['organizationName'],
+                    params['city'],
+                    params['cityPlaceId'],
+                    params['interests'],
+                    params['skills'],
                   ),
         ),
         'getMyAvailability': _is.MethodConnector(
@@ -622,6 +683,16 @@ class Endpoints extends _is.EndpointDispatch {
               type: _is.getType<double>(),
               nullable: false,
             ),
+            'locationName': _is.ParameterDescription(
+              name: 'locationName',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
+            'geofenceMeters': _is.ParameterDescription(
+              name: 'geofenceMeters',
+              type: _is.getType<double?>(),
+              nullable: true,
+            ),
           },
           call:
               (
@@ -633,6 +704,8 @@ class Endpoints extends _is.EndpointDispatch {
                     params['proposal'],
                     params['latitude'],
                     params['longitude'],
+                    params['locationName'],
+                    params['geofenceMeters'],
                   ),
         ),
         'listCampaigns': _is.MethodConnector(
@@ -654,6 +727,183 @@ class Endpoints extends _is.EndpointDispatch {
                 Map<String, dynamic> params,
               ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
                   .listMyCreatedCampaigns(session),
+        ),
+        'isCitySearchAvailable': _is.MethodConnector(
+          name: 'isCitySearchAvailable',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .isCitySearchAvailable(session),
+        ),
+        'searchCities': _is.MethodConnector(
+          name: 'searchCities',
+          params: {
+            'query': _is.ParameterDescription(
+              name: 'query',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .searchCities(
+                    session,
+                    params['query'],
+                  ),
+        ),
+        'searchSponsorLocations': _is.MethodConnector(
+          name: 'searchSponsorLocations',
+          params: {
+            'query': _is.ParameterDescription(
+              name: 'query',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .searchSponsorLocations(
+                    session,
+                    params['query'],
+                  ),
+        ),
+        'isPlaceSearchAvailable': _is.MethodConnector(
+          name: 'isPlaceSearchAvailable',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .isPlaceSearchAvailable(session),
+        ),
+        'searchPlaces': _is.MethodConnector(
+          name: 'searchPlaces',
+          params: {
+            'query': _is.ParameterDescription(
+              name: 'query',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'biasLatitude': _is.ParameterDescription(
+              name: 'biasLatitude',
+              type: _is.getType<double?>(),
+              nullable: true,
+            ),
+            'biasLongitude': _is.ParameterDescription(
+              name: 'biasLongitude',
+              type: _is.getType<double?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .searchPlaces(
+                    session,
+                    params['query'],
+                    params['biasLatitude'],
+                    params['biasLongitude'],
+                  ),
+        ),
+        'resolvePlace': _is.MethodConnector(
+          name: 'resolvePlace',
+          params: {
+            'placeId': _is.ParameterDescription(
+              name: 'placeId',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .resolvePlace(
+                    session,
+                    params['placeId'],
+                  ),
+        ),
+        'describeCoordinates': _is.MethodConnector(
+          name: 'describeCoordinates',
+          params: {
+            'latitude': _is.ParameterDescription(
+              name: 'latitude',
+              type: _is.getType<double>(),
+              nullable: false,
+            ),
+            'longitude': _is.ParameterDescription(
+              name: 'longitude',
+              type: _is.getType<double>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .describeCoordinates(
+                    session,
+                    params['latitude'],
+                    params['longitude'],
+                  ),
+        ),
+        'previewCampaignReach': _is.MethodConnector(
+          name: 'previewCampaignReach',
+          params: {
+            'latitude': _is.ParameterDescription(
+              name: 'latitude',
+              type: _is.getType<double>(),
+              nullable: false,
+            ),
+            'longitude': _is.ParameterDescription(
+              name: 'longitude',
+              type: _is.getType<double>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .previewCampaignReach(
+                    session,
+                    params['latitude'],
+                    params['longitude'],
+                  ),
+        ),
+        'getCampaignMap': _is.MethodConnector(
+          name: 'getCampaignMap',
+          params: {
+            'campaignId': _is.ParameterDescription(
+              name: 'campaignId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .getCampaignMap(
+                    session,
+                    params['campaignId'],
+                  ),
         ),
         'createRazorpayOrder': _is.MethodConnector(
           name: 'createRazorpayOrder',

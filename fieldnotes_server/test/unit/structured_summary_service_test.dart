@@ -1,9 +1,9 @@
-import 'package:fieldnotes_server/src/fieldnotes/services/hackathon_ai_service.dart';
+import 'package:fieldnotes_server/src/fieldnotes/services/structured_summary_service.dart';
 import 'package:fieldnotes_server/src/generated/protocol.dart';
 import 'package:test/test.dart';
 
 void main() {
-  const service = HackathonAiService();
+  const service = StructuredSummaryService();
 
   test('campaign proposal extracts sponsor budget and volunteer capacity', () {
     final proposal = service.proposeCampaign(

@@ -23,7 +23,7 @@ class RazorpayCheckoutException implements Exception {
   String toString() => message;
 }
 
-/// Razorpay Test Mode checkout. The mobile build uses the `razorpay_flutter`
+/// Razorpay checkout. The mobile build uses the `razorpay_flutter`
 /// plugin and the web build uses Razorpay's Checkout.js, but both return the
 /// same three fields the server needs to verify the payment signature.
 abstract class RazorpayCheckoutService {
