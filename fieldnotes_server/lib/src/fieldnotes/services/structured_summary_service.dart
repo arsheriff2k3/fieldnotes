@@ -1,12 +1,11 @@
 import '../../generated/protocol.dart';
 
-/// Credential-free AI fallback used by the local hackathon build.
+/// Deterministic helper for provider-independent impact summaries and tests.
 ///
 /// The service exposes the same structured contracts a hosted language and
-/// vision model would use. This keeps the live demo deterministic while making
-/// the provider replaceable without changing endpoint or Flutter code.
-class HackathonAiService {
-  const HackathonAiService();
+/// vision model would use, keeping pure summary logic independently testable.
+class StructuredSummaryService {
+  const StructuredSummaryService();
 
   CampaignProposal proposeCampaign(String prompt, DateTime now) {
     final text = prompt.toLowerCase();
@@ -66,7 +65,7 @@ class HackathonAiService {
           'A sponsor-backed local action campaign generated from: “${prompt.trim()}”',
       locationName: text.contains('university')
           ? 'University Campus'
-          : 'Hackathon Demo Venue',
+          : 'Campaign location',
       startsAt: nextSaturday.toUtc(),
       durationMinutes: 180,
       volunteerCapacity: capacity.clamp(2, 100).toInt(),

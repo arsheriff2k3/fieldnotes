@@ -5,8 +5,8 @@ import 'package:flutter/foundation.dart';
 
 import '../../../data/repositories/fieldnote_repository.dart';
 
-class HackathonViewModel extends ChangeNotifier {
-  HackathonViewModel(this._repository);
+class FieldnoteViewModel extends ChangeNotifier {
+  FieldnoteViewModel(this._repository);
 
   final FieldnoteRepository _repository;
   StreamSubscription<CampaignLiveUpdate>? _liveSubscription;
@@ -73,6 +73,7 @@ class HackathonViewModel extends ChangeNotifier {
     errorMessage = null;
     notifyListeners();
     try {
+      profile = await _repository.profile();
       await _loadRoleData();
     } catch (error) {
       errorMessage = _message(error);
@@ -153,18 +154,21 @@ class HackathonViewModel extends ChangeNotifier {
       paymentId: paymentId,
       signature: signature,
     );
-    await refresh();
   }
 
   Future<Campaign> publishCampaign(
     CampaignProposal proposal,
     double latitude,
-    double longitude,
-  ) async {
+    double longitude, {
+    String? locationName,
+    double? geofenceMeters,
+  }) async {
     final campaign = await _repository.createCampaign(
       proposal,
       latitude,
       longitude,
+      locationName: locationName,
+      geofenceMeters: geofenceMeters,
     );
     await refresh();
     return campaign;
@@ -200,6 +204,12 @@ class HackathonViewModel extends ChangeNotifier {
   Future<void> participationCompleted() => refresh();
 
   Future<void> availabilityUpdated() => refresh();
+
+  Future<void> profileUpdated(FieldnoteUserProfile value) async {
+    profile = value;
+    await _loadRoleData();
+    notifyListeners();
+  }
 
   Future<String> exportMyData() => _repository.exportMyData();
 

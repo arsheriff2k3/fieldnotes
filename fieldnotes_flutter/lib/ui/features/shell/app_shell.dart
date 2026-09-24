@@ -1,15 +1,16 @@
-import 'package:flutter/material.dart';
-import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
+import 'dart:math' as math;
 
-import '../../../client.dart';
+import 'package:flutter/material.dart';
+
 import '../../../data/repositories/fieldnote_repository.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/widgets.dart';
 import '../onboarding/onboarding_view.dart';
+import '../profile/profile_view.dart';
 import '../sponsor/sponsor_views.dart';
 import '../trust/trust_center_view.dart';
 import '../volunteer/volunteer_views.dart';
-import 'hackathon_view_model.dart';
+import 'fieldnote_view_model.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -19,16 +20,19 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
-  late final HackathonViewModel _viewModel;
+  late final FieldnoteViewModel _viewModel;
+  late final SponsorVoiceActionController _sponsorVoiceController;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = HackathonViewModel(FieldnoteRepository())..initialize();
+    _sponsorVoiceController = SponsorVoiceActionController();
+    _viewModel = FieldnoteViewModel(FieldnoteRepository())..initialize();
   }
 
   @override
   void dispose() {
+    _sponsorVoiceController.dispose();
     _viewModel.dispose();
     super.dispose();
   }
@@ -92,17 +96,20 @@ class _AppShellState extends State<AppShell> {
         final pages = _viewModel.isSponsor
             ? <Widget>[
                 SponsorDiscoverView(viewModel: _viewModel),
-                SponsorCreateView(viewModel: _viewModel),
+                SponsorCreateView(
+                  viewModel: _viewModel,
+                  voiceController: _sponsorVoiceController,
+                ),
                 SponsorImpactView(viewModel: _viewModel),
                 TrustCenterView(viewModel: _viewModel),
-                _ProfileView(viewModel: _viewModel),
+                ProfileView(viewModel: _viewModel),
               ]
             : <Widget>[
                 VolunteerMatchesView(viewModel: _viewModel),
                 VolunteerWorkView(viewModel: _viewModel),
                 VolunteerAvailabilityView(viewModel: _viewModel),
                 TrustCenterView(viewModel: _viewModel),
-                _ProfileView(viewModel: _viewModel),
+                ProfileView(viewModel: _viewModel),
               ];
 
         return LayoutBuilder(
@@ -117,26 +124,36 @@ class _AppShellState extends State<AppShell> {
                       destinations: destinations,
                     ),
                   Expanded(
-                    child: Stack(
-                      children: [
-                        IndexedStack(
-                          index: _viewModel.selectedIndex,
-                          children: pages,
-                        ),
-                        if (_viewModel.working)
-                          const Positioned(
-                            left: 0,
-                            top: 0,
-                            right: 0,
-                            child: LinearProgressIndicator(minHeight: 3),
+                    child: SafeArea(
+                      top: !desktop,
+                      bottom: false,
+                      child: Stack(
+                        children: [
+                          IndexedStack(
+                            index: _viewModel.selectedIndex,
+                            children: pages,
                           ),
-                      ],
+                          if (_viewModel.working)
+                            const Positioned(
+                              left: 0,
+                              top: 0,
+                              right: 0,
+                              child: LinearProgressIndicator(minHeight: 3),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
               bottomNavigationBar: desktop
                   ? null
+                  : _viewModel.isSponsor
+                  ? _SponsorBottomBar(
+                      controller: _sponsorVoiceController,
+                      selectedIndex: _viewModel.selectedIndex,
+                      onSelected: _viewModel.selectSection,
+                    )
                   : NavigationBar(
                       selectedIndex: _viewModel.selectedIndex,
                       onDestinationSelected: _viewModel.selectSection,
@@ -150,6 +167,15 @@ class _AppShellState extends State<AppShell> {
                           )
                           .toList(),
                     ),
+              floatingActionButton: desktop || !_viewModel.isSponsor
+                  ? null
+                  : _SponsorVoiceButton(
+                      controller: _sponsorVoiceController,
+                      selected: _viewModel.selectedIndex == 1,
+                      onOpenCreate: () => _viewModel.selectSection(1),
+                    ),
+              floatingActionButtonLocation:
+                  FloatingActionButtonLocation.centerDocked,
             );
           },
         );
@@ -158,13 +184,312 @@ class _AppShellState extends State<AppShell> {
   }
 }
 
+class _SponsorBottomBar extends StatefulWidget {
+  const _SponsorBottomBar({
+    required this.controller,
+    required this.selectedIndex,
+    required this.onSelected,
+  });
+
+  final SponsorVoiceActionController controller;
+  final int selectedIndex;
+  final ValueChanged<int> onSelected;
+
+  @override
+  State<_SponsorBottomBar> createState() => _SponsorBottomBarState();
+}
+
+class _SponsorBottomBarState extends State<_SponsorBottomBar>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _wave = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1050),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_statusChanged);
+    _statusChanged();
+  }
+
+  @override
+  void didUpdateWidget(_SponsorBottomBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_statusChanged);
+      widget.controller.addListener(_statusChanged);
+      _statusChanged();
+    }
+  }
+
+  void _statusChanged() {
+    if (widget.controller.captureActive) {
+      if (!_wave.isAnimating) _wave.repeat(reverse: true);
+    } else if (_wave.isAnimating || _wave.value != 0) {
+      _wave.reset();
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_statusChanged);
+    _wave.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 106,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            left: 0,
+            right: 0,
+            top: -145,
+            height: 160,
+            child: IgnorePointer(
+              child: AnimatedBuilder(
+                animation: _wave,
+                builder: (context, _) => CustomPaint(
+                  painter: _VoiceSemicirclePainter(
+                    progress: _wave.value,
+                    visible: widget.controller.captureActive,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: BottomAppBar(
+              elevation: 12,
+              color: FieldnoteColors.mist,
+              shape: const CircularNotchedRectangle(),
+              notchMargin: 9,
+              padding: EdgeInsets.zero,
+              child: SafeArea(
+                top: false,
+                child: Row(
+                  children: [
+                    _item(0, Icons.explore_outlined, Icons.explore, 'Discover'),
+                    _item(2, Icons.insights_outlined, Icons.insights, 'Impact'),
+                    const SizedBox(width: 78),
+                    _item(3, Icons.shield_outlined, Icons.shield, 'Trust'),
+                    _item(4, Icons.person_outline, Icons.person, 'Profile'),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _item(int index, IconData icon, IconData selectedIcon, String label) {
+    final selected = widget.selectedIndex == index;
+    return Expanded(
+      child: InkResponse(
+        onTap: () => widget.onSelected(index),
+        radius: 34,
+        child: Semantics(
+          button: true,
+          selected: selected,
+          label: label,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 8, bottom: 5),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  selected ? selectedIcon : icon,
+                  size: 22,
+                  color: selected
+                      ? FieldnoteColors.forest
+                      : FieldnoteColors.ink.withValues(alpha: .68),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  label,
+                  maxLines: 1,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                    color: selected
+                        ? FieldnoteColors.forest
+                        : FieldnoteColors.ink.withValues(alpha: .68),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SponsorVoiceButton extends StatefulWidget {
+  const _SponsorVoiceButton({
+    required this.controller,
+    required this.selected,
+    required this.onOpenCreate,
+  });
+
+  final SponsorVoiceActionController controller;
+  final bool selected;
+  final VoidCallback onOpenCreate;
+
+  @override
+  State<_SponsorVoiceButton> createState() => _SponsorVoiceButtonState();
+}
+
+class _SponsorVoiceButtonState extends State<_SponsorVoiceButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 760),
+  );
+  bool _holding = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_statusChanged);
+  }
+
+  void _statusChanged() {
+    if (!mounted) return;
+    if (widget.controller.captureActive) {
+      if (!_pulse.isAnimating) _pulse.repeat(reverse: true);
+    } else if (!_holding) {
+      _pulse.reset();
+    }
+    setState(() {});
+  }
+
+  void _pressStart() {
+    if (!widget.controller.canRecord) return;
+    widget.onOpenCreate();
+    setState(() => _holding = true);
+    _pulse.repeat(reverse: true);
+    widget.controller.pressStart();
+  }
+
+  void _pressEnd() {
+    if (!_holding) return;
+    setState(() => _holding = false);
+    widget.controller.pressEnd();
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_statusChanged);
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final active = _holding || widget.controller.captureActive;
+    final processing = widget.controller.processing;
+    final enabled = widget.controller.canRecord || widget.controller.recording;
+    final icon = widget.controller.recording
+        ? Icons.stop_rounded
+        : Icons.mic_rounded;
+    final idleColor = processing
+        ? FieldnoteColors.ink.withValues(alpha: .42)
+        : FieldnoteColors.forest;
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: widget.controller.recording
+          ? 'Recording. Release to finish.'
+          : processing
+          ? 'Campaign generation in progress'
+          : 'Hold to record a campaign brief',
+      child: Listener(
+        behavior: HitTestBehavior.opaque,
+        onPointerDown: enabled ? (_) => _pressStart() : null,
+        onPointerUp: enabled ? (_) => _pressEnd() : null,
+        onPointerCancel: enabled ? (_) => _pressEnd() : null,
+        child: AnimatedBuilder(
+          animation: _pulse,
+          builder: (context, _) => Transform.scale(
+            scale: active ? 1 + (_pulse.value * .08) : 1,
+            child: Container(
+              width: 68,
+              height: 68,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: active ? FieldnoteColors.clay : idleColor,
+                border: Border.all(
+                  color: FieldnoteColors.paper,
+                  width: 5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: (active ? FieldnoteColors.clay : idleColor)
+                        .withValues(alpha: .3 + (_pulse.value * .2)),
+                    blurRadius: 14 + (_pulse.value * 18),
+                    spreadRadius: _pulse.value * 5,
+                  ),
+                ],
+              ),
+              child: Icon(icon, color: Colors.white, size: 30),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _VoiceSemicirclePainter extends CustomPainter {
+  const _VoiceSemicirclePainter({
+    required this.progress,
+    required this.visible,
+  });
+
+  final double progress;
+  final bool visible;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (!visible && progress == 0) return;
+    final center = Offset(size.width / 2, size.height);
+    for (var index = 0; index < 3; index++) {
+      final phase = (progress + (index * .22)).clamp(0.0, 1.0);
+      final radius = 52 + (phase * size.width * .42);
+      final paint = Paint()
+        ..color = FieldnoteColors.clay.withValues(
+          alpha: (1 - phase) * (.17 - (index * .035)),
+        )
+        ..style = PaintingStyle.fill;
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        math.pi,
+        math.pi,
+        true,
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_VoiceSemicirclePainter oldDelegate) =>
+      oldDelegate.progress != progress || oldDelegate.visible != visible;
+}
+
 class _DesktopNavigation extends StatelessWidget {
   const _DesktopNavigation({
     required this.viewModel,
     required this.destinations,
   });
 
-  final HackathonViewModel viewModel;
+  final FieldnoteViewModel viewModel;
   final List<_Destination> destinations;
 
   @override
@@ -252,7 +577,12 @@ class _DesktopNavigation extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      viewModel.profile!.city,
+                      viewModel.isSponsor
+                          ? viewModel.profile!.locationAddress ??
+                                viewModel.profile!.city
+                          : viewModel.profile!.city,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white54,
                         fontSize: 12,
@@ -265,99 +595,6 @@ class _DesktopNavigation extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _ProfileView extends StatelessWidget {
-  const _ProfileView({required this.viewModel});
-
-  final HackathonViewModel viewModel;
-
-  @override
-  Widget build(BuildContext context) {
-    final profile = viewModel.profile!;
-    final roleName = viewModel.isSponsor ? 'Sponsor' : 'Volunteer';
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 28, 24, 100),
-      children: [
-        SectionHeading(
-          eyebrow: '$roleName account',
-          title: profile.displayName,
-          description:
-              '${profile.city} · ${profile.interests.split('|').map((value) => value.trim()).where((value) => value.isNotEmpty).join(' · ')}',
-          trailing: OutlinedButton.icon(
-            onPressed: viewModel.refresh,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Refresh data'),
-          ),
-        ),
-        const SizedBox(height: 24),
-        SurfaceCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 62,
-                    height: 62,
-                    decoration: BoxDecoration(
-                      color: FieldnoteColors.acid,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Icon(
-                      viewModel.isSponsor
-                          ? Icons.volunteer_activism_outlined
-                          : Icons.directions_walk_outlined,
-                      size: 31,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '$roleName account',
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        Text(
-                          viewModel.isSponsor
-                              ? profile.organizationName?.isNotEmpty == true
-                                    ? profile.organizationName!
-                                    : profile.sponsorType ??
-                                          'Individual sponsor'
-                              : '${profile.skills.split('|').where((value) => value.trim().isNotEmpty).length} volunteer skills',
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const Divider(height: 32),
-              const Text(
-                'This hackathon MVP intentionally has two roles only. Sponsors create and fund campaigns; volunteers publish availability, join work, and submit verified evidence.',
-              ),
-              const SizedBox(height: 22),
-              OutlinedButton.icon(
-                onPressed: () async {
-                  final signedOut = await client.auth.signOutDevice();
-                  if (!signedOut && context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Could not sign out this device.'),
-                      ),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.logout),
-                label: const Text('Sign out'),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

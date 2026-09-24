@@ -1,0 +1,12 @@
+### How many volunteers could actually reach a proposed campaign pin.
+### Shown to sponsors before they publish and pay.
+class: CampaignReach
+fields:
+  latitude: double
+  longitude: double
+  volunteersInRange: int
+  availableVolunteers: int
+  nearestDistanceKm: double?
+  medianDistanceKm: double?
+  coverageCells: List<ReachCell>
+  summary: String

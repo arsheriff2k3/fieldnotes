@@ -1,0 +1,10 @@
+### Everything the sponsor live map needs for one campaign: the pin and
+### geofence it was published with, plus every check-in and evidence point.
+class: CampaignMapOverview
+fields:
+  campaign: Campaign
+  pins: List<CampaignMapPin>
+  joinedCount: int
+  checkedInCount: int
+  completedCount: int
+  demoCount: int

@@ -20,6 +20,8 @@ import 'package:fieldnotes_server/src/generated/fieldnotes/models/campaign.dart'
     as _iuzdi22u;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/campaign_live_update.dart'
     as _ijl5nqyg;
+import 'package:fieldnotes_server/src/generated/fieldnotes/models/campaign_map_overview.dart'
+    as _idftstcm;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/campaign_match.dart'
     as _i3ipc266;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/campaign_participation.dart'
@@ -28,6 +30,8 @@ import 'package:fieldnotes_server/src/generated/fieldnotes/models/campaign_post.
     as _id4uw0jw;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/campaign_proposal.dart'
     as _imistozd;
+import 'package:fieldnotes_server/src/generated/fieldnotes/models/campaign_reach.dart'
+    as _i7sn891l;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/completion_evidence.dart'
     as _iwy2dzi1;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/completion_proposal.dart'
@@ -36,8 +40,12 @@ import 'package:fieldnotes_server/src/generated/fieldnotes/models/impact_summary
     as _igdptf07;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/legal_consent.dart'
     as _id1317s7;
+import 'package:fieldnotes_server/src/generated/fieldnotes/models/place_suggestion.dart'
+    as _i18eudx8;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/razorpay_checkout_order.dart'
     as _i6ia46xm;
+import 'package:fieldnotes_server/src/generated/fieldnotes/models/resolved_place.dart'
+    as _i7kx1qhs;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/sponsorship.dart'
     as _iwnubjux;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/trust_center_summary.dart'
@@ -736,6 +744,7 @@ class _FieldnoteEndpoint {
     String sponsorType,
     String? organizationName,
     String city,
+    String? cityPlaceId,
     List<String> interests,
   ) async {
     return _ist.callAwaitableFunctionAndHandleExceptions(() async {
@@ -754,6 +763,7 @@ class _FieldnoteEndpoint {
             'sponsorType': sponsorType,
             'organizationName': organizationName,
             'city': city,
+            'cityPlaceId': cityPlaceId,
             'interests': interests,
           }),
           serializationManager: _serializationManager,
@@ -812,6 +822,51 @@ class _FieldnoteEndpoint {
             'latitude': latitude,
             'longitude': longitude,
             'locationLabel': locationLabel,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_iwhpwl59.FieldnoteUserProfile>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<_iwhpwl59.FieldnoteUserProfile> updateMyProfile(
+    _ist.TestSessionBuilder sessionBuilder,
+    String displayName,
+    String? sponsorType,
+    String? organizationName,
+    String city,
+    String? cityPlaceId,
+    List<String> interests,
+    List<String> skills,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'updateMyProfile',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'updateMyProfile',
+          parameters: _ist.testObjectToJson({
+            'displayName': displayName,
+            'sponsorType': sponsorType,
+            'organizationName': organizationName,
+            'city': city,
+            'cityPlaceId': cityPlaceId,
+            'interests': interests,
+            'skills': skills,
           }),
           serializationManager: _serializationManager,
         );
@@ -980,6 +1035,8 @@ class _FieldnoteEndpoint {
     _imistozd.CampaignProposal proposal,
     double latitude,
     double longitude,
+    String? locationName,
+    double? geofenceMeters,
   ) async {
     return _ist.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
@@ -996,6 +1053,8 @@ class _FieldnoteEndpoint {
             'proposal': proposal,
             'latitude': latitude,
             'longitude': longitude,
+            'locationName': locationName,
+            'geofenceMeters': geofenceMeters,
           }),
           serializationManager: _serializationManager,
         );
@@ -1065,6 +1124,297 @@ class _FieldnoteEndpoint {
                   _localCallContext.arguments,
                 )
                 as _ida.Future<List<_iuzdi22u.Campaign>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<bool> isCitySearchAvailable(
+    _ist.TestSessionBuilder sessionBuilder,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'isCitySearchAvailable',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'isCitySearchAvailable',
+          parameters: _ist.testObjectToJson({}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<bool>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<List<_i18eudx8.PlaceSuggestion>> searchCities(
+    _ist.TestSessionBuilder sessionBuilder,
+    String query,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'searchCities',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'searchCities',
+          parameters: _ist.testObjectToJson({'query': query}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<List<_i18eudx8.PlaceSuggestion>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<List<_i18eudx8.PlaceSuggestion>> searchSponsorLocations(
+    _ist.TestSessionBuilder sessionBuilder,
+    String query,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'searchSponsorLocations',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'searchSponsorLocations',
+          parameters: _ist.testObjectToJson({'query': query}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<List<_i18eudx8.PlaceSuggestion>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<bool> isPlaceSearchAvailable(
+    _ist.TestSessionBuilder sessionBuilder,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'isPlaceSearchAvailable',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'isPlaceSearchAvailable',
+          parameters: _ist.testObjectToJson({}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<bool>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<List<_i18eudx8.PlaceSuggestion>> searchPlaces(
+    _ist.TestSessionBuilder sessionBuilder,
+    String query,
+    double? biasLatitude,
+    double? biasLongitude,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'searchPlaces',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'searchPlaces',
+          parameters: _ist.testObjectToJson({
+            'query': query,
+            'biasLatitude': biasLatitude,
+            'biasLongitude': biasLongitude,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<List<_i18eudx8.PlaceSuggestion>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<_i7kx1qhs.ResolvedPlace> resolvePlace(
+    _ist.TestSessionBuilder sessionBuilder,
+    String placeId,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'resolvePlace',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'resolvePlace',
+          parameters: _ist.testObjectToJson({'placeId': placeId}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_i7kx1qhs.ResolvedPlace>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<_i7kx1qhs.ResolvedPlace?> describeCoordinates(
+    _ist.TestSessionBuilder sessionBuilder,
+    double latitude,
+    double longitude,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'describeCoordinates',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'describeCoordinates',
+          parameters: _ist.testObjectToJson({
+            'latitude': latitude,
+            'longitude': longitude,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_i7kx1qhs.ResolvedPlace?>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<_i7sn891l.CampaignReach> previewCampaignReach(
+    _ist.TestSessionBuilder sessionBuilder,
+    double latitude,
+    double longitude,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'previewCampaignReach',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'previewCampaignReach',
+          parameters: _ist.testObjectToJson({
+            'latitude': latitude,
+            'longitude': longitude,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_i7sn891l.CampaignReach>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<_idftstcm.CampaignMapOverview> getCampaignMap(
+    _ist.TestSessionBuilder sessionBuilder,
+    int campaignId,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'getCampaignMap',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'getCampaignMap',
+          parameters: _ist.testObjectToJson({'campaignId': campaignId}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_idftstcm.CampaignMapOverview>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();

@@ -5,4 +5,8 @@ fields:
   distanceKm: double
   availabilityMatches: bool
   reasons: List<String>
-
+  ### Real travel time from the Google Routes API when it is configured and
+  ### reachable. Null means the score fell back to straight-line distance.
+  travelMinutes: int?
+  travelDistanceKm: double?
+  travelMode: String?

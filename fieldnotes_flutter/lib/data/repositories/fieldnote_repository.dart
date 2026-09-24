@@ -12,12 +12,14 @@ class FieldnoteRepository {
     required String sponsorType,
     String? organizationName,
     required String city,
+    String? cityPlaceId,
     required List<String> interests,
   }) => client.fieldnote.completeSponsorProfile(
     displayName,
     sponsorType,
     organizationName,
     city,
+    cityPlaceId,
     interests,
   );
 
@@ -53,6 +55,24 @@ class FieldnoteRepository {
 
   Future<VolunteerAvailability?> availability() =>
       client.fieldnote.getMyAvailability();
+
+  Future<FieldnoteUserProfile> updateProfile({
+    required String displayName,
+    String? sponsorType,
+    String? organizationName,
+    required String city,
+    String? cityPlaceId,
+    required List<String> interests,
+    required List<String> skills,
+  }) => client.fieldnote.updateMyProfile(
+    displayName,
+    sponsorType,
+    organizationName,
+    city,
+    cityPlaceId,
+    interests,
+    skills,
+  );
 
   Future<VolunteerAvailability> updateAvailability({
     required bool isAvailable,
@@ -98,12 +118,55 @@ class FieldnoteRepository {
   Future<Campaign> createCampaign(
     CampaignProposal proposal,
     double latitude,
-    double longitude,
-  ) => client.fieldnote.createCampaignFromProposal(
+    double longitude, {
+    String? locationName,
+    double? geofenceMeters,
+  }) => client.fieldnote.createCampaignFromProposal(
     proposal,
     latitude,
     longitude,
+    locationName,
+    geofenceMeters,
   );
+
+  // Google Maps Platform. The API key stays on the server; these calls return
+  // empty or null rather than throwing when it is not configured, so the maps
+  // keep working with dragged pins and typed labels.
+
+  Future<bool> locationSearchAvailable() =>
+      client.fieldnote.isCitySearchAvailable();
+
+  Future<List<PlaceSuggestion>> searchLocations(String query) =>
+      client.fieldnote.searchSponsorLocations(query);
+
+  Future<bool> citySearchAvailable() =>
+      client.fieldnote.isCitySearchAvailable();
+
+  Future<List<PlaceSuggestion>> searchCities(String query) =>
+      client.fieldnote.searchCities(query);
+
+  Future<bool> placeSearchAvailable() =>
+      client.fieldnote.isPlaceSearchAvailable();
+
+  Future<List<PlaceSuggestion>> searchPlaces(
+    String query, {
+    double? biasLatitude,
+    double? biasLongitude,
+  }) => client.fieldnote.searchPlaces(query, biasLatitude, biasLongitude);
+
+  Future<ResolvedPlace> resolvePlace(String placeId) =>
+      client.fieldnote.resolvePlace(placeId);
+
+  Future<ResolvedPlace?> describeCoordinates(
+    double latitude,
+    double longitude,
+  ) => client.fieldnote.describeCoordinates(latitude, longitude);
+
+  Future<CampaignReach> previewReach(double latitude, double longitude) =>
+      client.fieldnote.previewCampaignReach(latitude, longitude);
+
+  Future<CampaignMapOverview> campaignMap(int campaignId) =>
+      client.fieldnote.getCampaignMap(campaignId);
 
   Future<RazorpayCheckoutOrder> createRazorpayOrder(
     int campaignId,

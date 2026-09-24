@@ -12,7 +12,7 @@ class LocationIntegrityResult {
   final List<String> reasons;
 }
 
-/// Server-side location sanity checks for a defense-in-depth demo.
+/// Server-side location sanity checks for defense in depth.
 class LocationIntegrityService {
   const LocationIntegrityService();
 
@@ -49,10 +49,13 @@ class LocationIntegrityService {
     } else {
       passed.add('Fresh device location sample');
     }
-    if (deviceReportedMock && !explicitDemo) {
+    if (deviceReportedMock) {
       rejected.add('Device reported a mock location provider');
-    } else if (!explicitDemo) {
+    } else {
       passed.add('No device mock-location flag');
+    }
+    if (explicitDemo) {
+      rejected.add('Simulated locations are not accepted');
     }
     if (previousLatitude != null &&
         previousLongitude != null &&
@@ -79,13 +82,6 @@ class LocationIntegrityService {
           passed.add('Movement continuity passed');
         }
       }
-    }
-    if (explicitDemo) {
-      return LocationIntegrityResult(
-        allowed: rejected.where((item) => !item.contains('mock')).isEmpty,
-        status: 'demo',
-        reasons: ['Explicit hackathon GPS simulation', ...passed],
-      );
     }
     return LocationIntegrityResult(
       allowed: rejected.isEmpty,

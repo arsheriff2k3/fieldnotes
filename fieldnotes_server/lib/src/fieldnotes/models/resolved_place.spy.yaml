@@ -1,0 +1,8 @@
+### A place that has been resolved to coordinates, either from a Places
+### autocomplete selection or from reverse geocoding a dragged map pin.
+class: ResolvedPlace
+fields:
+  name: String
+  address: String
+  latitude: double
+  longitude: double

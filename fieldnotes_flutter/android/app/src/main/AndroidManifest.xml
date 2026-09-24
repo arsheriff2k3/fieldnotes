@@ -9,6 +9,13 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">
+        <!-- Google Maps SDK key. Supplied from .env.maps (which is git-ignored)
+             as GOOGLE_MAPS_ANDROID_API_KEY, so no key is committed. When
+             it is empty the app still runs and every FieldNote map falls back
+             to its coordinate panel. -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${googleMapsApiKey}" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -45,6 +52,12 @@
     <queries>
         <intent>
             <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <!-- Lets url_launcher hand off "Navigate here" to Google Maps or a
+             browser under Android 11+ package visibility rules. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
         </intent>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>

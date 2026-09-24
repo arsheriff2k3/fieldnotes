@@ -44,3 +44,6 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Platform-restricted Google Maps client keys. Copy .env.maps.example and
+# keep the populated file local.
+/.env.maps

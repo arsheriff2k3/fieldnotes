@@ -4,12 +4,12 @@ import 'package:intl/intl.dart';
 
 import '../../core/fieldnote_theme.dart';
 import '../../core/widgets.dart';
-import '../shell/hackathon_view_model.dart';
+import '../shell/fieldnote_view_model.dart';
 
 class LegalConsentGate extends StatefulWidget {
   const LegalConsentGate({super.key, required this.viewModel});
 
-  final HackathonViewModel viewModel;
+  final FieldnoteViewModel viewModel;
 
   @override
   State<LegalConsentGate> createState() => _LegalConsentGateState();
@@ -41,79 +41,83 @@ class _LegalConsentGateState extends State<LegalConsentGate> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 720),
-          child: ListView(
-            padding: const EdgeInsets.all(28),
-            shrinkWrap: true,
-            children: [
-              const Icon(
-                Icons.verified_user_outlined,
-                size: 52,
-                color: FieldnoteColors.forest,
-              ),
-              const SizedBox(height: 16),
-              const SectionHeading(
-                eyebrow: 'Trust before action',
-                title: 'Review your privacy choices',
-                description:
-                    'FieldNote uses location, AI, and private evidence to connect sponsorship with verified volunteer work.',
-              ),
-              const SizedBox(height: 18),
-              SurfaceCard(
-                child: Column(
-                  children: [
-                    CheckboxListTile(
-                      value: _location,
-                      title: const Text('Use GPS for matching and integrity'),
-                      subtitle: const Text(
-                        'Stores approximate check-in/evidence coordinates and integrity signals.',
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: FieldnotePageList(
+              top: FieldnoteSpacing.xl,
+              bottom: FieldnoteSpacing.xl,
+              maxWidth: 720,
+              shrinkWrap: true,
+              children: [
+                const Icon(
+                  Icons.verified_user_outlined,
+                  size: 52,
+                  color: FieldnoteColors.forest,
+                ),
+                const SizedBox(height: 16),
+                const SectionHeading(
+                  eyebrow: 'Trust before action',
+                  title: 'Review your privacy choices',
+                  description:
+                      'FieldNote uses location, AI, and private evidence to connect sponsorship with verified volunteer work.',
+                ),
+                const SizedBox(height: 18),
+                SurfaceCard(
+                  child: Column(
+                    children: [
+                      CheckboxListTile(
+                        value: _location,
+                        title: const Text('Use GPS for matching and integrity'),
+                        subtitle: const Text(
+                          'Stores approximate check-in/evidence coordinates and integrity signals.',
+                        ),
+                        onChanged: (value) =>
+                            setState(() => _location = value ?? false),
                       ),
-                      onChanged: (value) =>
-                          setState(() => _location = value ?? false),
-                    ),
-                    CheckboxListTile(
-                      value: _ai,
-                      title: const Text('Use Gemini AI assistance'),
-                      subtitle: const Text(
-                        'Campaign text and evidence inputs can be sent to Gemini for structured drafts.',
+                      CheckboxListTile(
+                        value: _ai,
+                        title: const Text('Use Gemini AI assistance'),
+                        subtitle: const Text(
+                          'Campaign text and evidence inputs can be sent to Gemini for structured drafts.',
+                        ),
+                        onChanged: (value) =>
+                            setState(() => _ai = value ?? false),
                       ),
-                      onChanged: (value) =>
-                          setState(() => _ai = value ?? false),
-                    ),
-                    CheckboxListTile(
-                      value: _evidence,
-                      title: const Text('Share evidence with sponsors'),
-                      subtitle: const Text(
-                        'Evidence is private and exposed only through temporary authenticated links.',
+                      CheckboxListTile(
+                        value: _evidence,
+                        title: const Text('Share evidence with sponsors'),
+                        subtitle: const Text(
+                          'Evidence is private and exposed only through temporary authenticated links.',
+                        ),
+                        onChanged: (value) =>
+                            setState(() => _evidence = value ?? false),
                       ),
-                      onChanged: (value) =>
-                          setState(() => _evidence = value ?? false),
-                    ),
-                    const Divider(),
-                    const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: Text(
-                        'By continuing you accept FieldNote Demo Terms and Privacy Policy v2026-09-22. This is a local hackathon build, not legal advice or a public production service.',
-                      ),
-                    ),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: _saving || !_location || !_ai || !_evidence
-                            ? null
-                            : _accept,
-                        icon: const Icon(Icons.shield_outlined),
-                        label: Text(
-                          _saving ? 'Saving…' : 'Accept and continue',
+                      const Divider(),
+                      const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: Text(
+                          'By continuing you accept the FieldNote Terms and Privacy Policy v2026-09-22.',
                         ),
                       ),
-                    ),
-                  ],
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: _saving || !_location || !_ai || !_evidence
+                              ? null
+                              : _accept,
+                          icon: const Icon(Icons.shield_outlined),
+                          label: Text(
+                            _saving ? 'Saving…' : 'Accept and continue',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -124,21 +128,20 @@ class _LegalConsentGateState extends State<LegalConsentGate> {
 class TrustCenterView extends StatelessWidget {
   const TrustCenterView({super.key, required this.viewModel});
 
-  final HackathonViewModel viewModel;
+  final FieldnoteViewModel viewModel;
 
   @override
   Widget build(BuildContext context) {
     final trust = viewModel.trustCenter;
     return RefreshIndicator(
       onRefresh: viewModel.refresh,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(24, 28, 24, 100),
+      child: FieldnotePageList(
         children: [
           const SectionHeading(
             eyebrow: 'Trust & safety',
             title: 'Proof has a paper trail',
             description:
-                'See how FieldNote protects payments, location evidence, AI content, and your privacy in this local demo.',
+                'See how FieldNote protects payments, location evidence, AI content, and your privacy.',
           ),
           const SizedBox(height: 22),
           if (trust == null)
@@ -149,9 +152,9 @@ class TrustCenterView extends StatelessWidget {
                   'Pull to refresh the security activity for this account.',
             )
           else ...[
-            Wrap(
+            ResponsiveCardGrid(
+              minimumItemWidth: 300,
               spacing: 14,
-              runSpacing: 14,
               children: [
                 _ProtectionCard(
                   icon: Icons.payments_outlined,
@@ -308,7 +311,7 @@ class TrustCenterView extends StatelessWidget {
       builder: (dialogContext) => AlertDialog(
         title: const Text('Request account deletion?'),
         content: const Text(
-          'For this local demo the request is securely logged for review; it does not immediately erase shared campaign records.',
+          'The request is securely logged for review. Shared campaign records are retained until the request is processed.',
         ),
         actions: [
           TextButton(
@@ -358,19 +361,16 @@ class _ProtectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 330,
-      child: SurfaceCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: FieldnoteColors.forest, size: 30),
-            const SizedBox(height: 10),
-            Text(title, style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 7),
-            Text(detail),
-          ],
-        ),
+    return SurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: FieldnoteColors.forest, size: 30),
+          const SizedBox(height: 10),
+          Text(title, style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 7),
+          Text(detail),
+        ],
       ),
     );
   }

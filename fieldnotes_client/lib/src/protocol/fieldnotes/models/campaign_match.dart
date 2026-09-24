@@ -22,6 +22,9 @@ abstract class CampaignMatch
     required this.distanceKm,
     required this.availabilityMatches,
     required this.reasons,
+    this.travelMinutes,
+    this.travelDistanceKm,
+    this.travelMode,
   });
 
   factory CampaignMatch({
@@ -30,6 +33,9 @@ abstract class CampaignMatch
     required double distanceKm,
     required bool availabilityMatches,
     required List<String> reasons,
+    int? travelMinutes,
+    double? travelDistanceKm,
+    String? travelMode,
   }) = _CampaignMatchImpl;
 
   factory CampaignMatch.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -45,6 +51,10 @@ abstract class CampaignMatch
       reasons: _imuhbzep.Protocol().deserialize<List<String>>(
         jsonSerialization['reasons'],
       ),
+      travelMinutes: jsonSerialization['travelMinutes'] as int?,
+      travelDistanceKm: (jsonSerialization['travelDistanceKm'] as num?)
+          ?.toDouble(),
+      travelMode: jsonSerialization['travelMode'] as String?,
     );
   }
 
@@ -58,6 +68,14 @@ abstract class CampaignMatch
 
   List<String> reasons;
 
+  /// Real travel time from the Google Routes API when it is configured and
+  /// reachable. Null means the score fell back to straight-line distance.
+  int? travelMinutes;
+
+  double? travelDistanceKm;
+
+  String? travelMode;
+
   /// Returns a shallow copy of this [CampaignMatch]
   /// with some or all fields replaced by the given arguments.
   @_isc.useResult
@@ -67,6 +85,9 @@ abstract class CampaignMatch
     double? distanceKm,
     bool? availabilityMatches,
     List<String>? reasons,
+    int? travelMinutes,
+    double? travelDistanceKm,
+    String? travelMode,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -77,6 +98,9 @@ abstract class CampaignMatch
       'distanceKm': distanceKm,
       'availabilityMatches': availabilityMatches,
       'reasons': reasons.toJson(),
+      if (travelMinutes != null) 'travelMinutes': travelMinutes,
+      if (travelDistanceKm != null) 'travelDistanceKm': travelDistanceKm,
+      if (travelMode != null) 'travelMode': travelMode,
     };
   }
 
@@ -89,6 +113,9 @@ abstract class CampaignMatch
       'distanceKm': distanceKm,
       'availabilityMatches': availabilityMatches,
       'reasons': reasons.toJson(),
+      if (travelMinutes != null) 'travelMinutes': travelMinutes,
+      if (travelDistanceKm != null) 'travelDistanceKm': travelDistanceKm,
+      if (travelMode != null) 'travelMode': travelMode,
     };
   }
 
@@ -98,6 +125,8 @@ abstract class CampaignMatch
   }
 }
 
+class _Undefined {}
+
 class _CampaignMatchImpl extends CampaignMatch {
   _CampaignMatchImpl({
     required _iatxe5ix.Campaign campaign,
@@ -105,12 +134,18 @@ class _CampaignMatchImpl extends CampaignMatch {
     required double distanceKm,
     required bool availabilityMatches,
     required List<String> reasons,
+    int? travelMinutes,
+    double? travelDistanceKm,
+    String? travelMode,
   }) : super._(
          campaign: campaign,
          score: score,
          distanceKm: distanceKm,
          availabilityMatches: availabilityMatches,
          reasons: reasons,
+         travelMinutes: travelMinutes,
+         travelDistanceKm: travelDistanceKm,
+         travelMode: travelMode,
        );
 
   /// Returns a shallow copy of this [CampaignMatch]
@@ -123,6 +158,9 @@ class _CampaignMatchImpl extends CampaignMatch {
     double? distanceKm,
     bool? availabilityMatches,
     List<String>? reasons,
+    Object? travelMinutes = _Undefined,
+    Object? travelDistanceKm = _Undefined,
+    Object? travelMode = _Undefined,
   }) {
     return CampaignMatch(
       campaign: campaign ?? this.campaign.copyWith(),
@@ -130,6 +168,11 @@ class _CampaignMatchImpl extends CampaignMatch {
       distanceKm: distanceKm ?? this.distanceKm,
       availabilityMatches: availabilityMatches ?? this.availabilityMatches,
       reasons: reasons ?? this.reasons.map((e0) => e0).toList(),
+      travelMinutes: travelMinutes is int? ? travelMinutes : this.travelMinutes,
+      travelDistanceKm: travelDistanceKm is double?
+          ? travelDistanceKm
+          : this.travelDistanceKm,
+      travelMode: travelMode is String? ? travelMode : this.travelMode,
     );
   }
 }

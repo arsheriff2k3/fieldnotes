@@ -1,7 +1,17 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+// All client Maps keys live in one git-ignored file. Android only reads its
+// own restricted key and injects it into AndroidManifest.xml at build time.
+val googleMapsApiKey: String = Properties().run {
+    val file = rootProject.file("../.env.maps")
+    if (file.exists()) file.inputStream().use { load(it) }
+    getProperty("GOOGLE_MAPS_ANDROID_API_KEY", "")
 }
 
 android {
@@ -27,6 +37,7 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["googleMapsApiKey"] = googleMapsApiKey
     }
 
     buildTypes {

@@ -18,6 +18,8 @@ import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign.dart'
     as _i6ar8a32;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign_live_update.dart'
     as _ivzrz8af;
+import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign_map_overview.dart'
+    as _if3inlr4;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign_match.dart'
     as _ifn539xv;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign_participation.dart'
@@ -26,6 +28,8 @@ import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign_post.d
     as _is6qjlzb;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign_proposal.dart'
     as _i9wpoa9q;
+import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign_reach.dart'
+    as _i7z8ummg;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/completion_evidence.dart'
     as _i82sjar3;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/completion_proposal.dart'
@@ -34,8 +38,12 @@ import 'package:fieldnotes_client/src/protocol/fieldnotes/models/impact_summary.
     as _i70v1zz5;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/legal_consent.dart'
     as _iu4zzdwl;
+import 'package:fieldnotes_client/src/protocol/fieldnotes/models/place_suggestion.dart'
+    as _igynj288;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/razorpay_checkout_order.dart'
     as _ieclxo3s;
+import 'package:fieldnotes_client/src/protocol/fieldnotes/models/resolved_place.dart'
+    as _iigiw870;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/sponsorship.dart'
     as _iffokzpe;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/trust_center_summary.dart'
@@ -339,6 +347,7 @@ class EndpointFieldnote extends _isc.EndpointRef {
     String sponsorType,
     String? organizationName,
     String city,
+    String? cityPlaceId,
     List<String> interests,
   ) => caller.callServerEndpoint<_isdhijrt.FieldnoteUserProfile>(
     'fieldnote',
@@ -348,6 +357,7 @@ class EndpointFieldnote extends _isc.EndpointRef {
       'sponsorType': sponsorType,
       'organizationName': organizationName,
       'city': city,
+      'cityPlaceId': cityPlaceId,
       'interests': interests,
     },
   );
@@ -383,6 +393,30 @@ class EndpointFieldnote extends _isc.EndpointRef {
       'latitude': latitude,
       'longitude': longitude,
       'locationLabel': locationLabel,
+    },
+  );
+
+  /// Updates the editable account details while preserving the role and legal
+  /// consent selected during account creation.
+  _ida.Future<_isdhijrt.FieldnoteUserProfile> updateMyProfile(
+    String displayName,
+    String? sponsorType,
+    String? organizationName,
+    String city,
+    String? cityPlaceId,
+    List<String> interests,
+    List<String> skills,
+  ) => caller.callServerEndpoint<_isdhijrt.FieldnoteUserProfile>(
+    'fieldnote',
+    'updateMyProfile',
+    {
+      'displayName': displayName,
+      'sponsorType': sponsorType,
+      'organizationName': organizationName,
+      'city': city,
+      'cityPlaceId': cityPlaceId,
+      'interests': interests,
+      'skills': skills,
     },
   );
 
@@ -443,10 +477,17 @@ class EndpointFieldnote extends _isc.EndpointRef {
         {'prompt': prompt},
       );
 
+  /// Publishes a proposal at a map pin.
+  ///
+  /// [locationName] and [geofenceMeters] come from the sponsor's map: the pin
+  /// can be dragged anywhere and named from Places, so the published campaign
+  /// is no longer tied to where the sponsor's own device happened to be.
   _ida.Future<_i6ar8a32.Campaign> createCampaignFromProposal(
     _i9wpoa9q.CampaignProposal proposal,
     double latitude,
     double longitude,
+    String? locationName,
+    double? geofenceMeters,
   ) => caller.callServerEndpoint<_i6ar8a32.Campaign>(
     'fieldnote',
     'createCampaignFromProposal',
@@ -454,6 +495,8 @@ class EndpointFieldnote extends _isc.EndpointRef {
       'proposal': proposal,
       'latitude': latitude,
       'longitude': longitude,
+      'locationName': locationName,
+      'geofenceMeters': geofenceMeters,
     },
   );
 
@@ -469,6 +512,105 @@ class EndpointFieldnote extends _isc.EndpointRef {
         'fieldnote',
         'listMyCreatedCampaigns',
         {},
+      );
+
+  /// Whether Google Places autocomplete is available during account setup.
+  /// This deliberately requires authentication but not an existing profile,
+  /// because it is called before onboarding creates the profile row.
+  _ida.Future<bool> isCitySearchAvailable() => caller.callServerEndpoint<bool>(
+    'fieldnote',
+    'isCitySearchAvailable',
+    {},
+  );
+
+  /// City-only Google Places autocomplete retained for volunteer profiles.
+  _ida.Future<List<_igynj288.PlaceSuggestion>> searchCities(String query) =>
+      caller.callServerEndpoint<List<_igynj288.PlaceSuggestion>>(
+        'fieldnote',
+        'searchCities',
+        {'query': query},
+      );
+
+  /// Full Google Places autocomplete for sponsor account setup. Unlike the
+  /// campaign search endpoint, this works before the profile row exists.
+  _ida.Future<List<_igynj288.PlaceSuggestion>> searchSponsorLocations(
+    String query,
+  ) => caller.callServerEndpoint<List<_igynj288.PlaceSuggestion>>(
+    'fieldnote',
+    'searchSponsorLocations',
+    {'query': query},
+  );
+
+  /// Whether server-side Places, Geocoding and Routes calls are available.
+  /// The client uses this to hide search affordances it cannot fulfil.
+  _ida.Future<bool> isPlaceSearchAvailable() => caller.callServerEndpoint<bool>(
+    'fieldnote',
+    'isPlaceSearchAvailable',
+    {},
+  );
+
+  /// Google Places autocomplete for naming a campaign pin.
+  _ida.Future<List<_igynj288.PlaceSuggestion>> searchPlaces(
+    String query,
+    double? biasLatitude,
+    double? biasLongitude,
+  ) => caller.callServerEndpoint<List<_igynj288.PlaceSuggestion>>(
+    'fieldnote',
+    'searchPlaces',
+    {
+      'query': query,
+      'biasLatitude': biasLatitude,
+      'biasLongitude': biasLongitude,
+    },
+  );
+
+  /// Turns a Places autocomplete selection into a campaign pin.
+  _ida.Future<_iigiw870.ResolvedPlace> resolvePlace(String placeId) =>
+      caller.callServerEndpoint<_iigiw870.ResolvedPlace>(
+        'fieldnote',
+        'resolvePlace',
+        {'placeId': placeId},
+      );
+
+  /// Names a dragged map pin. Returns null rather than throwing so the map
+  /// keeps working with a typed label when geocoding is off or offline.
+  _ida.Future<_iigiw870.ResolvedPlace?> describeCoordinates(
+    double latitude,
+    double longitude,
+  ) => caller.callServerEndpoint<_iigiw870.ResolvedPlace?>(
+    'fieldnote',
+    'describeCoordinates',
+    {
+      'latitude': latitude,
+      'longitude': longitude,
+    },
+  );
+
+  /// How many volunteers could actually reach a proposed pin, before the
+  /// sponsor commits money to it.
+  ///
+  /// Individual volunteer coordinates are never returned. Coverage is bucketed
+  /// to roughly a kilometre and any bucket holding fewer than
+  /// [_reachCellAnonymityThreshold] volunteers is suppressed entirely.
+  _ida.Future<_i7z8ummg.CampaignReach> previewCampaignReach(
+    double latitude,
+    double longitude,
+  ) => caller.callServerEndpoint<_i7z8ummg.CampaignReach>(
+    'fieldnote',
+    'previewCampaignReach',
+    {
+      'latitude': latitude,
+      'longitude': longitude,
+    },
+  );
+
+  /// Every check-in and evidence point for one campaign, for the sponsor live
+  /// map. Restricted to the sponsor who created the campaign.
+  _ida.Future<_if3inlr4.CampaignMapOverview> getCampaignMap(int campaignId) =>
+      caller.callServerEndpoint<_if3inlr4.CampaignMapOverview>(
+        'fieldnote',
+        'getCampaignMap',
+        {'campaignId': campaignId},
       );
 
   _ida.Future<_ieclxo3s.RazorpayCheckoutOrder> createRazorpayOrder(

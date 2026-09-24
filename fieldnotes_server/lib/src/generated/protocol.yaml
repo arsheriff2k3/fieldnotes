@@ -18,6 +18,7 @@ fieldnote:
   - requestAccountDeletion:
   - completeSponsorProfile:
   - completeVolunteerProfile:
+  - updateMyProfile:
   - getMyAvailability:
   - updateAvailability:
   - transcribeDictation:
@@ -25,6 +26,15 @@ fieldnote:
   - createCampaignFromProposal:
   - listCampaigns:
   - listMyCreatedCampaigns:
+  - isCitySearchAvailable:
+  - searchCities:
+  - searchSponsorLocations:
+  - isPlaceSearchAvailable:
+  - searchPlaces:
+  - resolvePlace:
+  - describeCoordinates:
+  - previewCampaignReach:
+  - getCampaignMap:
   - createRazorpayOrder:
   - verifyRazorpayPayment:
   - recordRazorpayFailure:

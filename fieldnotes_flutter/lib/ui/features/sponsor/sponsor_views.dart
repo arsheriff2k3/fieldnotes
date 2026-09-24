@@ -7,23 +7,25 @@ import 'package:intl/intl.dart';
 import 'package:record/record.dart';
 
 import '../../../data/audio/wav_encoder.dart';
+import '../../../data/repositories/fieldnote_repository.dart';
 import '../../../data/services/device_location_service.dart';
 import '../../../data/services/razorpay_checkout_service.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/widgets.dart';
-import '../shell/hackathon_view_model.dart';
+import '../shell/fieldnote_view_model.dart';
+import 'campaign_map_view.dart';
+import 'campaign_pin_picker.dart';
 
 class SponsorDiscoverView extends StatelessWidget {
   const SponsorDiscoverView({super.key, required this.viewModel});
 
-  final HackathonViewModel viewModel;
+  final FieldnoteViewModel viewModel;
 
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
       onRefresh: viewModel.refresh,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(24, 28, 24, 100),
+      child: FieldnotePageList(
         children: [
           SectionHeading(
             eyebrow: 'Sponsor discovery',
@@ -37,26 +39,28 @@ class SponsorDiscoverView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          LayoutBuilder(
-            builder: (context, constraints) => GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: viewModel.campaigns.length,
-              gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 520,
-                mainAxisExtent: 350,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-              ),
-              itemBuilder: (context, index) {
-                final campaign = viewModel.campaigns[index];
-                return CampaignCard(
-                  campaign: campaign,
-                  actionLabel: 'Sponsor campaign',
-                  onAction: () => _sponsor(context, campaign),
-                );
-              },
-            ),
+          ResponsiveCardGrid(
+            children: [
+              for (var index = 0; index < viewModel.campaigns.length; index++)
+                Builder(
+                  builder: (context) {
+                    final campaign = viewModel.campaigns[index];
+                    final remaining =
+                        (campaign.fundingGoal - campaign.sponsoredAmount)
+                            .clamp(0, double.infinity)
+                            .toDouble();
+                    return CampaignCard(
+                      campaign: campaign,
+                      actionLabel: remaining > 0
+                          ? 'Sponsor campaign'
+                          : 'Fully funded',
+                      onAction: remaining > 0
+                          ? () => _sponsor(context, campaign)
+                          : null,
+                    );
+                  },
+                ),
+            ],
           ),
         ],
       ),
@@ -64,132 +68,208 @@ class SponsorDiscoverView extends StatelessWidget {
   }
 
   Future<void> _sponsor(BuildContext context, Campaign campaign) async {
-    var amount = 5000.0;
+    final remainingAmount = (campaign.fundingGoal - campaign.sponsoredAmount)
+        .clamp(0, double.infinity)
+        .toDouble();
+    if (remainingAmount <= 0) {
+      showFieldnoteNotice(
+        context,
+        title: 'Campaign fully funded',
+        message: 'This campaign has already reached its funding goal.',
+      );
+      return;
+    }
+    const portions = [0.25, 0.5, 0.75, 1.0];
+    final amounts = portions
+        .map((portion) => (remainingAmount * portion * 100).round() / 100)
+        .toList(growable: false);
+    var selectedPortion = portions.first;
+    var amount = amounts.first;
     final note = TextEditingController();
     final checkout = RazorpayCheckoutService();
     RazorpayCheckoutOrder? createdOrder;
     var saving = false;
+    var paymentCompleted = false;
     try {
-      await showDialog<void>(
-        context: context,
-        builder: (dialogContext) => StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
-            title: Text('Sponsor ${campaign.name}'),
-            content: SizedBox(
-              width: 480,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: FieldnoteColors.acid.withValues(alpha: .4),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.verified_user_outlined),
-                        SizedBox(width: 9),
-                        Expanded(
-                          child: Text(
-                            'Razorpay Test Mode — real checkout and server signature verification; no real money moves.',
-                          ),
+      final verified =
+          await showDialog<bool>(
+            context: context,
+            builder: (dialogContext) => StatefulBuilder(
+              builder: (context, setDialogState) => AlertDialog(
+                scrollable: true,
+                title: Text('Sponsor ${campaign.name}'),
+                content: SizedBox(
+                  width: 480,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: FieldnoteColors.acid.withValues(alpha: .4),
+                          borderRadius: BorderRadius.circular(14),
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 8,
-                    children: [1000.0, 2500.0, 5000.0, 10000.0]
-                        .map(
-                          (value) => ChoiceChip(
-                            label: Text(
-                              '₹${NumberFormat.compact().format(value)}',
+                        child: const Row(
+                          children: [
+                            Icon(Icons.verified_user_outlined),
+                            SizedBox(width: 9),
+                            Expanded(
+                              child: Text(
+                                'Secure Razorpay checkout with server-side signature verification.',
+                              ),
                             ),
-                            selected: amount == value,
-                            onSelected: (_) =>
-                                setDialogState(() => amount = value),
-                          ),
-                        )
-                        .toList(),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        '${_formatRupees(remainingAmount)} remaining',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: 10),
+                      Column(
+                        children: [
+                          for (var row = 0; row < 2; row++) ...[
+                            Row(
+                              children: [
+                                for (var column = 0; column < 2; column++) ...[
+                                  if (column > 0) const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Builder(
+                                      builder: (context) {
+                                        final index = row * 2 + column;
+                                        final portion = portions[index];
+                                        final value = amounts[index];
+                                        return SizedBox(
+                                          width: double.infinity,
+                                          child: ChoiceChip(
+                                            showCheckmark: true,
+                                            label: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  '${(portion * 100).round()}%',
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.w800,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  _formatRupees(value),
+                                                  style: Theme.of(
+                                                    context,
+                                                  ).textTheme.labelSmall,
+                                                ),
+                                              ],
+                                            ),
+                                            selected:
+                                                selectedPortion == portion,
+                                            onSelected: (_) =>
+                                                setDialogState(() {
+                                                  selectedPortion = portion;
+                                                  amount = value;
+                                                }),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            if (row == 0) const SizedBox(height: 8),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      FieldnoteTextField(
+                        controller: note,
+                        decoration: const InputDecoration(
+                          labelText: 'Message (optional)',
+                          hintText: 'Why this campaign matters to you',
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 14),
-                  TextField(
-                    controller: note,
-                    decoration: const InputDecoration(
-                      labelText: 'Message (optional)',
-                      hintText: 'Why this campaign matters to you',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: saving
+                        ? null
+                        : () => Navigator.pop(dialogContext),
+                    child: const Text('Cancel'),
+                  ),
+                  FilledButton.icon(
+                    onPressed: saving
+                        ? null
+                        : () async {
+                            setDialogState(() => saving = true);
+                            try {
+                              final order = await viewModel.createPaymentOrder(
+                                campaign,
+                                amount,
+                                note.text,
+                              );
+                              createdOrder = order;
+                              final result = await checkout.open(order);
+                              await viewModel.verifyPayment(
+                                order,
+                                returnedOrderId: result.orderId,
+                                paymentId: result.paymentId,
+                                signature: result.signature,
+                              );
+                              if (dialogContext.mounted) {
+                                paymentCompleted = true;
+                                Navigator.pop(dialogContext, true);
+                              }
+                            } catch (error) {
+                              final order = createdOrder;
+                              if (order != null) {
+                                try {
+                                  await viewModel.repository
+                                      .recordRazorpayFailure(
+                                        order.sponsorshipId,
+                                        _paymentError(error),
+                                      );
+                                } catch (_) {}
+                              }
+                              if (dialogContext.mounted) {
+                                showFieldnoteNotice(
+                                  dialogContext,
+                                  title: 'Payment unsuccessful',
+                                  message: _paymentError(error),
+                                  kind: FieldnoteNoticeKind.error,
+                                );
+                              }
+                            } finally {
+                              if (!paymentCompleted && dialogContext.mounted) {
+                                setDialogState(() => saving = false);
+                              }
+                            }
+                          },
+                    icon: const Icon(Icons.lock_outline),
+                    label: Text(
+                      saving
+                          ? 'Opening Razorpay…'
+                          : 'Pay ${_formatRupees(amount)}',
                     ),
                   ),
                 ],
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: saving ? null : () => Navigator.pop(dialogContext),
-                child: const Text('Cancel'),
-              ),
-              FilledButton.icon(
-                onPressed: saving
-                    ? null
-                    : () async {
-                        setDialogState(() => saving = true);
-                        try {
-                          final order = await viewModel.createPaymentOrder(
-                            campaign,
-                            amount,
-                            note.text,
-                          );
-                          createdOrder = order;
-                          final result = await checkout.open(order);
-                          await viewModel.verifyPayment(
-                            order,
-                            returnedOrderId: result.orderId,
-                            paymentId: result.paymentId,
-                            signature: result.signature,
-                          );
-                          if (dialogContext.mounted) {
-                            Navigator.pop(dialogContext);
-                            ScaffoldMessenger.of(dialogContext).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Razorpay payment verified. Campaign impact updated.',
-                                ),
-                              ),
-                            );
-                          }
-                        } catch (error) {
-                          final order = createdOrder;
-                          if (order != null) {
-                            try {
-                              await viewModel.repository.recordRazorpayFailure(
-                                order.sponsorshipId,
-                                _paymentError(error),
-                              );
-                            } catch (_) {}
-                          }
-                          if (dialogContext.mounted) {
-                            ScaffoldMessenger.of(dialogContext).showSnackBar(
-                              SnackBar(content: Text(_paymentError(error))),
-                            );
-                          }
-                        } finally {
-                          if (dialogContext.mounted) {
-                            setDialogState(() => saving = false);
-                          }
-                        }
-                      },
-                icon: const Icon(Icons.lock_outline),
-                label: Text(
-                  saving ? 'Opening Razorpay…' : 'Pay ₹${amount.round()}',
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
+          ) ??
+          false;
+      if (verified) {
+        await viewModel.refresh();
+        if (context.mounted) {
+          showFieldnoteNotice(
+            context,
+            title: 'Payment successful',
+            message: '${_formatRupees(amount)} was added to ${campaign.name}.',
+            kind: FieldnoteNoticeKind.success,
+          );
+        }
+      }
     } finally {
       checkout.dispose();
       note.dispose();
@@ -201,12 +281,78 @@ class SponsorDiscoverView extends StatelessWidget {
     if (error is RazorpayCheckoutException) return error.message;
     return 'The Razorpay test payment was not completed.';
   }
+
+  static String _formatRupees(double amount) => NumberFormat.currency(
+    locale: 'en_IN',
+    symbol: '₹',
+    decimalDigits: amount == amount.roundToDouble() ? 0 : 2,
+  ).format(amount);
+}
+
+class SponsorVoiceActionController extends ChangeNotifier {
+  Future<void> Function()? _onPressStart;
+  Future<void> Function()? _onPressEnd;
+
+  bool recording = false;
+  bool starting = false;
+  bool transcribing = false;
+  bool thinking = false;
+
+  bool get captureActive => recording || starting;
+  bool get processing => transcribing || thinking;
+  bool get canRecord => _onPressStart != null && !transcribing && !thinking;
+
+  void attach({
+    required Future<void> Function() onPressStart,
+    required Future<void> Function() onPressEnd,
+  }) {
+    _onPressStart = onPressStart;
+    _onPressEnd = onPressEnd;
+  }
+
+  void detach() {
+    _onPressStart = null;
+    _onPressEnd = null;
+  }
+
+  void update({
+    required bool recording,
+    required bool starting,
+    required bool transcribing,
+    required bool thinking,
+  }) {
+    if (this.recording == recording &&
+        this.starting == starting &&
+        this.transcribing == transcribing &&
+        this.thinking == thinking) {
+      return;
+    }
+    this.recording = recording;
+    this.starting = starting;
+    this.transcribing = transcribing;
+    this.thinking = thinking;
+    notifyListeners();
+  }
+
+  Future<void> pressStart() async {
+    if (!canRecord) return;
+    await _onPressStart?.call();
+  }
+
+  Future<void> pressEnd() async {
+    await _onPressEnd?.call();
+  }
 }
 
 class SponsorCreateView extends StatefulWidget {
-  const SponsorCreateView({super.key, required this.viewModel});
+  const SponsorCreateView({
+    super.key,
+    required this.viewModel,
+    required this.voiceController,
+  });
 
-  final HackathonViewModel viewModel;
+  final FieldnoteViewModel viewModel;
+  final SponsorVoiceActionController voiceController;
 
   @override
   State<SponsorCreateView> createState() => _SponsorCreateViewState();
@@ -222,7 +368,17 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
   final _location = DeviceLocationService();
   final _recorder = AudioRecorder();
   CampaignProposal? _proposal;
-  DeviceLocation _campaignLocation = DeviceLocation.demoVenue;
+
+  /// The neutral map center is never publishable. The sponsor must search,
+  /// drag the pin, or use device GPS before publishing.
+  CampaignPin _pin = CampaignPin(
+    latitude: 20.5937,
+    longitude: 78.9629,
+    locationName: '',
+    geofenceMeters: 200,
+    isDeviceLocation: false,
+  );
+  bool _locationSelected = false;
   StreamSubscription<Uint8List>? _audioSubscription;
   BytesBuilder _audioBuffer = BytesBuilder(copy: false);
   Timer? _recordingTimer;
@@ -235,7 +391,6 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
   bool _startingRecording = false;
   bool _transcribing = false;
   bool _stopAfterStart = false;
-  bool _microphoneBlocked = false;
 
   /// Recordings stop themselves here so a forgotten hold cannot run away.
   static const _maximumRecording = Duration(seconds: 90);
@@ -243,8 +398,33 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
   bool get _busyWithAudio =>
       _working || _recording || _startingRecording || _transcribing;
 
+  void _syncVoiceController() {
+    widget.voiceController.update(
+      recording: _recording,
+      starting: _startingRecording,
+      transcribing: _transcribing,
+      thinking: _working,
+    );
+  }
+
+  void _setVoiceState(VoidCallback update) {
+    setState(update);
+    _syncVoiceController();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    widget.voiceController.attach(
+      onPressStart: _startRecording,
+      onPressEnd: _releaseRecording,
+    );
+    _syncVoiceController();
+  }
+
   @override
   void dispose() {
+    widget.voiceController.detach();
     _recordingTimer?.cancel();
     unawaited(_audioSubscription?.cancel());
     unawaited(_recorder.dispose());
@@ -257,7 +437,7 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
   Future<void> _startRecording() async {
     if (_working || _recording || _startingRecording || _transcribing) return;
     _promptFocus.unfocus();
-    setState(() {
+    _setVoiceState(() {
       _startingRecording = true;
       _stopAfterStart = false;
       _recordingDuration = Duration.zero;
@@ -269,7 +449,7 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
         );
       }
       if (_stopAfterStart) {
-        if (mounted) setState(() => _startingRecording = false);
+        if (mounted) _setVoiceState(() => _startingRecording = false);
         return;
       }
       const config = RecordConfig(
@@ -297,9 +477,8 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
         await _recorder.cancel();
         return;
       }
-      setState(() {
+      _setVoiceState(() {
         _startingRecording = false;
-        _microphoneBlocked = false;
         _recording = true;
       });
       _recordingTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -312,9 +491,8 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
       if (_stopAfterStart) await _stopAndTranscribe();
     } catch (error) {
       if (!mounted) return;
-      setState(() {
+      _setVoiceState(() {
         _startingRecording = false;
-        _microphoneBlocked = true;
       });
       _notify(_dictationError(error));
     }
@@ -336,7 +514,7 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
     if (!_recording) return;
     final duration = _recordingDuration;
     _recordingTimer?.cancel();
-    setState(() {
+    _setVoiceState(() {
       _recording = false;
       _transcribing = true;
     });
@@ -368,7 +546,7 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
       );
       if (!mounted) return;
       _appendToPrompt(transcript);
-      setState(() => _transcribing = false);
+      _setVoiceState(() => _transcribing = false);
       if (_prompt.text.trim().length < 20) {
         _notify(
           'Only a few words were heard. Hold the microphone again, or type the '
@@ -380,7 +558,7 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
     } catch (error) {
       if (mounted) _notify(_dictationError(error));
     } finally {
-      if (mounted) setState(() => _transcribing = false);
+      if (mounted) _setVoiceState(() => _transcribing = false);
     }
   }
 
@@ -413,12 +591,6 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
         'brief.';
   }
 
-  static String _formatDuration(Duration value) {
-    final minutes = value.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final seconds = value.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$minutes:$seconds';
-  }
-
   void _notify(String text) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
@@ -433,7 +605,16 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
       initial: null,
       seedPrompt: _prompt.text.trim(),
     );
-    if (entered != null && mounted) setState(() => _proposal = entered);
+    if (entered != null && mounted) setState(() => _applyProposal(entered));
+  }
+
+  /// Seeds the map pin's name from the proposal, but never overwrites a name
+  /// the sponsor has already chosen on the map.
+  void _applyProposal(CampaignProposal value) {
+    _proposal = value;
+    if (_pin.locationName.trim().isEmpty) {
+      _pin = _pin.copyWith(locationName: value.locationName.trim());
+    }
   }
 
   Future<void> _generate() async {
@@ -445,22 +626,99 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
       );
       return;
     }
-    setState(() => _working = true);
+    _setVoiceState(() => _working = true);
     try {
       final value = await widget.viewModel.repository.proposeCampaign(
         _prompt.text,
       );
-      if (mounted) setState(() => _proposal = value);
+      if (mounted) setState(() => _applyProposal(value));
     } catch (error) {
       _message(error);
     } finally {
-      if (mounted) setState(() => _working = false);
+      if (mounted) _setVoiceState(() => _working = false);
     }
   }
 
   Future<void> _useLocation() async {
-    final value = await _location.current();
-    if (mounted) setState(() => _campaignLocation = value);
+    try {
+      final value = await _location.current();
+      if (!mounted) return;
+      var label = _pin.locationName;
+      try {
+        final place = await widget.viewModel.repository.describeCoordinates(
+          value.latitude,
+          value.longitude,
+        );
+        if (place != null && place.address.trim().isNotEmpty) {
+          label = place.address.trim();
+        } else if (place != null && place.name.trim().isNotEmpty) {
+          label = place.name.trim();
+        }
+      } on Object {
+        // Coordinates remain useful even when reverse geocoding is offline.
+      }
+      if (!mounted) return;
+      setState(() {
+        _pin = _pin.copyWith(
+          latitude: value.latitude,
+          longitude: value.longitude,
+          locationName: label,
+          isDeviceLocation: true,
+        );
+        _locationSelected = true;
+      });
+    } on LocationAccessException catch (error) {
+      if (mounted) await _showLocationProblem(error);
+    } on Object {
+      if (mounted) {
+        _notify(
+          'Could not read this device location. Check Settings and try again.',
+        );
+      }
+    }
+  }
+
+  Future<void> _showLocationProblem(LocationAccessException error) async {
+    final opensLocationSettings =
+        error.issue == LocationAccessIssue.serviceDisabled;
+    final opensAppSettings =
+        error.issue == LocationAccessIssue.permissionDeniedForever;
+    final canOpenSettings = opensLocationSettings || opensAppSettings;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          opensLocationSettings
+              ? 'Turn on device location'
+              : opensAppSettings
+              ? 'Allow location access'
+              : 'Location unavailable',
+        ),
+        content: Text(error.message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Not now'),
+          ),
+          if (canOpenSettings)
+            FilledButton(
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                if (opensLocationSettings) {
+                  await _location.openLocationSettings();
+                } else {
+                  await _location.openAppSettings();
+                }
+              },
+              child: Text(
+                opensLocationSettings
+                    ? 'Open location settings'
+                    : 'Open app settings',
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   Future<void> _editProposal() async {
@@ -472,17 +730,23 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
       confirmLabel: 'Use these details',
       initial: proposal,
     );
-    if (edited != null && mounted) setState(() => _proposal = edited);
+    if (edited != null && mounted) setState(() => _applyProposal(edited));
   }
 
   Future<void> _publish() async {
     if (_proposal == null) return;
-    setState(() => _working = true);
+    if (!_locationSelected) {
+      _notify('Choose the campaign location on the map before publishing.');
+      return;
+    }
+    _setVoiceState(() => _working = true);
     try {
       final campaign = await widget.viewModel.publishCampaign(
         _proposal!,
-        _campaignLocation.latitude,
-        _campaignLocation.longitude,
+        _pin.latitude,
+        _pin.longitude,
+        locationName: _pin.locationName,
+        geofenceMeters: _pin.geofenceMeters,
       );
       if (!mounted) return;
       _proposal = null;
@@ -493,7 +757,7 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
     } catch (error) {
       _message(error);
     } finally {
-      if (mounted) setState(() => _working = false);
+      if (mounted) _setVoiceState(() => _working = false);
     }
   }
 
@@ -506,8 +770,8 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 28, 24, 100),
+    return FieldnotePageList(
+      bottom: FieldnoteSpacing.xl,
       children: [
         const SectionHeading(
           eyebrow: 'AI campaign studio',
@@ -532,14 +796,14 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Hold the microphone while you speak, then release. '
-                    'Typing works too.',
+                    'Type a brief, or hold the round microphone while you '
+                    'speak and release when finished.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Colors.white70,
                     ),
                   ),
                   const SizedBox(height: 16),
-                  TextField(
+                  FieldnoteTextField(
                     controller: _prompt,
                     focusNode: _promptFocus,
                     minLines: 7,
@@ -589,24 +853,27 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
                       ),
                     ),
                   ],
-                  const SizedBox(height: 14),
-                  _HoldToSpeakButton(
-                    recording: _recording,
-                    starting: _startingRecording,
-                    transcribing: _transcribing,
-                    enabled: !_working,
-                    blocked: _microphoneBlocked,
-                    label: _recording
-                        ? 'Recording ${_formatDuration(_recordingDuration)} — release to create'
-                        : _transcribing
-                        ? 'Transcribing…'
-                        : _startingRecording
-                        ? 'Starting the microphone…'
-                        : 'Hold to speak',
-                    onPressStart: _startRecording,
-                    onPressEnd: _releaseRecording,
-                  ),
                   const SizedBox(height: 12),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 240),
+                    switchInCurve: Curves.easeOut,
+                    switchOutCurve: Curves.easeIn,
+                    child: _transcribing
+                        ? const _CreateProcessingNotice(
+                            key: ValueKey('transcribing'),
+                            title: 'Processing your recording',
+                            detail: 'Turning your voice into a campaign brief…',
+                          )
+                        : _working
+                        ? const _CreateProcessingNotice(
+                            key: ValueKey('generating'),
+                            title: 'Generating your campaign',
+                            detail:
+                                'Waiting for the server to prepare your draft…',
+                          )
+                        : const SizedBox.shrink(key: ValueKey('idle')),
+                  ),
+                  if (_transcribing || _working) const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
@@ -614,10 +881,23 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
                       style: FilledButton.styleFrom(
                         backgroundColor: FieldnoteColors.acid,
                         foregroundColor: FieldnoteColors.ink,
+                        disabledBackgroundColor: FieldnoteColors.acid
+                            .withValues(alpha: .52),
+                        disabledForegroundColor: FieldnoteColors.ink.withValues(
+                          alpha: .82,
+                        ),
                       ),
-                      icon: const Icon(Icons.auto_awesome),
+                      icon: _working
+                          ? const SizedBox.square(
+                              dimension: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.2,
+                                color: FieldnoteColors.ink,
+                              ),
+                            )
+                          : const Icon(Icons.auto_awesome),
                       label: Text(
-                        _working ? 'Structuring…' : 'Generate campaign',
+                        _working ? 'Generating campaign…' : 'Generate campaign',
                       ),
                     ),
                   ),
@@ -628,8 +908,11 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
                       onPressed: _busyWithAudio ? null : _createManually,
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,
+                        disabledForegroundColor: Colors.white70,
                         side: BorderSide(
-                          color: Colors.white.withValues(alpha: .35),
+                          color: Colors.white.withValues(
+                            alpha: _busyWithAudio ? .2 : .35,
+                          ),
                         ),
                       ),
                       icon: const Icon(Icons.edit_note),
@@ -652,11 +935,16 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
                     icon: Icons.auto_awesome_outlined,
                     title: 'Your campaign proposal appears here',
                     message:
-                        'The generated result remains editable and sponsor-confirmed.',
+                        'The draft remains editable and sponsor-confirmed.',
                   )
                 : _ProposalCard(
                     proposal: _proposal!,
-                    location: _campaignLocation,
+                    repository: widget.viewModel.repository,
+                    pin: _pin,
+                    onPinChanged: (value) => setState(() {
+                      _pin = value;
+                      _locationSelected = true;
+                    }),
                     onUseLocation: _useLocation,
                     onEdit: _editProposal,
                     onPublish: _working ? null : _publish,
@@ -681,18 +969,79 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
   }
 }
 
+class _CreateProcessingNotice extends StatelessWidget {
+  const _CreateProcessingNotice({
+    super.key,
+    required this.title,
+    required this.detail,
+  });
+
+  final String title;
+  final String detail;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .09),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: .13)),
+      ),
+      child: Row(
+        children: [
+          const SizedBox.square(
+            dimension: 24,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.4,
+              color: FieldnoteColors.acid,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  detail,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: Colors.white70),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ProposalCard extends StatelessWidget {
   const _ProposalCard({
     required this.proposal,
-    required this.location,
+    required this.repository,
+    required this.pin,
+    required this.onPinChanged,
     required this.onUseLocation,
     required this.onEdit,
     required this.onPublish,
   });
 
   final CampaignProposal proposal;
-  final DeviceLocation location;
-  final VoidCallback onUseLocation;
+  final FieldnoteRepository repository;
+  final CampaignPin pin;
+  final ValueChanged<CampaignPin> onPinChanged;
+  final Future<void> Function() onUseLocation;
   final VoidCallback onEdit;
   final VoidCallback? onPublish;
 
@@ -705,7 +1054,7 @@ class _ProposalCard extends StatelessWidget {
           Row(
             children: [
               const StatusPill(
-                label: 'AI proposal',
+                label: 'Assisted draft',
                 color: FieldnoteColors.clay,
                 icon: Icons.auto_awesome,
               ),
@@ -735,11 +1084,18 @@ class _ProposalCard extends StatelessWidget {
           ),
           _detail(
             Icons.location_on_outlined,
-            '${proposal.locationName} · ${location.isLive ? 'live GPS' : 'demo venue'}',
+            pin.locationName.isEmpty ? proposal.locationName : pin.locationName,
+          ),
+          const Divider(height: 28),
+          CampaignPinPicker(
+            repository: repository,
+            pin: pin,
+            onChanged: onPinChanged,
+            onUseDeviceLocation: onUseLocation,
           ),
           const Divider(height: 28),
           Text(
-            'AI work checklist',
+            'Work checklist',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
@@ -776,14 +1132,6 @@ class _ProposalCard extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: onUseLocation,
-                  icon: const Icon(Icons.my_location),
-                  label: const Text('Use GPS'),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
                 child: FilledButton.icon(
                   onPressed: onPublish,
                   icon: const Icon(Icons.rocket_launch_outlined),
@@ -812,7 +1160,7 @@ class _ProposalCard extends StatelessWidget {
 class SponsorImpactView extends StatelessWidget {
   const SponsorImpactView({super.key, required this.viewModel});
 
-  final HackathonViewModel viewModel;
+  final FieldnoteViewModel viewModel;
 
   @override
   Widget build(BuildContext context) {
@@ -826,8 +1174,7 @@ class SponsorImpactView extends StatelessWidget {
             !viewModel.createdCampaigns.any((item) => item.id == campaign.id),
       ),
     ];
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 28, 24, 100),
+    return FieldnotePageList(
       children: [
         SectionHeading(
           eyebrow: 'Live sponsor impact',
@@ -874,11 +1221,16 @@ class _ImpactCard extends StatelessWidget {
 
   final Campaign campaign;
   final ImpactSummary? impact;
-  final HackathonViewModel viewModel;
+  final FieldnoteViewModel viewModel;
 
   @override
   Widget build(BuildContext context) {
     final value = impact;
+    // The campaign map endpoint is restricted to the creator, so only offer it
+    // for campaigns this sponsor published.
+    final isCreator = viewModel.createdCampaigns.any(
+      (item) => item.id == campaign.id,
+    );
     return SurfaceCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -924,11 +1276,28 @@ class _ImpactCard extends StatelessWidget {
               ),
             ],
           ),
+          if (isCreator) ...[
+            const Divider(height: 30),
+            CampaignProofMap(
+              repository: viewModel.repository,
+              campaign: campaign,
+              // Reloads whenever the live stream reports new activity.
+              refreshToken:
+                  '${viewModel.lastLiveUpdate?.occurredAt.toIso8601String()}'
+                  '·${value?.evidenceCount ?? 0}'
+                  '·${value?.joinedVolunteers ?? 0}',
+            ),
+          ],
           if (value != null && value.recentEvidence.isNotEmpty) ...[
             const Divider(height: 30),
             Text(
               'Verified field evidence',
               style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Tap a photograph to see exactly where it was captured.',
+              style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 10),
             SizedBox(
@@ -943,6 +1312,7 @@ class _ImpactCard extends StatelessWidget {
                     width: 280,
                     child: _EvidenceTile(
                       evidence: evidence,
+                      campaign: campaign,
                       viewModel: viewModel,
                     ),
                   );
@@ -957,10 +1327,15 @@ class _ImpactCard extends StatelessWidget {
 }
 
 class _EvidenceTile extends StatefulWidget {
-  const _EvidenceTile({required this.evidence, required this.viewModel});
+  const _EvidenceTile({
+    required this.evidence,
+    required this.campaign,
+    required this.viewModel,
+  });
 
   final CompletionEvidence evidence;
-  final HackathonViewModel viewModel;
+  final Campaign campaign;
+  final FieldnoteViewModel viewModel;
 
   @override
   State<_EvidenceTile> createState() => _EvidenceTileState();
@@ -971,80 +1346,114 @@ class _EvidenceTileState extends State<_EvidenceTile> {
       ? null
       : widget.viewModel.repository.evidenceUrl(widget.evidence.id!);
 
+  void _openProvenance() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => EvidenceProvenanceSheet(
+        evidence: widget.evidence,
+        campaign: widget.campaign,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
+    return InkWell(
+      onTap: _openProvenance,
       borderRadius: BorderRadius.circular(16),
-      child: DecoratedBox(
-        decoration: const BoxDecoration(color: FieldnoteColors.mist),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              height: 92,
-              width: double.infinity,
-              child: _photoUrl == null
-                  ? const ColoredBox(
-                      color: FieldnoteColors.ink,
-                      child: Icon(Icons.photo_outlined, color: Colors.white54),
-                    )
-                  : FutureBuilder<String>(
-                      future: _photoUrl,
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData) {
-                          return const ColoredBox(
-                            color: FieldnoteColors.ink,
-                            child: Center(
-                              child: CircularProgressIndicator(
-                                color: FieldnoteColors.acid,
-                                strokeWidth: 2,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: DecoratedBox(
+          decoration: const BoxDecoration(color: FieldnoteColors.mist),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                height: 92,
+                width: double.infinity,
+                child: _photoUrl == null
+                    ? const ColoredBox(
+                        color: FieldnoteColors.ink,
+                        child: Icon(
+                          Icons.photo_outlined,
+                          color: Colors.white54,
+                        ),
+                      )
+                    : FutureBuilder<String>(
+                        future: _photoUrl,
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData) {
+                            return const ColoredBox(
+                              color: FieldnoteColors.ink,
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  color: FieldnoteColors.acid,
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            );
+                          }
+                          return Image.network(
+                            snapshot.data!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => const ColoredBox(
+                              color: FieldnoteColors.ink,
+                              child: Icon(
+                                Icons.hide_image_outlined,
+                                color: Colors.white54,
                               ),
                             ),
                           );
-                        }
-                        return Image.network(
-                          snapshot.data!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => const ColoredBox(
-                            color: FieldnoteColors.ink,
-                            child: Icon(
-                              Icons.hide_image_outlined,
-                              color: Colors.white54,
-                            ),
+                        },
+                      ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      StatusPill(
+                        label: widget.evidence.locationIsDemo
+                            ? 'Unverified legacy location'
+                            : 'Location integrity passed',
+                        color: widget.evidence.locationIsDemo
+                            ? FieldnoteColors.clay
+                            : FieldnoteColors.forest,
+                        icon: widget.evidence.locationIsDemo
+                            ? Icons.science_outlined
+                            : Icons.gps_fixed,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        widget.evidence.confirmedSummary,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const Spacer(),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.place_outlined,
+                            size: 15,
+                            color: FieldnoteColors.moss,
                           ),
-                        );
-                      },
-                    ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    StatusPill(
-                      label: widget.evidence.locationIsDemo
-                          ? 'Demo GPS · labeled'
-                          : 'Location integrity passed',
-                      color: widget.evidence.locationIsDemo
-                          ? FieldnoteColors.clay
-                          : FieldnoteColors.forest,
-                      icon: widget.evidence.locationIsDemo
-                          ? Icons.science_outlined
-                          : Icons.gps_fixed,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      widget.evidence.confirmedSummary,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ],
+                          const SizedBox(width: 5),
+                          Text(
+                            'See where this was captured',
+                            style: Theme.of(context).textTheme.labelSmall,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1095,11 +1504,6 @@ class CampaignCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final progress = campaign.fundingGoal <= 0
-        ? 0.0
-        : (campaign.sponsoredAmount / campaign.fundingGoal)
-              .clamp(0, 1)
-              .toDouble();
     return SurfaceCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1164,17 +1568,10 @@ class CampaignCard extends StatelessWidget {
                   ),
                 ),
           ],
-          const Spacer(),
-          LinearProgressIndicator(
-            minHeight: 8,
-            value: progress,
-            borderRadius: BorderRadius.circular(99),
-            color: FieldnoteColors.clay,
-            backgroundColor: FieldnoteColors.clay.withValues(alpha: .12),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '₹${NumberFormat.compact().format(campaign.sponsoredAmount)} of ₹${NumberFormat.compact().format(campaign.fundingGoal)}',
+          const SizedBox(height: 20),
+          _AnimatedFundingProgress(
+            sponsoredAmount: campaign.sponsoredAmount,
+            fundingGoal: campaign.fundingGoal,
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -1187,117 +1584,60 @@ class CampaignCard extends StatelessWidget {
   }
 }
 
-/// Press-and-hold microphone control. Recording starts on pointer down and the
-/// campaign is generated as soon as the sponsor lets go.
-/// Press-and-hold microphone control. Recording starts on pointer down, and on
-/// release the audio is transcribed by the server and the campaign generated.
-class _HoldToSpeakButton extends StatelessWidget {
-  const _HoldToSpeakButton({
-    required this.recording,
-    required this.starting,
-    required this.transcribing,
-    required this.enabled,
-    required this.blocked,
-    required this.label,
-    required this.onPressStart,
-    required this.onPressEnd,
+class _AnimatedFundingProgress extends StatefulWidget {
+  const _AnimatedFundingProgress({
+    required this.sponsoredAmount,
+    required this.fundingGoal,
   });
 
-  final bool recording;
-  final bool starting;
-  final bool transcribing;
-  final bool enabled;
-  final bool blocked;
-  final String label;
-  final Future<void> Function() onPressStart;
-  final Future<void> Function() onPressEnd;
+  final double sponsoredAmount;
+  final double fundingGoal;
+
+  @override
+  State<_AnimatedFundingProgress> createState() =>
+      _AnimatedFundingProgressState();
+}
+
+class _AnimatedFundingProgressState extends State<_AnimatedFundingProgress> {
+  late double _previousAmount = widget.sponsoredAmount;
+
+  @override
+  void didUpdateWidget(_AnimatedFundingProgress oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.sponsoredAmount != widget.sponsoredAmount) {
+      _previousAmount = oldWidget.sponsoredAmount;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final busy = starting || transcribing;
-    final interactive = enabled && !transcribing;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Semantics(
-          button: true,
-          enabled: interactive,
-          label: 'Hold to speak your campaign brief',
-          child: MouseRegion(
-            cursor: interactive
-                ? SystemMouseCursors.click
-                : SystemMouseCursors.basic,
-            child: Listener(
-              // The child is only a decoration plus text, so the hold control
-              // needs its own hit target.
-              behavior: HitTestBehavior.opaque,
-              onPointerDown: interactive ? (_) => onPressStart() : null,
-              onPointerUp: interactive ? (_) => onPressEnd() : null,
-              onPointerCancel: interactive ? (_) => onPressEnd() : null,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 160),
-                height: 56,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: recording
-                      ? FieldnoteColors.clay
-                      : Colors.white.withValues(alpha: enabled ? .14 : .06),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: recording
-                        ? FieldnoteColors.clay
-                        : Colors.white.withValues(alpha: .28),
-                    width: recording ? 2 : 1,
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (busy)
-                      const SizedBox(
-                        height: 18,
-                        width: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    else
-                      Icon(
-                        recording ? Icons.stop_rounded : Icons.mic_rounded,
-                        color: Colors.white,
-                        size: 22,
-                      ),
-                    const SizedBox(width: 10),
-                    Flexible(
-                      child: Text(
-                        label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                            ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: _previousAmount, end: widget.sponsoredAmount),
+      duration: const Duration(milliseconds: 900),
+      curve: Curves.easeOutCubic,
+      onEnd: () => _previousAmount = widget.sponsoredAmount,
+      builder: (context, amount, _) {
+        final progress = widget.fundingGoal <= 0
+            ? 0.0
+            : (amount / widget.fundingGoal).clamp(0, 1).toDouble();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            LinearProgressIndicator(
+              minHeight: 8,
+              value: progress,
+              borderRadius: BorderRadius.circular(99),
+              color: FieldnoteColors.clay,
+              backgroundColor: FieldnoteColors.clay.withValues(alpha: .12),
             ),
-          ),
-        ),
-        if (blocked && !recording && !busy) ...[
-          const SizedBox(height: 8),
-          Text(
-            'The microphone could not be used here. Allow microphone access, '
-            'type the brief, or enter the details manually.',
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: FieldnoteColors.acid),
-          ),
-        ],
-      ],
+            const SizedBox(height: 6),
+            Text(
+              '₹${NumberFormat.compact().format(amount)} of '
+              '₹${NumberFormat.compact().format(widget.fundingGoal)}',
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -1519,13 +1859,13 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextField(
+              FieldnoteTextField(
                 controller: _title,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: const InputDecoration(labelText: 'Campaign title'),
               ),
               const SizedBox(height: 10),
-              TextField(
+              FieldnoteTextField(
                 controller: _description,
                 minLines: 2,
                 maxLines: 4,
@@ -1533,7 +1873,7 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
                 decoration: const InputDecoration(labelText: 'Description'),
               ),
               const SizedBox(height: 10),
-              TextField(
+              FieldnoteTextField(
                 controller: _locationName,
                 decoration: const InputDecoration(labelText: 'Location name'),
               ),
@@ -1558,41 +1898,33 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
                 ),
               ),
               const SizedBox(height: 10),
-              Row(
+              ResponsiveCardGrid(
+                minimumItemWidth: 150,
+                spacing: 10,
                 children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _funding,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Funding goal (₹)',
-                      ),
+                  FieldnoteTextField(
+                    controller: _funding,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Funding goal (₹)',
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: TextField(
-                      controller: _capacity,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Volunteer places',
-                      ),
+                  FieldnoteTextField(
+                    controller: _capacity,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Volunteer places',
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: TextField(
-                      controller: _duration,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Minutes',
-                      ),
-                    ),
+                  FieldnoteTextField(
+                    controller: _duration,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Minutes'),
                   ),
                 ],
               ),
               const SizedBox(height: 10),
-              TextField(
+              FieldnoteTextField(
                 controller: _checklist,
                 minLines: 3,
                 maxLines: 6,
@@ -1602,7 +1934,7 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
                 ),
               ),
               const SizedBox(height: 10),
-              TextField(
+              FieldnoteTextField(
                 controller: _skills,
                 minLines: 1,
                 maxLines: 3,
@@ -1612,7 +1944,7 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
                 ),
               ),
               const SizedBox(height: 10),
-              TextField(
+              FieldnoteTextField(
                 controller: _evidence,
                 minLines: 2,
                 maxLines: 3,
@@ -1621,7 +1953,7 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
                 ),
               ),
               const SizedBox(height: 10),
-              TextField(
+              FieldnoteTextField(
                 controller: _tags,
                 minLines: 1,
                 maxLines: 3,

@@ -20,6 +20,10 @@ development:
   # to the authenticated Flutter checkout after the server creates an order.
   razorpayKeyId: 'rzp_test_...'
   razorpayKeySecret: 'YOUR_RAZORPAY_TEST_SECRET'
+
+  # Google Maps Platform web services: Places, Geocoding, and Routes. This key
+  # must NOT be the same restricted key the Flutter app renders tiles with.
+  googleMapsApiKey: 'YOUR_GOOGLE_MAPS_SERVER_KEY'
 ```
 
 Do not replace the existing database, email pepper, JWT, refresh-token, or service-secret entries.
@@ -32,6 +36,7 @@ export SERVERPOD_PASSWORD_geminiModel='gemini-3.8-flash'
 export SERVERPOD_PASSWORD_geminiTranscriptionModel='gemini-3.5-transcribe'
 export SERVERPOD_PASSWORD_razorpayKeyId='rzp_test_...'
 export SERVERPOD_PASSWORD_razorpayKeySecret='...'
+export SERVERPOD_PASSWORD_googleMapsApiKey='...'
 ```
 
 Set these in the same terminal that runs `serverpod start`. Do not add them to a committed shell script.
@@ -83,6 +88,50 @@ The server must create the Razorpay Order. Flutter receives only the Key ID and 
 
 For local USB testing, Razorpay Checkout returns directly to the app and Serverpod verifies the signature. Webhook testing is intentionally deferred with public deployment because it requires a public HTTPS endpoint.
 
+### Google Maps Platform
+
+FieldNote keeps all public client keys in one local `.env.maps` file, but uses
+**separate restricted keys per platform**. The private server key stays in
+Serverpod passwords and must never be placed in the Flutter environment file.
+
+| Key | Lives in | Used for | Restrict by |
+| --- | --- | --- | --- |
+| Server key | `googleMapsApiKey` Serverpod password | Places Autocomplete, Place Details, Geocoding, Routes | API restriction + server IP |
+| Client keys | `fieldnotes_flutter/.env.maps` | Rendering map tiles only | Android SHA-1 + package, iOS bundle ID, web HTTP referrer |
+
+Enable these APIs on the Cloud project: **Maps SDK for Android**, **Maps SDK for iOS**, **Maps JavaScript API**, **Places API (New)**, **Geocoding API**, **Routes API**.
+
+Create the local environment file once:
+
+```bash
+cp fieldnotes_flutter/.env.maps.example fieldnotes_flutter/.env.maps
+```
+
+Then populate the three values in `fieldnotes_flutter/.env.maps`:
+
+```dotenv
+GOOGLE_MAPS_ANDROID_API_KEY=YOUR_ANDROID_RESTRICTED_KEY
+GOOGLE_MAPS_IOS_API_KEY=YOUR_IOS_RESTRICTED_KEY
+GOOGLE_MAPS_WEB_API_KEY=YOUR_WEB_REFERRER_RESTRICTED_KEY
+```
+
+Android Gradle, iOS Xcode, and Flutter all consume this file automatically.
+Rebuild the application after changing a key. The file is git-ignored; only
+`.env.maps.example` is committed.
+
+`.env.maps` starts with empty keys on purpose. **Nothing in the app requires Maps to work.** With no key for the current platform:
+
+- every map renders a fallback panel carrying the same coordinates, distance, and accuracy text the app showed before Maps existed;
+- the sponsor place-search field is hidden, and pins are set by dragging or by device GPS;
+- campaign matching keeps its original straight-line distance score.
+
+Billing notes. Map loads from the Android and iOS SDKs are not billed per load; Maps JavaScript, Static Maps, Places, Geocoding, and Routes are billed per call against a monthly free allotment. **Verify current per-SKU rates before enabling billing — Google restructured this pricing in 2025.** The server already limits its own spend: Places autocomplete is debounced at 350 ms, reverse geocoding fires only when a pin settles, and the Routes distance matrix is cached for 30 minutes per rounded origin/destination pair and capped at 100 destinations per call.
+
+Two deliberate boundaries:
+
+- **Geofence check-in never calls Google.** `checkIn` decides admission with the server's own haversine maths, so a network failure or an expired key can never let an off-site volunteer check in, nor block an on-site one.
+- **Sponsors never see individual volunteer locations.** `previewCampaignReach` returns counts plus coverage buckets rounded to roughly a kilometre, and suppresses any bucket holding fewer than three volunteers.
+
 ## No key required
 
 These features already use device/platform functionality and require no external API account:
@@ -112,6 +161,13 @@ Required for Razorpay checkout:
 
 ```yaml
 razorpay_flutter: ^1.4.7
+```
+
+Required for the map surfaces:
+
+```yaml
+google_maps_flutter: ^2.9.0
+url_launcher: ^6.3.0
 ```
 
 Installed on the Serverpod side for payment signature verification:
