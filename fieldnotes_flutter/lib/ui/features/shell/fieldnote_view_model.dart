@@ -244,6 +244,12 @@ class FieldnoteViewModel extends ChangeNotifier {
 
   Future<String> exportMyData() => _repository.exportMyData();
 
+  Future<void> recordAccountDataExport(String format) async {
+    await _repository.recordAccountDataExport(format);
+    trustCenter = await _repository.trustCenter();
+    notifyListeners();
+  }
+
   Future<void> requestAccountDeletion() async {
     await _repository.requestAccountDeletion();
     trustCenter = await _repository.trustCenter();

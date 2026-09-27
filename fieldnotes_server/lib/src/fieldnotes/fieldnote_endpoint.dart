@@ -240,14 +240,6 @@ class FieldnoteEndpoint extends Endpoint {
         : (await TestRefund.db.find(session))
               .where((item) => sponsorshipIds.contains(item.sponsorshipId))
               .toList();
-    await _audit(
-      session,
-      event: 'privacyDataExported',
-      entityType: 'account',
-      outcome: 'completed',
-      riskLevel: 'info',
-      detail: 'The user generated an account data export.',
-    );
     return const JsonEncoder.withIndent('  ').convert({
       'formatVersion': 2,
       'generatedAt': DateTime.now().toUtc().toIso8601String(),
@@ -309,6 +301,29 @@ class FieldnoteEndpoint extends Endpoint {
       'securityActivity': activity.map((item) => item.toJson()).toList(),
       'mediaNotice': 'Private photographs are not embedded in this export.',
     });
+  }
+
+  Future<AuditEvent> recordAccountDataExport(
+    Session session,
+    String format,
+  ) async {
+    await _requireProfile(session);
+    final normalizedFormat = format.toLowerCase();
+    if (normalizedFormat != 'pdf' && normalizedFormat != 'json') {
+      throw FieldnoteException(
+        message: 'Unsupported account data export format.',
+        code: 'invalid_export_format',
+      );
+    }
+    return _audit(
+      session,
+      event: 'privacyDataExported',
+      entityType: 'account',
+      outcome: 'completed',
+      riskLevel: 'info',
+      detail:
+          'The user saved or shared a ${normalizedFormat.toUpperCase()} account data export.',
+    );
   }
 
   Future<AuditEvent> requestAccountDeletion(Session session) {
@@ -775,6 +790,22 @@ class FieldnoteEndpoint extends Endpoint {
               now.isBefore(campaign.startsAt),
         )
         .toList();
+  }
+
+  /// Resolves a shared campaign after sign-in. The volunteer still joins via
+  /// the normal capacity and readiness checks in [joinCampaign].
+  Future<Campaign?> getSharedCampaign(Session session, int campaignId) async {
+    await _requireProfile(session);
+    if (campaignId < 1) return null;
+    await _refreshDueCampaigns(session);
+    final campaign = await Campaign.db.findById(session, campaignId);
+    if (campaign == null ||
+        campaign.status != CampaignStatus.active ||
+        const {'cancelled', 'expired'}.contains(campaign.readinessState) ||
+        !DateTime.now().toUtc().isBefore(campaign.startsAt)) {
+      return null;
+    }
+    return campaign;
   }
 
   Future<List<Campaign>> listMyCreatedCampaigns(Session session) async {

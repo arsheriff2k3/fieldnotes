@@ -341,6 +341,13 @@ class EndpointFieldnote extends _isc.EndpointRef {
     {},
   );
 
+  _ida.Future<_ixscx4wv.AuditEvent> recordAccountDataExport(String format) =>
+      caller.callServerEndpoint<_ixscx4wv.AuditEvent>(
+        'fieldnote',
+        'recordAccountDataExport',
+        {'format': format},
+      );
+
   _ida.Future<_ixscx4wv.AuditEvent> requestAccountDeletion() =>
       caller.callServerEndpoint<_ixscx4wv.AuditEvent>(
         'fieldnote',
@@ -523,6 +530,15 @@ class EndpointFieldnote extends _isc.EndpointRef {
         'fieldnote',
         'listCampaigns',
         {},
+      );
+
+  /// Resolves a shared campaign after sign-in. The volunteer still joins via
+  /// the normal capacity and readiness checks in [joinCampaign].
+  _ida.Future<_i6ar8a32.Campaign?> getSharedCampaign(int campaignId) =>
+      caller.callServerEndpoint<_i6ar8a32.Campaign?>(
+        'fieldnote',
+        'getSharedCampaign',
+        {'campaignId': campaignId},
       );
 
   _ida.Future<List<_i6ar8a32.Campaign>> listMyCreatedCampaigns() =>

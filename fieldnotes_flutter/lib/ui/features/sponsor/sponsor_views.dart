@@ -9,6 +9,7 @@ import 'package:record/record.dart';
 import '../../../data/audio/wav_encoder.dart';
 import '../../../data/repositories/fieldnote_repository.dart';
 import '../../../data/services/device_location_service.dart';
+import '../../../data/services/campaign_link_service.dart';
 import '../../../data/services/razorpay_checkout_service.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/location_picker.dart';
@@ -27,80 +28,104 @@ class SponsorDiscoverView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
-      onRefresh: viewModel.refresh,
-      child: FieldnotePageList(
+    return DefaultTabController(
+      length: 3,
+      child: Column(
         children: [
-          SectionHeading(
-            eyebrow: 'Sponsor discovery',
-            title: 'Fund work you can follow',
-            description:
-                'Every campaign connects funding to available volunteers and location-grounded evidence.',
-            trailing: FilledButton.icon(
-              onPressed: () => viewModel.selectSection(1),
-              icon: const Icon(Icons.auto_awesome),
-              label: const Text('Create with AI'),
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              FieldnoteSpacing.pageGutter(context),
+              FieldnoteSpacing.lg,
+              FieldnoteSpacing.pageGutter(context),
+              16,
+            ),
+            child: const SectionHeading(
+              eyebrow: 'Sponsor campaigns',
+              title: 'Campaigns',
+              description:
+                  'Explore local work, manage yours, or start a new campaign.',
             ),
           ),
-          const SizedBox(height: 24),
-          SurfaceCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Your campaigns',
-                  style: Theme.of(context).textTheme.titleLarge,
+          Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: FieldnoteSpacing.pageGutter(context),
+            ),
+            child: Material(
+              color: FieldnoteColors.mist,
+              borderRadius: BorderRadius.circular(22),
+              clipBehavior: Clip.antiAlias,
+              child: TabBar(
+                isScrollable: false,
+                indicatorSize: TabBarIndicatorSize.tab,
+                indicatorPadding: const EdgeInsets.all(4),
+                indicator: BoxDecoration(
+                  color: FieldnoteColors.forest,
+                  borderRadius: BorderRadius.circular(18),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  viewModel.createdCampaigns.isEmpty
-                      ? 'Create a campaign to see nearby volunteer areas and invite people.'
-                      : 'View nearby volunteer areas and invite people to your campaign.',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 16),
-                if (viewModel.createdCampaigns.isEmpty)
-                  OutlinedButton.icon(
-                    onPressed: () => viewModel.selectSection(1),
-                    icon: const Icon(Icons.add_circle_outline),
-                    label: const Text('Create a campaign'),
+                dividerColor: Colors.transparent,
+                labelColor: Colors.white,
+                unselectedLabelColor: FieldnoteColors.ink,
+                labelStyle: const TextStyle(fontWeight: FontWeight.w800),
+                tabs: [
+                  Tab(
+                    height: 72,
+                    icon: const Icon(Icons.explore_outlined, size: 21),
+                    text: 'All',
                   ),
-                for (final campaign in viewModel.createdCampaigns) ...[
-                  Text(
-                    campaign.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium,
+                  Tab(
+                    height: 72,
+                    icon: const Icon(Icons.folder_open_outlined, size: 21),
+                    text: 'Yours',
                   ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () => Navigator.of(context).push<void>(
-                        MaterialPageRoute(
-                          builder: (_) => CampaignVolunteerReachView(
-                            campaign: campaign,
-                            repository: viewModel.repository,
-                          ),
-                        ),
-                      ),
-                      icon: const Icon(Icons.map_outlined),
-                      label: const Text('View volunteer map'),
-                    ),
+                  const Tab(
+                    height: 72,
+                    icon: Icon(Icons.add_circle_outline, size: 21),
+                    text: 'Create',
                   ),
-                  if (campaign != viewModel.createdCampaigns.last)
-                    const Divider(height: 26),
                 ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: TabBarView(
+              children: [
+                _allCampaigns(context),
+                _yourCampaigns(context),
+                _createCampaign(context),
               ],
             ),
           ),
-          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  Widget _allCampaigns(BuildContext context) => RefreshIndicator(
+    onRefresh: viewModel.refresh,
+    child: FieldnotePageList(
+      key: const PageStorageKey('sponsor-all-campaigns'),
+      top: 16,
+      children: [
+        Text(
+          'Discover campaigns',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        const SizedBox(height: 6),
+        const Text('Support work led by people in your community.'),
+        const SizedBox(height: 20),
+        if (viewModel.campaigns.isEmpty)
+          const EmptyPanel(
+            icon: Icons.explore_outlined,
+            title: 'No campaigns yet',
+            message: 'Pull down to refresh or start the first campaign.',
+          )
+        else
           ResponsiveCardGrid(
             children: [
-              for (var index = 0; index < viewModel.campaigns.length; index++)
+              for (final campaign in viewModel.campaigns)
                 Builder(
                   builder: (context) {
-                    final campaign = viewModel.campaigns[index];
                     final remaining =
                         (campaign.fundingGoal - campaign.sponsoredAmount)
                             .clamp(0, double.infinity)
@@ -119,10 +144,100 @@ class SponsorDiscoverView extends StatelessWidget {
                 ),
             ],
           ),
-        ],
+      ],
+    ),
+  );
+
+  Widget _yourCampaigns(BuildContext context) => RefreshIndicator(
+    onRefresh: viewModel.refresh,
+    child: FieldnotePageList(
+      key: const PageStorageKey('sponsor-your-campaigns'),
+      top: 16,
+      children: [
+        Text('Your campaigns', style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 6),
+        const Text(
+          'See volunteer areas and invite people to work you created.',
+        ),
+        const SizedBox(height: 20),
+        if (viewModel.createdCampaigns.isEmpty)
+          SurfaceCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Icon(Icons.campaign_outlined, size: 36),
+                const SizedBox(height: 14),
+                Text(
+                  'No campaigns created yet',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 6),
+                const Text('Create a campaign to see it here.'),
+                const SizedBox(height: 16),
+                Builder(
+                  builder: (tabContext) => FilledButton.icon(
+                    onPressed: () =>
+                        DefaultTabController.of(tabContext).animateTo(2),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Create a campaign'),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          for (final campaign in viewModel.createdCampaigns) ...[
+            _OwnedCampaignCard(
+              campaign: campaign,
+              impact: viewModel.impacts[campaign.id],
+              onMap: () => Navigator.of(context).push<void>(
+                MaterialPageRoute(
+                  builder: (_) => CampaignVolunteerReachView(
+                    campaign: campaign,
+                    repository: viewModel.repository,
+                  ),
+                ),
+              ),
+              onShare: () => shareCampaign(context, campaign),
+            ),
+            const SizedBox(height: 14),
+          ],
+      ],
+    ),
+  );
+
+  Widget _createCampaign(BuildContext context) => FieldnotePageList(
+    top: 16,
+    children: [
+      SurfaceCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Icon(
+              Icons.auto_awesome_outlined,
+              size: 38,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Start a campaign',
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Describe your idea by voice or text, or enter the details yourself.',
+            ),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: () => viewModel.selectSection(1),
+              icon: const Icon(Icons.add_circle_outline),
+              label: const Text('Open campaign creator'),
+            ),
+          ],
+        ),
       ),
-    );
-  }
+    ],
+  );
 
   Future<void> _sponsor(BuildContext context, Campaign campaign) async {
     final remainingAmount = (campaign.fundingGoal - campaign.sponsoredAmount)
@@ -458,6 +573,193 @@ class SponsorVoiceActionController extends ChangeNotifier {
   Future<void> pressEnd() async {
     await _onPressEnd?.call();
   }
+}
+
+class _OwnedCampaignCard extends StatelessWidget {
+  const _OwnedCampaignCard({
+    required this.campaign,
+    required this.impact,
+    required this.onMap,
+    required this.onShare,
+  });
+
+  final Campaign campaign;
+  final ImpactSummary? impact;
+  final VoidCallback onMap;
+  final VoidCallback onShare;
+
+  @override
+  Widget build(BuildContext context) {
+    final (status, statusColor) = switch (campaign.status) {
+      CampaignStatus.completed => ('Completed', FieldnoteColors.forest),
+      CampaignStatus.draft => ('Draft', FieldnoteColors.clay),
+      _ => switch (campaign.readinessState) {
+        'confirmed' => ('Confirmed', FieldnoteColors.forest),
+        'postponed' => ('Postponed', FieldnoteColors.clay),
+        'fundingShort' ||
+        'volunteersShort' ||
+        'bothShort' => ('Needs a decision', FieldnoteColors.clay),
+        _ => ('Planning', FieldnoteColors.moss),
+      },
+    };
+    final progress = campaign.fundingGoal <= 0
+        ? 0.0
+        : (campaign.sponsoredAmount / campaign.fundingGoal)
+              .clamp(0.0, 1.0)
+              .toDouble();
+    final money = NumberFormat.compactCurrency(symbol: '₹', decimalDigits: 1);
+    return Container(
+      decoration: BoxDecoration(
+        color: FieldnoteColors.paper,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: FieldnoteColors.forest.withValues(alpha: .10),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: FieldnoteColors.ink.withValues(alpha: .045),
+            blurRadius: 18,
+            offset: const Offset(0, 7),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(
+            height: 5,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [FieldnoteColors.forest, FieldnoteColors.moss],
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    StatusPill(
+                      label: status,
+                      color: statusColor,
+                      icon: Icons.circle,
+                    ),
+                    const Spacer(),
+                    Text(
+                      'CAMPAIGN ${campaign.id ?? ''}',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: FieldnoteColors.moss,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  campaign.name,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: FieldnoteColors.ink,
+                    fontWeight: FontWeight.w800,
+                    height: 1.15,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _infoLine(
+                  context,
+                  Icons.event_outlined,
+                  DateFormat(
+                    'EEE, d MMM · h:mm a',
+                  ).format(campaign.startsAt.toLocal()),
+                ),
+                const SizedBox(height: 8),
+                _infoLine(context, Icons.place_outlined, campaign.locationName),
+                const SizedBox(height: 18),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: FieldnoteColors.mist.withValues(alpha: .6),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.groups_outlined, size: 18),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              impact == null
+                                  ? '${campaign.volunteerCapacity} places'
+                                  : '${impact!.joinedVolunteers}/${campaign.volunteerCapacity} joined',
+                              style: Theme.of(context).textTheme.labelMedium,
+                            ),
+                          ),
+                          Text(
+                            '${money.format(campaign.sponsoredAmount)} / ${money.format(campaign.fundingGoal)}',
+                            style: Theme.of(context).textTheme.labelMedium,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: progress,
+                          minHeight: 5,
+                          backgroundColor: FieldnoteColors.paper,
+                          color: FieldnoteColors.moss,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: onMap,
+                        icon: const Icon(Icons.map_outlined),
+                        label: const Text('Volunteer map'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    OutlinedButton.icon(
+                      onPressed: onShare,
+                      icon: const Icon(Icons.share_outlined),
+                      label: const Text('Share'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _infoLine(BuildContext context, IconData icon, String text) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Icon(icon, size: 18, color: FieldnoteColors.moss),
+      const SizedBox(width: 9),
+      Expanded(
+        child: Text(
+          text,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      ),
+    ],
+  );
 }
 
 class SponsorCreateView extends StatefulWidget {
@@ -1375,6 +1677,12 @@ class _ImpactCard extends StatelessWidget {
           ),
           if (isCreator) ...[
             const Divider(height: 30),
+            OutlinedButton.icon(
+              onPressed: () => shareCampaign(context, campaign),
+              icon: const Icon(Icons.share_outlined),
+              label: const Text('Share campaign link'),
+            ),
+            const SizedBox(height: 10),
             OutlinedButton.icon(
               onPressed: () => Navigator.of(context).push<void>(
                 MaterialPageRoute(

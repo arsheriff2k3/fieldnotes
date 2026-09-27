@@ -109,6 +109,8 @@ class FieldnoteRepository {
   );
 
   Future<List<Campaign>> campaigns() => client.fieldnote.listCampaigns();
+  Future<Campaign?> sharedCampaign(int campaignId) =>
+      client.fieldnote.getSharedCampaign(campaignId);
   Future<String?> campaignContactPhone(int campaignId) =>
       client.fieldnote.getCampaignContactPhone(campaignId);
   Future<List<Campaign>> myCreatedCampaigns() =>
@@ -268,6 +270,9 @@ class FieldnoteRepository {
   Future<TrustCenterSummary> trustCenter() => client.fieldnote.getTrustCenter();
 
   Future<String> exportMyData() => client.fieldnote.exportMyData();
+
+  Future<AuditEvent> recordAccountDataExport(String format) =>
+      client.fieldnote.recordAccountDataExport(format);
 
   Future<AuditEvent> requestAccountDeletion() =>
       client.fieldnote.requestAccountDeletion();
