@@ -102,4 +102,14 @@ void run(List<String> args) async {
 
   // Start the server.
   await pod.start();
+  await pod.futureCalls.cancel('campaign-readiness-sweep');
+  await pod.futureCalls
+      .callRecurring(identifier: 'campaign-readiness-sweep')
+      .every(const Duration(minutes: 5))
+      .campaignReadiness
+      .sweep();
+  await pod.futureCalls
+      .callWithDelay(const Duration(seconds: 1))
+      .campaignReadiness
+      .sweep();
 }

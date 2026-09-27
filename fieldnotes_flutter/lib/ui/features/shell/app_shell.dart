@@ -109,7 +109,10 @@ class _AppShellState extends State<AppShell> {
                 VolunteerWorkView(viewModel: _viewModel),
                 VolunteerAvailabilityView(viewModel: _viewModel),
                 TrustCenterView(viewModel: _viewModel),
-                ProfileView(viewModel: _viewModel),
+                ProfileView(
+                  viewModel: _viewModel,
+                  onEditAvailability: () => _viewModel.selectSection(2),
+                ),
               ];
 
         return LayoutBuilder(
@@ -400,7 +403,7 @@ class _SponsorVoiceButtonState extends State<_SponsorVoiceButton>
         ? Icons.stop_rounded
         : Icons.mic_rounded;
     final idleColor = processing
-        ? FieldnoteColors.ink.withValues(alpha: .42)
+        ? FieldnoteColors.moss
         : FieldnoteColors.forest;
     return Semantics(
       button: true,

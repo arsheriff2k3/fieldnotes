@@ -1,0 +1,14 @@
+class: TestRefund
+table: fieldnote_test_refund
+fields:
+  campaignId: int, relation(parent=fieldnote_campaign)
+  sponsorshipId: int, relation(parent=fieldnote_sponsorship)
+  amount: double
+  status: String, default='refund_due_test'
+  createdAt: DateTime, default=now
+indexes:
+  fieldnote_test_refund_campaign_idx:
+    fields: campaignId
+  fieldnote_test_refund_sponsorship_idx:
+    fields: sponsorshipId
+    unique: true

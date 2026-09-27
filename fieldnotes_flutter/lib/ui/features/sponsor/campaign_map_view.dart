@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../data/repositories/fieldnote_repository.dart';
-import '../../../data/services/map_launcher_service.dart';
 import '../../core/fieldnote_map.dart';
 import '../../core/fieldnote_theme.dart';
+import '../../core/in_app_maps.dart';
 import '../../core/widgets.dart';
 
 /// The sponsor's live proof map for one campaign.
@@ -225,12 +225,18 @@ class _CampaignProofMapState extends State<CampaignProofMap> {
         Align(
           alignment: Alignment.centerLeft,
           child: TextButton.icon(
-            onPressed: () => MapLauncher.openPlace(
-              latitude: widget.campaign.latitude,
-              longitude: widget.campaign.longitude,
+            onPressed: () => Navigator.of(context).push<void>(
+              MaterialPageRoute(
+                builder: (_) => PlaceMapScreen(
+                  title: widget.campaign.locationName,
+                  latitude: widget.campaign.latitude,
+                  longitude: widget.campaign.longitude,
+                  geofenceMeters: widget.campaign.geofenceMeters,
+                ),
+              ),
             ),
-            icon: const Icon(Icons.open_in_new, size: 18),
-            label: const Text('Open the pin in Google Maps'),
+            icon: const Icon(Icons.map_outlined, size: 18),
+            label: const Text('View campaign pin'),
           ),
         ),
       ],
@@ -387,12 +393,17 @@ class EvidenceProvenanceSheet extends StatelessWidget {
                 ),
             const SizedBox(height: 14),
             OutlinedButton.icon(
-              onPressed: () => MapLauncher.openPlace(
-                latitude: evidence.latitude,
-                longitude: evidence.longitude,
+              onPressed: () => Navigator.of(context).push<void>(
+                MaterialPageRoute(
+                  builder: (_) => PlaceMapScreen(
+                    title: 'Evidence location',
+                    latitude: evidence.latitude,
+                    longitude: evidence.longitude,
+                  ),
+                ),
               ),
-              icon: const Icon(Icons.open_in_new),
-              label: const Text('Open this point in Google Maps'),
+              icon: const Icon(Icons.map_outlined),
+              label: const Text('View evidence point'),
             ),
           ],
         ),

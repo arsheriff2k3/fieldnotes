@@ -5,15 +5,17 @@ import 'package:fieldnotes_client/fieldnotes_client.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 import '../../../data/services/device_location_service.dart';
-import '../../../data/services/map_launcher_service.dart';
+import '../../core/in_app_maps.dart';
 import '../../core/fieldnote_map.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/widgets.dart';
 import '../shell/fieldnote_view_model.dart';
 import '../sponsor/sponsor_views.dart';
+import 'volunteer_area_map_screen.dart';
 
 class VolunteerMatchesView extends StatefulWidget {
   const VolunteerMatchesView({super.key, required this.viewModel});
@@ -32,6 +34,12 @@ class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
   @override
   Widget build(BuildContext context) {
     final availability = viewModel.availability;
+    final orderedMatches = [...viewModel.matches]
+      ..sort((a, b) {
+        final invitedA = viewModel.invitedTo(a.campaign.id!) ? 1 : 0;
+        final invitedB = viewModel.invitedTo(b.campaign.id!) ? 1 : 0;
+        return invitedB.compareTo(invitedA);
+      });
     return RefreshIndicator(
       onRefresh: viewModel.refresh,
       child: FieldnotePageList(
@@ -86,24 +94,30 @@ class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
             )
           else if (_mapView && mapsAvailable)
             _MatchMap(
-              matches: viewModel.matches,
+              matches: orderedMatches,
               availability: availability,
               onOpen: _openMatch,
             )
           else
             ResponsiveCardGrid(
               children: [
-                for (var index = 0; index < viewModel.matches.length; index++)
+                for (var index = 0; index < orderedMatches.length; index++)
                   Builder(
                     builder: (context) {
-                      final match = viewModel.matches[index];
+                      final match = orderedMatches[index];
                       final joined = viewModel.participationFor(
                         match.campaign.id!,
                       );
                       return CampaignCard(
                         campaign: match.campaign,
+                        showFunding: false,
                         score: match.score,
-                        reasons: [...match.reasons, distanceLabel(match)],
+                        reasons: [
+                          if (viewModel.invitedTo(match.campaign.id!))
+                            'The campaign creator invited you to join',
+                          ...match.reasons,
+                          distanceLabel(match),
+                        ],
                         actionLabel: joined == null
                             ? 'Join campaign'
                             : 'View my work',
@@ -121,74 +135,112 @@ class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
   }
 
   void _openMatch(CampaignMatch match) {
+    final reasons = [
+      if (viewModel.invitedTo(match.campaign.id!))
+        'The campaign creator invited you to join',
+      ...match.reasons,
+    ];
+    if (!reasons.any((reason) => reason.contains('by road'))) {
+      reasons.add(distanceLabel(match));
+    }
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       useSafeArea: true,
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                match.campaign.name,
-                style: Theme.of(sheetContext).textTheme.headlineMedium,
-              ),
-              const SizedBox(height: 6),
-              Text(match.campaign.locationName),
-              const SizedBox(height: 14),
-              ...[...match.reasons, distanceLabel(match)].map(
-                (reason) => Padding(
-                  padding: const EdgeInsets.only(bottom: 7),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.check_circle_outline, size: 17),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(reason)),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
+      showDragHandle: true,
+      builder: (sheetContext) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.62,
+        minChildSize: 0.35,
+        maxChildSize: 0.85,
+        builder: (context, scrollController) => Column(
+          children: [
+            Expanded(
+              child: ListView(
+                controller: scrollController,
+                padding: const EdgeInsets.fromLTRB(24, 4, 24, 8),
                 children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => MapLauncher.openDirections(
-                        latitude: match.campaign.latitude,
-                        longitude: match.campaign.longitude,
-                      ),
-                      icon: const Icon(Icons.directions_outlined),
-                      label: const Text('Directions'),
-                    ),
+                  Text(
+                    match.campaign.name,
+                    style: Theme.of(sheetContext).textTheme.headlineMedium,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton.icon(
-                      onPressed:
-                          viewModel.participationFor(match.campaign.id!) == null
-                          ? () {
-                              Navigator.pop(sheetContext);
-                              _join(context, match.campaign);
-                            }
-                          : () {
-                              Navigator.pop(sheetContext);
-                              viewModel.selectSection(1);
-                            },
-                      icon: const Icon(Icons.how_to_reg_outlined),
-                      label: Text(
-                        viewModel.participationFor(match.campaign.id!) == null
-                            ? 'Join'
-                            : 'My work',
+                  const SizedBox(height: 6),
+                  Text(match.campaign.locationName),
+                  const SizedBox(height: 14),
+                  for (final reason in reasons)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 7),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.check_circle_outline, size: 17),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(reason)),
+                        ],
                       ),
                     ),
-                  ),
                 ],
               ),
-            ],
-          ),
+            ),
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(sheetContext);
+                          Navigator.of(this.context).push<void>(
+                            MaterialPageRoute(
+                              builder: (_) => TravelMapScreen(
+                                campaign: match.campaign,
+                                repository: viewModel.repository,
+                                canStartTravel:
+                                    match.campaign.readinessState ==
+                                        'confirmed' &&
+                                    viewModel
+                                            .participationFor(
+                                              match.campaign.id!,
+                                            )
+                                            ?.confirmedRevision ==
+                                        match.campaign.revision,
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.directions_outlined),
+                        label: const Text('View route'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed:
+                            viewModel.participationFor(match.campaign.id!) ==
+                                null
+                            ? () {
+                                Navigator.pop(sheetContext);
+                                _join(this.context, match.campaign);
+                              }
+                            : () {
+                                Navigator.pop(sheetContext);
+                                viewModel.selectSection(1);
+                              },
+                        icon: const Icon(Icons.how_to_reg_outlined),
+                        label: Text(
+                          viewModel.participationFor(match.campaign.id!) == null
+                              ? 'Join'
+                              : 'My work',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -383,6 +435,93 @@ class _MissionCardState extends State<_MissionCard> {
   String? _locationError;
   bool _tracking = false;
   bool _working = false;
+  String? _contactPhone;
+  bool _loadingContact = true;
+  bool _contactLoadFailed = false;
+  late Future<List<CampaignPost>> _posts;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadContact();
+    _posts = widget.viewModel.repository.campaignPosts(widget.campaign.id!);
+  }
+
+  @override
+  void didUpdateWidget(covariant _MissionCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.campaign.revision != widget.campaign.revision ||
+        oldWidget.campaign.readinessState != widget.campaign.readinessState) {
+      _posts = widget.viewModel.repository.campaignPosts(widget.campaign.id!);
+    }
+    if (!_loadingContact && _contactPhone == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_loadingContact && _contactPhone == null) {
+          _loadContact();
+        }
+      });
+    }
+  }
+
+  Future<void> _loadContact({bool showResult = false}) async {
+    if (_loadingContact && _contactPhone != null) return;
+    if (mounted) setState(() => _loadingContact = true);
+    try {
+      final phone = await widget.viewModel.repository.campaignContactPhone(
+        widget.campaign.id!,
+      );
+      if (mounted) {
+        setState(() {
+          _contactPhone = phone;
+          _contactLoadFailed = false;
+        });
+        if (showResult && phone == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'This campaign creator has no saved phone number yet.',
+              ),
+            ),
+          );
+        }
+        if (showResult && phone != null) await _dialPhone(phone);
+      }
+    } on Object {
+      if (mounted) {
+        setState(() => _contactLoadFailed = true);
+        if (showResult) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not load contact. Try again.')),
+          );
+        }
+      }
+    } finally {
+      if (mounted) setState(() => _loadingContact = false);
+    }
+  }
+
+  Future<void> _callCreator() async {
+    final phone = _contactPhone;
+    if (phone == null) return;
+    await _dialPhone(phone);
+  }
+
+  Future<void> _dialPhone(String phone) async {
+    var opened = false;
+    try {
+      opened = await launchUrl(
+        Uri(scheme: 'tel', path: phone),
+        mode: LaunchMode.externalApplication,
+      );
+    } on Object {
+      opened = false;
+    }
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open the phone dialer.')),
+      );
+    }
+  }
 
   @override
   void dispose() {
@@ -461,11 +600,31 @@ class _MissionCardState extends State<_MissionCard> {
     }
   }
 
+  Future<void> _reconfirm() async {
+    setState(() => _working = true);
+    try {
+      await widget.viewModel.repository.reconfirmParticipation(
+        widget.participation.id!,
+      );
+      await widget.viewModel.refresh();
+    } catch (error) {
+      if (mounted) {
+        _showError(context, error, 'Could not reconfirm your place.');
+      }
+    } finally {
+      if (mounted) setState(() => _working = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final status = widget.participation.status;
     final checkedIn = status == ParticipationStatus.checkedIn;
     final completed = status == ParticipationStatus.completed;
+    final needsReconfirmation =
+        widget.participation.confirmedRevision != widget.campaign.revision &&
+        !completed;
+    final eventConfirmed = widget.campaign.readinessState == 'confirmed';
     return SurfaceCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -502,6 +661,75 @@ class _MissionCardState extends State<_MissionCard> {
           ),
           const SizedBox(height: 6),
           Text(widget.campaign.locationName),
+          const SizedBox(height: 10),
+          StatusPill(
+            label: switch (widget.campaign.readinessState) {
+              'confirmed' => 'Event confirmed',
+              'postponed' => 'Postponed · new proposed date',
+              'cancelled' => 'Event cancelled',
+              'expired' => 'Proposed date expired',
+              'fundingShort' ||
+              'volunteersShort' ||
+              'bothShort' => 'Awaiting sponsor decision',
+              _ => 'Date tentative',
+            },
+            color: eventConfirmed
+                ? FieldnoteColors.forest
+                : FieldnoteColors.clay,
+            icon: eventConfirmed ? Icons.verified_outlined : Icons.schedule,
+          ),
+          FutureBuilder<List<CampaignPost>>(
+            future: _posts,
+            builder: (context, snapshot) {
+              final latest = snapshot.data?.firstOrNull;
+              if (latest == null) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Text('Organizer update: ${latest.body}'),
+              );
+            },
+          ),
+          if (needsReconfirmation &&
+              !const {
+                'cancelled',
+                'expired',
+              }.contains(widget.campaign.readinessState)) ...[
+            const SizedBox(height: 8),
+            const Text(
+              'The sponsor changed the date or work scope. Review the details, then reconfirm your place.',
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: _working ? null : _reconfirm,
+              icon: const Icon(Icons.how_to_reg_outlined),
+              label: const Text('Reconfirm my place'),
+            ),
+          ],
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: _loadingContact
+                ? null
+                : _contactPhone == null
+                ? () => _loadContact(showResult: true)
+                : _callCreator,
+            icon: const Icon(Icons.call_outlined),
+            label: Text(
+              _loadingContact
+                  ? 'Loading campaign contact…'
+                  : _contactPhone == null
+                  ? 'Refresh creator contact'
+                  : 'Call campaign creator',
+            ),
+          ),
+          if (!_loadingContact && _contactPhone == null) ...[
+            const SizedBox(height: 6),
+            Text(
+              _contactLoadFailed
+                  ? 'Could not load the contact. Tap to retry.'
+                  : 'The creator of this campaign has not added a phone number yet. They can add it in their Profile.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
           const Divider(height: 28),
           Text(
             'Field checklist',
@@ -556,14 +784,23 @@ class _MissionCardState extends State<_MissionCard> {
                     label: const Text('Submit photo + AI field note'),
                   )
                 : FilledButton.icon(
-                    onPressed: _working ? null : _checkIn,
+                    onPressed:
+                        _working || !eventConfirmed || needsReconfirmation
+                        ? null
+                        : _checkIn,
                     icon: _working
                         ? const SizedBox.square(
                             dimension: 18,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.my_location),
-                    label: const Text('GPS check in on site'),
+                    label: Text(
+                      !eventConfirmed
+                          ? 'Await event confirmation'
+                          : needsReconfirmation
+                          ? 'Reconfirm your place first'
+                          : 'GPS check in on site',
+                    ),
                   ),
           ),
         ],
@@ -684,12 +921,33 @@ class _MissionCardState extends State<_MissionCard> {
                 ),
               ),
               OutlinedButton.icon(
-                onPressed: () => MapLauncher.openDirections(
-                  latitude: widget.campaign.latitude,
-                  longitude: widget.campaign.longitude,
-                ),
+                onPressed:
+                    const {'cancelled', 'expired'}.contains(
+                      widget.campaign.readinessState,
+                    )
+                    ? null
+                    : () => Navigator.of(context).push<void>(
+                        MaterialPageRoute(
+                          builder: (_) => TravelMapScreen(
+                            campaign: widget.campaign,
+                            repository: widget.viewModel.repository,
+                            canStartTravel:
+                                widget.campaign.readinessState == 'confirmed' &&
+                                widget.participation.confirmedRevision ==
+                                    widget.campaign.revision &&
+                                widget.participation.status !=
+                                    ParticipationStatus.completed,
+                          ),
+                        ),
+                      ),
                 icon: const Icon(Icons.directions_walk),
-                label: const Text('Navigate here'),
+                label: Text(
+                  const {'cancelled', 'expired'}.contains(
+                        widget.campaign.readinessState,
+                      )
+                      ? 'Route unavailable'
+                      : 'View route',
+                ),
               ),
             ],
           ),
@@ -928,7 +1186,7 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
       _showError(
         context,
         StateError('Missing photograph'),
-        'Take or choose an evidence photograph so Gemini can analyze it with your note.',
+        'Take or choose an evidence photograph so AI can analyze it with your note.',
       );
       return;
     }
@@ -1155,6 +1413,7 @@ class VolunteerAvailabilityView extends StatefulWidget {
 
 class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
   final _locationService = DeviceLocationService();
+  final _placeSearch = TextEditingController();
   final Set<int> _days = {};
   bool _available = true;
   bool _today = false;
@@ -1168,6 +1427,12 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
   bool _pinnedByHand = false;
   String? _areaName;
   int _geocodeRequest = 0;
+  int _searchRequest = 0;
+  Timer? _searchDebounce;
+  List<PlaceSuggestion> _suggestions = const [];
+  bool _searchAvailable = false;
+  bool _searching = false;
+  String? _searchMessage;
 
   @override
   void initState() {
@@ -1182,6 +1447,7 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
       );
       if (value.latitude != null && value.longitude != null) {
         _areaName = value.locationLabel;
+        _placeSearch.text = value.locationLabel;
         _location = DeviceLocation(
           latitude: value.latitude!,
           longitude: value.longitude!,
@@ -1193,14 +1459,125 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
         );
       }
     }
+    unawaited(_checkPlaceSearch());
+  }
+
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    _placeSearch.dispose();
+    super.dispose();
+  }
+
+  Future<void> _checkPlaceSearch() async {
+    try {
+      final available = await widget.viewModel.repository
+          .placeSearchAvailable();
+      if (mounted) setState(() => _searchAvailable = available);
+    } on Object {
+      // A map pin and GPS remain available without Places.
+    }
+  }
+
+  void _onSearchChanged(String query) {
+    _searchDebounce?.cancel();
+    final request = ++_searchRequest;
+    ++_geocodeRequest;
+    setState(() {
+      _suggestions = const [];
+      _searchMessage = null;
+      _searching = false;
+    });
+    if (query.trim().length < 3) return;
+    _searchDebounce = Timer(const Duration(milliseconds: 350), () {
+      unawaited(_findPlace(query.trim(), request));
+    });
+  }
+
+  Future<void> _findPlace(String query, int request) async {
+    if (!mounted || request != _searchRequest) return;
+    setState(() => _searching = true);
+    try {
+      final results = await widget.viewModel.repository.searchPlaces(
+        query,
+        biasLatitude: _location?.latitude,
+        biasLongitude: _location?.longitude,
+      );
+      if (!mounted || request != _searchRequest) return;
+      setState(() {
+        _suggestions = results;
+        _searchMessage = results.isEmpty ? 'No matching places found.' : null;
+      });
+    } on Object {
+      if (mounted && request == _searchRequest) {
+        setState(
+          () => _searchMessage =
+              'Place search is unavailable. Move the pin or use GPS.',
+        );
+      }
+    } finally {
+      if (mounted && request == _searchRequest) {
+        setState(() => _searching = false);
+      }
+    }
+  }
+
+  Future<void> _choosePlace(PlaceSuggestion suggestion) async {
+    _searchDebounce?.cancel();
+    final request = ++_geocodeRequest;
+    ++_searchRequest;
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _suggestions = const [];
+      _searching = false;
+    });
+    try {
+      final place = await widget.viewModel.repository.resolvePlace(
+        suggestion.placeId,
+      );
+      if (!mounted || request != _geocodeRequest) return;
+      final label = place.address.trim().isNotEmpty
+          ? place.address.trim()
+          : place.name.trim();
+      setState(() {
+        _pinnedByHand = true;
+        _areaName = label.isNotEmpty ? label : suggestion.primaryText;
+        _placeSearch.text = _areaName!;
+        _searchMessage = null;
+        _location = DeviceLocation(
+          latitude: place.latitude,
+          longitude: place.longitude,
+          accuracyMeters: 50,
+          isLive: true,
+          isMocked: false,
+          capturedAt: DateTime.now().toUtc(),
+          isDemo: false,
+        );
+      });
+    } on Object {
+      if (mounted && request == _geocodeRequest) {
+        setState(
+          () => _searchMessage =
+              'Could not select that place. Try another result.',
+        );
+      }
+    }
   }
 
   /// Moves the saved area pin and asks the server to name it. Reverse
   /// geocoding is best-effort: a null answer just leaves the previous label.
   Future<void> _movePin(LatLng point) async {
+    _searchDebounce?.cancel();
+    ++_searchRequest;
+    final request = ++_geocodeRequest;
+    final coordinates =
+        '${point.latitude.toStringAsFixed(5)}, ${point.longitude.toStringAsFixed(5)}';
     setState(() {
       _pinnedByHand = true;
-      _areaName = null;
+      _areaName = coordinates;
+      _placeSearch.text = coordinates;
+      _suggestions = const [];
+      _searchMessage = null;
       _location = DeviceLocation(
         latitude: point.latitude,
         longitude: point.longitude,
@@ -1211,7 +1588,6 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
         isDemo: false,
       );
     });
-    final request = ++_geocodeRequest;
     try {
       final place = await widget.viewModel.repository.describeCoordinates(
         point.latitude,
@@ -1219,9 +1595,39 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
       );
       // Ignore a slow answer that lost the race to a newer drag.
       if (!mounted || request != _geocodeRequest || place == null) return;
-      setState(() => _areaName = place.name.isEmpty ? null : place.name);
+      final label = place.address.trim().isNotEmpty
+          ? place.address.trim()
+          : place.name.trim();
+      if (label.isNotEmpty) {
+        setState(() {
+          _areaName = label;
+          _placeSearch.text = label;
+        });
+      }
     } on Object {
       // Naming the pin is a nicety; the coordinates are what matter.
+    }
+  }
+
+  Future<void> _describeGps(DeviceLocation location) async {
+    final request = _geocodeRequest;
+    try {
+      final place = await widget.viewModel.repository.describeCoordinates(
+        location.latitude,
+        location.longitude,
+      );
+      if (!mounted || request != _geocodeRequest || place == null) return;
+      final label = place.address.trim().isNotEmpty
+          ? place.address.trim()
+          : place.name.trim();
+      if (label.isNotEmpty) {
+        setState(() {
+          _areaName = label;
+          _placeSearch.text = label;
+        });
+      }
+    } on Object {
+      // The GPS coordinates remain selected when a label is unavailable.
     }
   }
 
@@ -1232,6 +1638,15 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
   }
 
   Future<void> _save() async {
+    if (_searchAvailable &&
+        _placeSearch.text.trim().isNotEmpty &&
+        _placeSearch.text.trim() != _savedLabel) {
+      setState(
+        () => _searchMessage =
+            'Select a search result, or clear the search to keep the current pin.',
+      );
+      return;
+    }
     setState(() => _saving = true);
     try {
       _location ??= await _locationService.current();
@@ -1250,7 +1665,7 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Availability updated. AI matches refreshed.'),
+            content: Text('Availability saved.'),
           ),
         );
       }
@@ -1335,6 +1750,50 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 12),
+              if (_searchAvailable) ...[
+                TextField(
+                  controller: _placeSearch,
+                  onChanged: _onSearchChanged,
+                  decoration: InputDecoration(
+                    labelText: 'Search Google Places',
+                    hintText: 'Address, landmark, or city',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searching
+                        ? const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox.square(
+                              dimension: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : null,
+                  ),
+                ),
+                if (_searchMessage != null) ...[
+                  const SizedBox(height: 8),
+                  Text(_searchMessage!),
+                ],
+                if (_suggestions.isNotEmpty)
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 220),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: _suggestions.length.clamp(0, 5),
+                      itemBuilder: (context, index) {
+                        final suggestion = _suggestions[index];
+                        return ListTile(
+                          leading: const Icon(Icons.place_outlined),
+                          title: Text(suggestion.primaryText),
+                          subtitle: suggestion.secondaryText.isEmpty
+                              ? null
+                              : Text(suggestion.secondaryText),
+                          onTap: () => _choosePlace(suggestion),
+                        );
+                      },
+                    ),
+                  ),
+                const SizedBox(height: 12),
+              ],
               _areaMap(context),
               const SizedBox(height: 16),
               Text(
@@ -1352,13 +1811,31 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
               const SizedBox(height: 8),
               OutlinedButton.icon(
                 onPressed: () async {
-                  final location = await _locationService.current();
-                  if (!mounted) return;
-                  setState(() {
-                    _location = location;
-                    _pinnedByHand = false;
-                    _areaName = null;
-                  });
+                  try {
+                    final location = await _locationService.current();
+                    if (!mounted) return;
+                    _searchDebounce?.cancel();
+                    ++_searchRequest;
+                    ++_geocodeRequest;
+                    setState(() {
+                      _location = location;
+                      _pinnedByHand = false;
+                      _areaName =
+                          '${location.latitude.toStringAsFixed(5)}, ${location.longitude.toStringAsFixed(5)}';
+                      _placeSearch.text = _areaName!;
+                      _suggestions = const [];
+                      _searchMessage = null;
+                    });
+                    unawaited(_describeGps(location));
+                  } on Object catch (error) {
+                    if (mounted) {
+                      _showError(
+                        this.context,
+                        error,
+                        'Could not get your current location.',
+                      );
+                    }
+                  }
                 },
                 icon: const Icon(Icons.my_location),
                 label: Text(
@@ -1381,12 +1858,8 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
                           dimension: 18,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Icon(Icons.auto_awesome),
-                  label: Text(
-                    _saving
-                        ? 'Refreshing matches…'
-                        : 'Save and refresh AI matches',
-                  ),
+                      : const Icon(Icons.save_outlined),
+                  label: Text(_saving ? 'Saving…' : 'Save'),
                 ),
               ),
             ],
@@ -1394,6 +1867,22 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
         ),
       ],
     );
+  }
+
+  Future<void> _expandAreaMap() async {
+    final location = _location;
+    final selected = await Navigator.of(context).push<LatLng>(
+      MaterialPageRoute(
+        builder: (_) => VolunteerAreaMapScreen(
+          radiusKm: _radius,
+          initialPoint: location == null
+              ? null
+              : LatLng(location.latitude, location.longitude),
+        ),
+      ),
+    );
+    if (!mounted || selected == null) return;
+    await _movePin(selected);
   }
 
   Widget _areaMap(BuildContext context) {
@@ -1410,44 +1899,63 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        FieldnoteMap(
-          target: point,
-          zoom: zoomForRadius(radiusMeters),
-          height: 260,
-          semanticLabel: 'Draggable map pin for your travel area',
-          onTap: _movePin,
-          markers: {
-            Marker(
-              markerId: const MarkerId('area'),
-              position: point,
-              draggable: true,
-              onDragEnd: _movePin,
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                FieldnoteMapPalette.volunteer,
-              ),
-              infoWindow: InfoWindow(
-                title: 'Your travel area',
-                snippet: _areaName ?? _savedLabel,
+        Stack(
+          children: [
+            FieldnoteMap(
+              target: point,
+              zoom: zoomForRadius(radiusMeters),
+              height: 260,
+              semanticLabel: 'Draggable map pin for your travel area',
+              onTap: _movePin,
+              markers: location == null
+                  ? const {}
+                  : {
+                      Marker(
+                        markerId: const MarkerId('area'),
+                        position: point,
+                        draggable: true,
+                        onDragEnd: _movePin,
+                        icon: BitmapDescriptor.defaultMarkerWithHue(
+                          FieldnoteMapPalette.volunteer,
+                        ),
+                        infoWindow: InfoWindow(
+                          title: 'Your travel area',
+                          snippet: _areaName ?? _savedLabel,
+                        ),
+                      ),
+                    },
+              circles: location == null
+                  ? const {}
+                  : {
+                      radiusCircle(
+                        id: 'radius',
+                        center: point,
+                        radiusMeters: radiusMeters,
+                        color: FieldnoteColors.forest,
+                      ),
+                    },
+              fallback: MapUnavailableNotice(
+                message: location == null
+                    ? 'Map preview is off. Use the GPS button below to set your '
+                          'area.'
+                    : 'Map preview is off. Saved area: '
+                          '${point.latitude.toStringAsFixed(4)}, '
+                          '${point.longitude.toStringAsFixed(4)} '
+                          '(${_radius.round()} km radius).',
               ),
             ),
-          },
-          circles: {
-            radiusCircle(
-              id: 'radius',
-              center: point,
-              radiusMeters: radiusMeters,
-              color: FieldnoteColors.forest,
-            ),
-          },
-          fallback: MapUnavailableNotice(
-            message: location == null
-                ? 'Map preview is off. Use the GPS button below to set your '
-                      'area.'
-                : 'Map preview is off. Saved area: '
-                      '${point.latitude.toStringAsFixed(4)}, '
-                      '${point.longitude.toStringAsFixed(4)} '
-                      '(${_radius.round()} km radius).',
-          ),
+            if (mapsAvailable)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: IconButton.filledTonal(
+                  key: const Key('expand-volunteer-area-map'),
+                  tooltip: 'Expand map',
+                  onPressed: _expandAreaMap,
+                  icon: const Icon(Icons.fullscreen),
+                ),
+              ),
+          ],
         ),
         if (mapsAvailable) ...[
           const SizedBox(height: 8),

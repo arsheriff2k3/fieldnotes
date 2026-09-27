@@ -22,6 +22,7 @@ abstract class CampaignProposal
     required this.startsAt,
     required this.durationMinutes,
     required this.volunteerCapacity,
+    this.minimumVolunteers,
     required this.fundingGoal,
     required this.requiredSkills,
     required this.checklist,
@@ -37,6 +38,7 @@ abstract class CampaignProposal
     required DateTime startsAt,
     required int durationMinutes,
     required int volunteerCapacity,
+    int? minimumVolunteers,
     required double fundingGoal,
     required List<String> requiredSkills,
     required List<String> checklist,
@@ -55,6 +57,7 @@ abstract class CampaignProposal
       ),
       durationMinutes: jsonSerialization['durationMinutes'] as int,
       volunteerCapacity: jsonSerialization['volunteerCapacity'] as int,
+      minimumVolunteers: jsonSerialization['minimumVolunteers'] as int?,
       fundingGoal: (jsonSerialization['fundingGoal'] as num).toDouble(),
       requiredSkills: _ix00qkn1.Protocol().deserialize<List<String>>(
         jsonSerialization['requiredSkills'],
@@ -82,6 +85,8 @@ abstract class CampaignProposal
 
   int volunteerCapacity;
 
+  int? minimumVolunteers;
+
   double fundingGoal;
 
   List<String> requiredSkills;
@@ -104,6 +109,7 @@ abstract class CampaignProposal
     DateTime? startsAt,
     int? durationMinutes,
     int? volunteerCapacity,
+    int? minimumVolunteers,
     double? fundingGoal,
     List<String>? requiredSkills,
     List<String>? checklist,
@@ -121,6 +127,7 @@ abstract class CampaignProposal
       'startsAt': startsAt.toJson(),
       'durationMinutes': durationMinutes,
       'volunteerCapacity': volunteerCapacity,
+      if (minimumVolunteers != null) 'minimumVolunteers': minimumVolunteers,
       'fundingGoal': fundingGoal,
       'requiredSkills': requiredSkills.toJson(),
       'checklist': checklist.toJson(),
@@ -140,6 +147,7 @@ abstract class CampaignProposal
       'startsAt': startsAt.toJson(),
       'durationMinutes': durationMinutes,
       'volunteerCapacity': volunteerCapacity,
+      if (minimumVolunteers != null) 'minimumVolunteers': minimumVolunteers,
       'fundingGoal': fundingGoal,
       'requiredSkills': requiredSkills.toJson(),
       'checklist': checklist.toJson(),
@@ -155,6 +163,8 @@ abstract class CampaignProposal
   }
 }
 
+class _Undefined {}
+
 class _CampaignProposalImpl extends CampaignProposal {
   _CampaignProposalImpl({
     required String title,
@@ -163,6 +173,7 @@ class _CampaignProposalImpl extends CampaignProposal {
     required DateTime startsAt,
     required int durationMinutes,
     required int volunteerCapacity,
+    int? minimumVolunteers,
     required double fundingGoal,
     required List<String> requiredSkills,
     required List<String> checklist,
@@ -176,6 +187,7 @@ class _CampaignProposalImpl extends CampaignProposal {
          startsAt: startsAt,
          durationMinutes: durationMinutes,
          volunteerCapacity: volunteerCapacity,
+         minimumVolunteers: minimumVolunteers,
          fundingGoal: fundingGoal,
          requiredSkills: requiredSkills,
          checklist: checklist,
@@ -195,6 +207,7 @@ class _CampaignProposalImpl extends CampaignProposal {
     DateTime? startsAt,
     int? durationMinutes,
     int? volunteerCapacity,
+    Object? minimumVolunteers = _Undefined,
     double? fundingGoal,
     List<String>? requiredSkills,
     List<String>? checklist,
@@ -209,6 +222,9 @@ class _CampaignProposalImpl extends CampaignProposal {
       startsAt: startsAt ?? this.startsAt,
       durationMinutes: durationMinutes ?? this.durationMinutes,
       volunteerCapacity: volunteerCapacity ?? this.volunteerCapacity,
+      minimumVolunteers: minimumVolunteers is int?
+          ? minimumVolunteers
+          : this.minimumVolunteers,
       fundingGoal: fundingGoal ?? this.fundingGoal,
       requiredSkills:
           requiredSkills ?? this.requiredSkills.map((e0) => e0).toList(),

@@ -1,0 +1,16 @@
+class: TestPayout
+table: fieldnote_test_payout
+fields:
+  campaignId: int, relation(parent=fieldnote_campaign)
+  sponsorshipId: int, relation(parent=fieldnote_sponsorship)
+  creatorAuthUserId: UuidValue
+  amount: double
+  sourcePaymentId: String
+  status: String, default='simulated'
+  simulatedAt: DateTime, default=now
+indexes:
+  fieldnote_test_payout_campaign_idx:
+    fields: campaignId
+  fieldnote_test_payout_sponsorship_idx:
+    fields: sponsorshipId
+    unique: true

@@ -31,10 +31,12 @@ dependencies:
     sdk: flutter
   google_fonts: ^8.1.0
   google_maps_flutter: ^2.9.0
+  url_launcher: ^6.3.0
   geolocator: ^14.0.2
   image_picker: ^1.2.1
-  url_launcher: ^6.3.0
   intl: ^0.20.2
+  pdf: 3.11.3
+  share_plus: 13.3.0
   razorpay_flutter: ^1.4.7
   record: ^7.1.1
   shared_preferences: ^2.5.5
@@ -80,6 +82,8 @@ flutter:
   assets:
     - assets/config.json
     - .env.maps
+    - assets/fonts/Roboto-Regular.ttf
+    - assets/fonts/NotoSansTamil.ttf
 
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a

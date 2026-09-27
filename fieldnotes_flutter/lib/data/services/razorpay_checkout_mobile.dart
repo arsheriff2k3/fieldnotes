@@ -66,9 +66,14 @@ class MobileRazorpayCheckout implements RazorpayCheckoutService {
   }
 
   void _failure(PaymentFailureResponse response) {
+    final rawMessage = response.message?.trim();
     _pending?.completeError(
       RazorpayCheckoutException(
-        response.message ?? 'Razorpay checkout was cancelled or failed.',
+        rawMessage == null ||
+                rawMessage.isEmpty ||
+                rawMessage.toLowerCase() == 'undefined'
+            ? 'Razorpay checkout was cancelled or failed.'
+            : rawMessage,
       ),
     );
   }

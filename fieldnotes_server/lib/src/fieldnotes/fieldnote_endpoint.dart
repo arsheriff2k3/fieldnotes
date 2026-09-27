@@ -5,19 +5,24 @@ import 'dart:typed_data';
 import 'package:serverpod/serverpod.dart';
 
 import '../generated/protocol.dart';
+import 'services/ai_provider_router.dart';
 import 'services/content_moderation_service.dart';
 import 'services/gemini_ai_service.dart';
 import 'services/gemini_speech_service.dart';
+import 'services/groq_ai_service.dart';
 import 'services/google_maps_service.dart';
 import 'services/structured_summary_service.dart';
 import 'services/location_integrity_service.dart';
+import 'services/payment_credit_service.dart';
 import 'services/razorpay_payment_service.dart';
+import 'services/campaign_readiness_policy.dart';
 
 class FieldnoteEndpoint extends Endpoint {
   FieldnoteEndpoint({
     StructuredSummaryService? aiService,
     GeminiAiService? geminiService,
     GeminiSpeechService? speechService,
+    GroqAiService? groqService,
     ContentModerationService? moderationService,
     LocationIntegrityService? locationIntegrityService,
     RazorpayPaymentService? paymentService,
@@ -25,6 +30,7 @@ class FieldnoteEndpoint extends Endpoint {
   }) : _ai = aiService ?? const StructuredSummaryService(),
        _gemini = geminiService ?? const GeminiAiService(),
        _speech = speechService ?? GeminiSpeechService(),
+       _groq = groqService ?? GroqAiService(),
        _moderation = moderationService ?? const ContentModerationService(),
        _locationIntegrity =
            locationIntegrityService ?? const LocationIntegrityService(),
@@ -38,6 +44,7 @@ class FieldnoteEndpoint extends Endpoint {
   final StructuredSummaryService _ai;
   final GeminiAiService _gemini;
   final GeminiSpeechService _speech;
+  final GroqAiService _groq;
   final ContentModerationService _moderation;
   final LocationIntegrityService _locationIntegrity;
   final RazorpayPaymentService _payments;
@@ -139,7 +146,7 @@ class FieldnoteEndpoint extends Endpoint {
       locationProtection:
           'Freshness, coordinate bounds, accuracy, device mock flags, geofence, and movement continuity are checked.',
       moderationProtection:
-          'Unsafe text and exposed identifiers are blocked before storage; Gemini provider safety also applies to AI requests.',
+          'Unsafe text and exposed identifiers are blocked before storage and before AI requests.',
       paymentProtection:
           'Razorpay orders are created by the server and successful checkout signatures are verified server-side before impact totals change.',
       retentionNotice:
@@ -151,28 +158,156 @@ class FieldnoteEndpoint extends Endpoint {
     final userId = _userId(session);
     final profile = await _requireProfile(session);
     final consent = await getMyLegalConsent(session);
+    final availability = await VolunteerAvailability.db.findFirstRow(
+      session,
+      where: (t) => t.volunteerAuthUserId.equals(userId),
+    );
+    final createdCampaigns = await Campaign.db.find(
+      session,
+      where: (t) => t.createdBy.equals(userId),
+      orderBy: (t) => t.createdAt.desc(),
+    );
     final sponsorships = await Sponsorship.db.find(
       session,
       where: (t) => t.sponsorAuthUserId.equals(userId),
+      orderBy: (t) => t.createdAt.desc(),
     );
     final participations = await CampaignParticipation.db.find(
       session,
       where: (t) => t.volunteerAuthUserId.equals(userId),
+      orderBy: (t) => t.joinedAt.desc(),
     );
+    final receivedInvitations = await CampaignInvitation.db.find(
+      session,
+      where: (t) => t.volunteerAuthUserId.equals(userId),
+      orderBy: (t) => t.createdAt.desc(),
+    );
+    final sentInvitations = await CampaignInvitation.db.find(
+      session,
+      where: (t) => t.sponsorAuthUserId.equals(userId),
+      orderBy: (t) => t.createdAt.desc(),
+    );
+    final payouts = await TestPayout.db.find(
+      session,
+      where: (t) => t.creatorAuthUserId.equals(userId),
+      orderBy: (t) => t.simulatedAt.desc(),
+    );
+    final posts = await CampaignPost.db.find(
+      session,
+      where: (t) => t.authorSponsorAuthUserId.equals(userId),
+      orderBy: (t) => t.createdAt.desc(),
+    );
+    final activity = await AuditEvent.db.find(
+      session,
+      where: (t) => t.actorAuthUserId.equals(userId),
+      orderBy: (t) => t.occurredAt.desc(),
+    );
+    final campaignIds = <int>{
+      ...createdCampaigns.map((item) => item.id).whereType<int>(),
+      ...sponsorships.map((item) => item.campaignId),
+      ...participations.map((item) => item.campaignId),
+      ...receivedInvitations.map((item) => item.campaignId),
+      ...sentInvitations.map((item) => item.campaignId),
+    };
+    final campaignNames = <int, String>{
+      for (final campaign in createdCampaigns)
+        if (campaign.id != null) campaign.id!: campaign.name,
+    };
+    for (final campaignId in campaignIds.difference(
+      campaignNames.keys.toSet(),
+    )) {
+      final campaign = await Campaign.db.findById(session, campaignId);
+      if (campaign != null) campaignNames[campaignId] = campaign.name;
+    }
+    final participationCampaigns = {
+      for (final item in participations)
+        if (item.id != null) item.id!: item.campaignId,
+    };
+    final evidence = participationCampaigns.isEmpty
+        ? <CompletionEvidence>[]
+        : (await CompletionEvidence.db.find(session))
+              .where(
+                (item) =>
+                    participationCampaigns.containsKey(item.participationId),
+              )
+              .toList();
+    final sponsorshipIds = sponsorships
+        .map((item) => item.id)
+        .whereType<int>()
+        .toSet();
+    final refunds = sponsorshipIds.isEmpty
+        ? <TestRefund>[]
+        : (await TestRefund.db.find(session))
+              .where((item) => sponsorshipIds.contains(item.sponsorshipId))
+              .toList();
     await _audit(
       session,
       event: 'privacyDataExported',
       entityType: 'account',
       outcome: 'completed',
       riskLevel: 'info',
-      detail: 'The user generated a portable JSON summary of their data.',
+      detail: 'The user generated an account data export.',
     );
     return const JsonEncoder.withIndent('  ').convert({
+      'formatVersion': 2,
       'generatedAt': DateTime.now().toUtc().toIso8601String(),
       'profile': profile.toJson(),
       'consent': consent?.toJson(),
-      'sponsorships': sponsorships.map((item) => item.toJson()).toList(),
-      'participations': participations.map((item) => item.toJson()).toList(),
+      'availability': availability?.toJson(),
+      'createdCampaigns': createdCampaigns
+          .map((item) => item.toJson())
+          .toList(),
+      'sponsorships': sponsorships
+          .map(
+            (item) => {
+              ...item.toJson(),
+              'campaignName': campaignNames[item.campaignId],
+            },
+          )
+          .toList(),
+      'participations': participations
+          .map(
+            (item) => {
+              ...item.toJson(),
+              'campaignName': campaignNames[item.campaignId],
+            },
+          )
+          .toList(),
+      'receivedInvitations': receivedInvitations
+          .map(
+            (item) => {
+              ...item.toJson(),
+              'campaignName': campaignNames[item.campaignId],
+            },
+          )
+          .toList(),
+      'sentInvitations': sentInvitations
+          .map((item) => item.campaignId)
+          .toSet()
+          .map(
+            (campaignId) => {
+              'campaignId': campaignId,
+              'campaignName': campaignNames[campaignId],
+              'count': sentInvitations
+                  .where((item) => item.campaignId == campaignId)
+                  .length,
+            },
+          )
+          .toList(),
+      'completionEvidence': evidence
+          .map(
+            (item) => {
+              ...item.toJson(),
+              'campaignName':
+                  campaignNames[participationCampaigns[item.participationId]],
+            },
+          )
+          .toList(),
+      'campaignPosts': posts.map((item) => item.toJson()).toList(),
+      'testPayouts': payouts.map((item) => item.toJson()).toList(),
+      'testRefunds': refunds.map((item) => item.toJson()).toList(),
+      'securityActivity': activity.map((item) => item.toJson()).toList(),
+      'mediaNotice': 'Private photographs are not embedded in this export.',
     });
   }
 
@@ -195,12 +330,18 @@ class FieldnoteEndpoint extends Endpoint {
     String? organizationName,
     String city,
     String? cityPlaceId,
-    List<String> interests,
-  ) async {
+    List<String> interests, {
+    double? locationLatitude,
+    double? locationLongitude,
+    String? contactPhone,
+  }) async {
+    final phone = _validatedContactPhone(contactPhone);
     final verifiedLocation = await _verifiedSponsorLocation(
       session,
       typedLocation: city,
       placeId: cityPlaceId,
+      latitude: locationLatitude,
+      longitude: locationLongitude,
     );
     return _upsertProfile(
       session,
@@ -208,6 +349,7 @@ class FieldnoteEndpoint extends Endpoint {
       displayName: displayName,
       sponsorType: sponsorType,
       organizationName: organizationName,
+      contactPhone: phone,
       city: verifiedLocation.name,
       locationAddress: verifiedLocation.address,
       locationPlaceId: verifiedLocation.placeId,
@@ -273,15 +415,24 @@ class FieldnoteEndpoint extends Endpoint {
     String city,
     String? cityPlaceId,
     List<String> interests,
-    List<String> skills,
-  ) async {
+    List<String> skills, {
+    double? locationLatitude,
+    double? locationLongitude,
+    String? contactPhone,
+  }) async {
     final current = await _requireProfile(session);
     await _requireRole(session, current.role);
+    final submittedPhone = contactPhone ?? current.contactPhone;
+    final phone = current.role == AccountRole.sponsor
+        ? _validatedContactPhone(submittedPhone)
+        : _validatedOptionalContactPhone(submittedPhone);
     final verifiedLocation = current.role == AccountRole.sponsor
         ? await _verifiedSponsorLocation(
             session,
             typedLocation: city,
             placeId: cityPlaceId,
+            latitude: locationLatitude,
+            longitude: locationLongitude,
             current: current,
           )
         : null;
@@ -293,6 +444,7 @@ class FieldnoteEndpoint extends Endpoint {
       organizationName: current.role == AccountRole.sponsor
           ? organizationName
           : null,
+      contactPhone: phone,
       city: verifiedLocation?.name ?? city,
       locationAddress: verifiedLocation?.address,
       locationPlaceId: verifiedLocation?.placeId,
@@ -383,26 +535,45 @@ class FieldnoteEndpoint extends Endpoint {
       );
     }
     final apiKey = session.passwords['geminiApiKey']?.trim();
-    if (apiKey == null || apiKey.isEmpty) {
+    final groqKey = session.passwords['groqApiKey']?.trim();
+    if ((apiKey == null || apiKey.isEmpty) &&
+        (groqKey == null || groqKey.isEmpty)) {
       throw FieldnoteException(
-        message:
-            'Speech transcription is not configured. Add geminiApiKey to Serverpod passwords, or type the brief instead.',
+        message: 'Speech transcription is unavailable. Type the brief instead.',
         code: 'transcription_not_configured',
       );
     }
     try {
-      final transcript = await _speech.transcribe(
-        apiKey: apiKey,
-        model: _transcriptionModel(session),
-        audio: audio,
-        fileName: safeName,
-        mimeType: safeMime,
+      return await AiProviderRouter.run<String>(
+        primary: _aiPrimaryProvider(session),
+        gemini: apiKey == null || apiKey.isEmpty
+            ? null
+            : () async {
+                final transcript = await _speech.transcribe(
+                  apiKey: apiKey,
+                  model: _transcriptionModel(session),
+                  audio: audio,
+                  fileName: safeName,
+                  mimeType: safeMime,
+                );
+                session.log('Dictation transcribed with Gemini.');
+                return transcript;
+              },
+        groq: groqKey == null || groqKey.isEmpty
+            ? null
+            : () async {
+                final transcript = await _groq.transcribe(
+                  apiKey: groqKey,
+                  audio: audio,
+                  fileName: safeName,
+                );
+                session.log('Dictation transcribed with Groq.');
+                return transcript;
+              },
+        onFallback: (from, to) => session.log(
+          '${from.name} transcription quota exhausted; trying ${to.name}.',
+        ),
       );
-      session.log(
-        'Dictation transcribed with ${_transcriptionModel(session)} '
-        '(${audio.lengthInBytes} bytes).',
-      );
-      return transcript;
     } on SpeechTranscriptionException catch (error, stackTrace) {
       session.log(
         'Dictation transcription failed.',
@@ -411,7 +582,20 @@ class FieldnoteEndpoint extends Endpoint {
         stackTrace: stackTrace,
       );
       throw FieldnoteException(
-        message: error.message,
+        message:
+            'Speech transcription is temporarily unavailable. Type the brief instead.',
+        code: 'transcription_failed',
+      );
+    } on GroqAiException catch (error, stackTrace) {
+      session.log(
+        'Groq transcription failed.',
+        level: LogLevel.warning,
+        exception: error,
+        stackTrace: stackTrace,
+      );
+      throw FieldnoteException(
+        message:
+            'Speech transcription is temporarily unavailable. Type the brief instead.',
         code: 'transcription_failed',
       );
     }
@@ -431,24 +615,45 @@ class FieldnoteEndpoint extends Endpoint {
     await _moderateOrThrow(session, prompt, 'campaignPrompt');
     final now = DateTime.now();
     final apiKey = session.passwords['geminiApiKey']?.trim();
-    if (apiKey == null || apiKey.isEmpty) {
+    final groqKey = session.passwords['groqApiKey']?.trim();
+    if ((apiKey == null || apiKey.isEmpty) &&
+        (groqKey == null || groqKey.isEmpty)) {
       throw FieldnoteException(
         message:
-            'AI campaign generation is not configured. Add geminiApiKey to the server or create the campaign manually.',
+            'AI campaign generation is unavailable. Create the campaign manually.',
         code: 'ai_not_configured',
       );
     }
     try {
-      final proposal = await _gemini.proposeCampaign(
-        apiKey: apiKey,
-        model: _geminiModel(session),
-        prompt: prompt.trim(),
-        now: now,
+      return await AiProviderRouter.run<CampaignProposal>(
+        primary: _aiPrimaryProvider(session),
+        gemini: apiKey == null || apiKey.isEmpty
+            ? null
+            : () async {
+                final proposal = await _gemini.proposeCampaign(
+                  apiKey: apiKey,
+                  model: _geminiModel(session),
+                  prompt: prompt.trim(),
+                  now: now,
+                );
+                session.log('Gemini campaign generation succeeded.');
+                return proposal;
+              },
+        groq: groqKey == null || groqKey.isEmpty
+            ? null
+            : () async {
+                final proposal = await _groq.proposeCampaign(
+                  apiKey: groqKey,
+                  prompt: prompt.trim(),
+                  now: now,
+                );
+                session.log('Groq campaign generation succeeded.');
+                return proposal;
+              },
+        onFallback: (from, to) => session.log(
+          '${from.name} campaign quota exhausted; trying ${to.name}.',
+        ),
       );
-      session.log(
-        'Gemini campaign generation succeeded with ${_geminiModel(session)}.',
-      );
-      return proposal;
     } on GeminiAiException catch (error, stackTrace) {
       session.log(
         'Gemini campaign generation failed.',
@@ -458,8 +663,20 @@ class FieldnoteEndpoint extends Endpoint {
       );
       throw FieldnoteException(
         message:
-            'Gemini could not generate this campaign. Check the API key, model, quota, and server connection.',
+            'AI campaign generation is temporarily unavailable. Create the campaign manually or try again later.',
         code: 'gemini_unavailable',
+      );
+    } on GroqAiException catch (error, stackTrace) {
+      session.log(
+        'Groq campaign generation failed.',
+        level: LogLevel.warning,
+        exception: error,
+        stackTrace: stackTrace,
+      );
+      throw FieldnoteException(
+        message:
+            'AI campaign generation is temporarily unavailable. Create the campaign manually.',
+        code: 'ai_unavailable',
       );
     }
   }
@@ -478,6 +695,7 @@ class FieldnoteEndpoint extends Endpoint {
     double? geofenceMeters,
   ) async {
     final sponsor = await _requireRole(session, AccountRole.sponsor);
+    _validatedContactPhone(sponsor.contactPhone);
     await _moderateOrThrow(
       session,
       '${proposal.title}\n${proposal.description}\n${proposal.checklist.join('\n')}',
@@ -488,6 +706,19 @@ class FieldnoteEndpoint extends Endpoint {
     await _moderateOrThrow(session, pinName, 'campaignLocationName');
     final organization = await _platformOrganization(session);
     final start = proposal.startsAt.toUtc();
+    final minimum =
+        proposal.minimumVolunteers ??
+        math.max(1, (proposal.volunteerCapacity / 2).ceil());
+    if (!start.isAfter(DateTime.now().toUtc()) ||
+        proposal.volunteerCapacity < 1 ||
+        minimum < 1 ||
+        minimum > proposal.volunteerCapacity) {
+      throw FieldnoteException(
+        message:
+            'Choose a future date and a safe minimum team within the available places.',
+        code: 'invalid_campaign_plan',
+      );
+    }
     final campaign = await Campaign.db.insertRow(
       session,
       Campaign(
@@ -505,11 +736,16 @@ class FieldnoteEndpoint extends Endpoint {
         longitude: longitude,
         geofenceMeters: (geofenceMeters ?? 200).clamp(50, 2000).toDouble(),
         volunteerCapacity: proposal.volunteerCapacity,
+        minimumVolunteers: minimum,
+        eligibleVolunteers: 0,
+        readinessState: 'open',
         requiredSkills: proposal.requiredSkills.join(' | '),
         checklist: proposal.checklist.join(' | '),
         evidenceInstructions: proposal.evidenceInstructions,
         tags: proposal.tags.join(' | '),
-        aiGenerated: true,
+        aiGenerated: !proposal.rationale.startsWith(
+          'Entered manually by the sponsor.',
+        ),
         publishedAt: DateTime.now().toUtc(),
       ),
     );
@@ -524,20 +760,373 @@ class FieldnoteEndpoint extends Endpoint {
 
   Future<List<Campaign>> listCampaigns(Session session) async {
     await _requireProfile(session);
-    return Campaign.db.find(
+    await _refreshDueCampaigns(session);
+    final campaigns = await Campaign.db.find(
       session,
       where: (t) => t.status.equals(CampaignStatus.active),
       orderBy: (t) => t.startsAt,
     );
+    final now = DateTime.now().toUtc();
+    return campaigns
+        .where(
+          (campaign) =>
+              campaign.readinessState != 'cancelled' &&
+              campaign.readinessState != 'expired' &&
+              now.isBefore(campaign.startsAt),
+        )
+        .toList();
   }
 
   Future<List<Campaign>> listMyCreatedCampaigns(Session session) async {
     final profile = await _requireRole(session, AccountRole.sponsor);
+    await _refreshDueCampaigns(session);
     return Campaign.db.find(
       session,
       where: (t) => t.createdBy.equals(profile.authUserId),
       orderBy: (t) => t.createdAt.desc(),
     );
+  }
+
+  Future<Campaign> refreshCampaignReadiness(
+    Session session,
+    int campaignId,
+  ) async {
+    await _requireProfile(session);
+    return _refreshCampaignReadiness(session, campaignId);
+  }
+
+  Future<Campaign> reviseCampaignScope(
+    Session session,
+    int campaignId,
+    double fundingGoal,
+    int minimumVolunteers,
+    String description,
+  ) async {
+    final sponsor = await _requireRole(session, AccountRole.sponsor);
+    final note = description.trim();
+    if (!fundingGoal.isFinite || fundingGoal < 100 || note.length < 20) {
+      throw FieldnoteException(
+        message:
+            'Enter a valid revised budget and explain the smaller work scope.',
+        code: 'invalid_campaign_plan',
+      );
+    }
+    await _moderateOrThrow(session, note, 'campaignScope');
+    final updated = await session.db.transaction((transaction) async {
+      final campaign = await Campaign.db.findById(
+        session,
+        campaignId,
+        transaction: transaction,
+        lockMode: LockMode.forUpdate,
+      );
+      if (campaign == null ||
+          campaign.createdBy != sponsor.authUserId ||
+          campaign.readinessState == 'cancelled' ||
+          campaign.readinessState == 'expired' ||
+          campaign.status != CampaignStatus.active) {
+        throw FieldnoteException(
+          message: 'This campaign cannot be revised.',
+          code: 'campaign_unavailable',
+        );
+      }
+      if (minimumVolunteers < 1 ||
+          minimumVolunteers > campaign.volunteerCapacity ||
+          fundingGoal + 0.001 < campaign.sponsoredAmount) {
+        throw FieldnoteException(
+          message:
+              'Minimum team must fit the available places and the new goal cannot be below funds already recorded.',
+          code: 'invalid_campaign_plan',
+        );
+      }
+      campaign.fundingGoal = fundingGoal;
+      campaign.minimumVolunteers = minimumVolunteers;
+      campaign.description = note;
+      campaign.revision += 1;
+      campaign.eligibleVolunteers = 0;
+      campaign.readinessState = 'open';
+      campaign.confirmedAt = null;
+      campaign.readinessCheckedAt = null;
+      campaign.updatedAt = DateTime.now().toUtc();
+      return Campaign.db.updateRow(session, campaign, transaction: transaction);
+    });
+    await _readinessNotice(
+      session,
+      updated,
+      'The organizer revised the work plan. Please review and reconfirm your place.',
+    );
+    return _refreshCampaignReadiness(session, campaignId);
+  }
+
+  Future<Campaign> postponeCampaign(
+    Session session,
+    int campaignId,
+    DateTime newStartsAt,
+  ) async {
+    final sponsor = await _requireRole(session, AccountRole.sponsor);
+    final start = newStartsAt.toUtc();
+    if (!start.isAfter(DateTime.now().toUtc().add(const Duration(hours: 1)))) {
+      throw FieldnoteException(
+        message: 'Choose a new start time at least one hour ahead.',
+        code: 'invalid_campaign_date',
+      );
+    }
+    final updated = await session.db.transaction((transaction) async {
+      final campaign = await Campaign.db.findById(
+        session,
+        campaignId,
+        transaction: transaction,
+        lockMode: LockMode.forUpdate,
+      );
+      if (campaign == null ||
+          campaign.createdBy != sponsor.authUserId ||
+          campaign.readinessState == 'cancelled' ||
+          campaign.status != CampaignStatus.active) {
+        throw FieldnoteException(
+          message: 'This campaign cannot be postponed.',
+          code: 'campaign_unavailable',
+        );
+      }
+      final duration =
+          (campaign.endsAt ?? campaign.startsAt.add(const Duration(hours: 2)))
+              .difference(campaign.startsAt);
+      campaign.startsAt = start;
+      campaign.endsAt = start.add(duration);
+      campaign.revision += 1;
+      campaign.eligibleVolunteers = 0;
+      campaign.readinessState = 'postponed';
+      campaign.confirmedAt = null;
+      campaign.readinessCheckedAt = null;
+      campaign.postponedAt = DateTime.now().toUtc();
+      campaign.updatedAt = DateTime.now().toUtc();
+      return Campaign.db.updateRow(session, campaign, transaction: transaction);
+    });
+    await _readinessNotice(
+      session,
+      updated,
+      'The event has a new proposed date. Please review and reconfirm your place.',
+    );
+    return updated;
+  }
+
+  Future<Campaign> cancelCampaign(Session session, int campaignId) async {
+    final sponsor = await _requireRole(session, AccountRole.sponsor);
+    final result = await session.db.transaction((transaction) async {
+      final campaign = await Campaign.db.findById(
+        session,
+        campaignId,
+        transaction: transaction,
+        lockMode: LockMode.forUpdate,
+      );
+      if (campaign == null ||
+          campaign.createdBy != sponsor.authUserId ||
+          campaign.status != CampaignStatus.active) {
+        throw FieldnoteException(
+          message: 'Only the creator can cancel this campaign.',
+          code: 'creator_required',
+        );
+      }
+      if (campaign.readinessState == 'cancelled') {
+        return (campaign: campaign, changed: false);
+      }
+      campaign.readinessState = 'cancelled';
+      campaign.cancelledAt = DateTime.now().toUtc();
+      campaign.updatedAt = DateTime.now().toUtc();
+      final verified = await Sponsorship.db.find(
+        session,
+        where: (t) =>
+            t.campaignId.equals(campaignId) &
+            t.paymentStatus.equals('verified'),
+        transaction: transaction,
+      );
+      for (final sponsorship in verified) {
+        await TestRefund.db.insertRow(
+          session,
+          TestRefund(
+            campaignId: campaignId,
+            sponsorshipId: sponsorship.id!,
+            amount: sponsorship.amount,
+            status: 'refund_due_test',
+          ),
+          transaction: transaction,
+        );
+      }
+      final updated = await Campaign.db.updateRow(
+        session,
+        campaign,
+        transaction: transaction,
+      );
+      return (campaign: updated, changed: true);
+    });
+    if (result.changed) {
+      await _readinessNotice(
+        session,
+        result.campaign,
+        'The organizer cancelled this event. Do not travel to the work site.',
+      );
+    }
+    return result.campaign;
+  }
+
+  Future<CampaignParticipation> reconfirmCampaignParticipation(
+    Session session,
+    int participationId,
+  ) async {
+    final participation = await _ownedParticipation(session, participationId);
+    final campaign = await _campaign(session, participation.campaignId);
+    if (campaign.readinessState == 'cancelled' ||
+        campaign.readinessState == 'expired' ||
+        participation.status != ParticipationStatus.joined) {
+      throw FieldnoteException(
+        message: 'This place cannot be reconfirmed.',
+        code: 'campaign_unavailable',
+      );
+    }
+    if (participation.confirmedRevision == campaign.revision) {
+      return participation;
+    }
+    participation.confirmedRevision = campaign.revision;
+    final updated = await CampaignParticipation.db.updateRow(
+      session,
+      participation,
+    );
+    await _refreshCampaignReadiness(session, campaign.id!);
+    return updated;
+  }
+
+  Future<List<Campaign>> listMyJoinedCampaigns(Session session) async {
+    final volunteer = await _requireRole(session, AccountRole.volunteer);
+    await _refreshDueCampaigns(session);
+    final joins = await CampaignParticipation.db.find(
+      session,
+      where: (t) => t.volunteerAuthUserId.equals(volunteer.authUserId),
+    );
+    final campaigns = <Campaign>[];
+    for (final join in joins) {
+      final campaign = await Campaign.db.findById(session, join.campaignId);
+      if (campaign != null) campaigns.add(campaign);
+    }
+    return campaigns;
+  }
+
+  Future<void> _refreshDueCampaigns(Session session) async {
+    final campaigns = await Campaign.db.find(
+      session,
+      where: (t) => t.status.equals(CampaignStatus.active),
+    );
+    final now = DateTime.now().toUtc();
+    for (final campaign in campaigns) {
+      if (campaign.readinessState == 'cancelled' ||
+          campaign.readinessState == 'expired') {
+        continue;
+      }
+      if (campaign.readinessState == 'confirmed') continue;
+      if (!now.isBefore(
+        campaign.startsAt.subtract(const Duration(hours: 24)),
+      )) {
+        await _refreshCampaignReadiness(session, campaign.id!);
+      }
+    }
+  }
+
+  Future<Campaign> _refreshCampaignReadiness(
+    Session session,
+    int campaignId,
+  ) async {
+    final result = await session.db.transaction((transaction) async {
+      final campaign = await Campaign.db.findById(
+        session,
+        campaignId,
+        transaction: transaction,
+        lockMode: LockMode.forUpdate,
+      );
+      if (campaign == null) {
+        throw FieldnoteException(
+          message: 'Campaign not found.',
+          code: 'campaign_not_found',
+        );
+      }
+      final now = DateTime.now().toUtc();
+      if (campaign.status != CampaignStatus.active ||
+          const {'cancelled', 'expired'}.contains(campaign.readinessState)) {
+        return (campaign: campaign, changed: false);
+      }
+      final joins = await CampaignParticipation.db.find(
+        session,
+        where: (t) => t.campaignId.equals(campaignId),
+        transaction: transaction,
+      );
+      final joinedCount = joins
+          .where(
+            (join) =>
+                join.confirmedRevision == campaign.revision &&
+                join.status != ParticipationStatus.completed,
+          )
+          .length;
+      final countChanged = campaign.eligibleVolunteers != joinedCount;
+      campaign.eligibleVolunteers = joinedCount;
+      if (campaign.readinessState == 'confirmed' ||
+          now.isBefore(campaign.startsAt.subtract(const Duration(hours: 24)))) {
+        if (!countChanged) return (campaign: campaign, changed: false);
+        final updated = await Campaign.db.updateRow(
+          session,
+          campaign,
+          transaction: transaction,
+        );
+        return (campaign: updated, changed: false);
+      }
+      final previous = campaign.readinessState;
+      if (!now.isBefore(campaign.startsAt)) {
+        campaign.readinessState = 'expired';
+      } else {
+        campaign.readinessState = const CampaignReadinessPolicy().evaluate(
+          fundingGoal: campaign.fundingGoal,
+          sponsoredAmount: campaign.sponsoredAmount,
+          minimumVolunteers: campaign.minimumVolunteers,
+          joinedVolunteers: joinedCount,
+        );
+      }
+      campaign.readinessCheckedAt = now;
+      campaign.decisionDueAt = campaign.readinessState == 'confirmed'
+          ? null
+          : campaign.startsAt;
+      if (campaign.readinessState == 'confirmed') campaign.confirmedAt = now;
+      campaign.updatedAt = now;
+      final updated = await Campaign.db.updateRow(
+        session,
+        campaign,
+        transaction: transaction,
+      );
+      return (campaign: updated, changed: previous != updated.readinessState);
+    });
+    if (result.changed) {
+      final message = switch (result.campaign.readinessState) {
+        'confirmed' =>
+          'The event is confirmed. Please review the meeting details.',
+        'expired' =>
+          'The proposed event date passed without confirmation. Do not travel to the work site.',
+        _ =>
+          'The event date is awaiting an organizer decision. Please check again before travelling.',
+      };
+      await _readinessNotice(session, result.campaign, message);
+    }
+    return result.campaign;
+  }
+
+  Future<void> _readinessNotice(
+    Session session,
+    Campaign campaign,
+    String message,
+  ) async {
+    await CampaignPost.db.insertRow(
+      session,
+      CampaignPost(
+        campaignId: campaign.id!,
+        authorSponsorAuthUserId: campaign.createdBy,
+        title: 'Campaign schedule update',
+        body: message,
+      ),
+    );
+    await _publish(session, campaign.id!, 'campaignReadiness', message);
   }
 
   // ---------------------------------------------------------------------------
@@ -709,7 +1298,7 @@ class FieldnoteEndpoint extends Endpoint {
     double latitude,
     double longitude,
   ) async {
-    await _requireProfile(session);
+    _userId(session);
     _requireValidCoordinates(latitude, longitude);
     final apiKey = _mapsKey(session);
     if (apiKey == null) return null;
@@ -727,6 +1316,81 @@ class FieldnoteEndpoint extends Endpoint {
         stackTrace: stackTrace,
       );
       return null;
+    }
+  }
+
+  /// Route a volunteer from their current device position to a campaign.
+  /// The saved availability area is only for matching and is never the
+  /// origin of an active journey.
+  Future<TravelRoute> getTravelRoute(
+    Session session,
+    int campaignId,
+    double originLatitude,
+    double originLongitude,
+    String travelMode,
+  ) async {
+    final volunteer = await _requireRole(session, AccountRole.volunteer);
+    _requireValidCoordinates(originLatitude, originLongitude);
+    if (!const {
+      'WALK',
+      'DRIVE',
+      'BICYCLE',
+      'TWO_WHEELER',
+    }.contains(travelMode)) {
+      throw FieldnoteException(
+        message: 'Choose a supported travel mode.',
+        code: 'invalid_travel_mode',
+      );
+    }
+    final campaign = await _refreshCampaignReadiness(session, campaignId);
+    if (const {'cancelled', 'expired'}.contains(campaign.readinessState)) {
+      throw FieldnoteException(
+        message: 'This campaign is not available for travel.',
+        code: 'campaign_unavailable',
+      );
+    }
+    if (campaign.status != CampaignStatus.active) {
+      final joined = await CampaignParticipation.db.findFirstRow(
+        session,
+        where: (t) =>
+            t.campaignId.equals(campaignId) &
+            t.volunteerAuthUserId.equals(volunteer.authUserId),
+      );
+      if (joined == null) {
+        throw FieldnoteException(
+          message: 'This campaign is not available for travel.',
+          code: 'campaign_unavailable',
+        );
+      }
+    }
+    final apiKey = _mapsKey(session);
+    if (apiKey == null) {
+      throw FieldnoteException(
+        message: 'In-app routes are not configured yet.',
+        code: 'maps_not_configured',
+      );
+    }
+    try {
+      return await _maps.travelRoute(
+        apiKey: apiKey,
+        originLatitude: originLatitude,
+        originLongitude: originLongitude,
+        destinationLatitude: campaign.latitude,
+        destinationLongitude: campaign.longitude,
+        travelMode: travelMode,
+      );
+    } on GoogleMapsException catch (error, stackTrace) {
+      session.log(
+        'Travel route lookup failed.',
+        level: LogLevel.warning,
+        exception: error,
+        stackTrace: stackTrace,
+      );
+      throw FieldnoteException(
+        message:
+            'A road route is unavailable. You can still view the destination on the map.',
+        code: 'route_unavailable',
+      );
     }
   }
 
@@ -804,6 +1468,183 @@ class FieldnoteEndpoint extends Endpoint {
               '${distances.first.toStringAsFixed(1)} km away.',
       },
     );
+  }
+
+  /// Shows coarse groups of available, unjoined volunteers who can travel to
+  /// this published campaign. Only its creator may inspect the map. Small
+  /// groups and individual distances are never returned.
+  Future<CampaignReach> getCampaignVolunteerReach(
+    Session session,
+    int campaignId,
+  ) async {
+    final sponsor = await _requireRole(session, AccountRole.sponsor);
+    final campaign = await _campaign(session, campaignId);
+    if (campaign.createdBy != sponsor.authUserId) {
+      throw FieldnoteException(
+        message: 'Only the campaign creator can view volunteer reach.',
+        code: 'forbidden',
+      );
+    }
+    final groups = await _eligibleVolunteerReachGroups(session, campaign);
+    final coverage = <ReachCell>[
+      for (final group in groups.values)
+        if (group.volunteers.length >= _reachCellAnonymityThreshold)
+          ReachCell(
+            latitude: group.latitude,
+            longitude: group.longitude,
+            volunteerCount: group.volunteers.length,
+          ),
+    ]..sort((a, b) => b.volunteerCount.compareTo(a.volunteerCount));
+    final visibleCount = coverage.fold<int>(
+      0,
+      (sum, cell) => sum + cell.volunteerCount,
+    );
+    return CampaignReach(
+      latitude: campaign.latitude,
+      longitude: campaign.longitude,
+      volunteersInRange: visibleCount,
+      availableVolunteers: visibleCount,
+      nearestDistanceKm: null,
+      medianDistanceKm: null,
+      coverageCells: coverage,
+      summary: coverage.isEmpty
+          ? 'No area has three available volunteers who can reach this campaign yet.'
+          : '$visibleCount available volunteers in ${coverage.length} nearby areas can reach this campaign.',
+    );
+  }
+
+  /// Delivers a private in-app invitation to everyone in a visible map area.
+  /// Eligibility and the anonymity threshold are checked again on the server
+  /// at send time. Repeated taps do not create duplicate invitations.
+  Future<int> inviteCampaignVolunteersInArea(
+    Session session,
+    int campaignId,
+    double areaLatitude,
+    double areaLongitude,
+  ) async {
+    final sponsor = await _requireRole(session, AccountRole.sponsor);
+    final campaign = await _campaign(session, campaignId);
+    if (campaign.createdBy != sponsor.authUserId) {
+      throw FieldnoteException(
+        message: 'Only the campaign creator can invite volunteers.',
+        code: 'forbidden',
+      );
+    }
+    if (campaign.status != CampaignStatus.active ||
+        !DateTime.now().toUtc().isBefore(campaign.startsAt) ||
+        const {'cancelled', 'expired'}.contains(campaign.readinessState)) {
+      throw FieldnoteException(
+        message: 'This campaign is no longer open for invitations.',
+        code: 'campaign_unavailable',
+      );
+    }
+    _requireValidCoordinates(areaLatitude, areaLongitude);
+    final key =
+        '${areaLatitude.toStringAsFixed(2)},${areaLongitude.toStringAsFixed(2)}';
+    final groups = await _eligibleVolunteerReachGroups(session, campaign);
+    final group = groups[key];
+    if (group == null ||
+        group.volunteers.length < _reachCellAnonymityThreshold) {
+      throw FieldnoteException(
+        message:
+            'This area no longer has enough eligible volunteers. Refresh the map.',
+        code: 'area_unavailable',
+      );
+    }
+    var invited = 0;
+    for (final availability in group.volunteers) {
+      final existing = await CampaignInvitation.db.findFirstRow(
+        session,
+        where: (t) =>
+            t.campaignId.equals(campaignId) &
+            t.volunteerAuthUserId.equals(availability.volunteerAuthUserId),
+      );
+      if (existing != null) continue;
+      await CampaignInvitation.db.insertRow(
+        session,
+        CampaignInvitation(
+          campaignId: campaignId,
+          volunteerAuthUserId: availability.volunteerAuthUserId,
+          sponsorAuthUserId: sponsor.authUserId,
+        ),
+      );
+      invited++;
+    }
+    return invited;
+  }
+
+  Future<List<CampaignInvitation>> listMyCampaignInvitations(
+    Session session,
+  ) async {
+    final volunteer = await _requireRole(session, AccountRole.volunteer);
+    return CampaignInvitation.db.find(
+      session,
+      where: (t) => t.volunteerAuthUserId.equals(volunteer.authUserId),
+      orderBy: (t) => t.createdAt.desc(),
+    );
+  }
+
+  Future<Map<String, _ReachBucket>> _eligibleVolunteerReachGroups(
+    Session session,
+    Campaign campaign,
+  ) async {
+    final availabilities = await VolunteerAvailability.db.find(
+      session,
+      where: (t) => t.isAvailable.equals(true),
+    );
+    final joined = await CampaignParticipation.db.find(
+      session,
+      where: (t) => t.campaignId.equals(campaign.id!),
+    );
+    final joinedIds = joined.map((item) => item.volunteerAuthUserId).toSet();
+    final groups = <String, _ReachBucket>{};
+    for (final availability in availabilities) {
+      final latitude = availability.latitude;
+      final longitude = availability.longitude;
+      if (latitude == null ||
+          longitude == null ||
+          !_availabilityCoversCampaign(availability, campaign) ||
+          joinedIds.contains(availability.volunteerAuthUserId) ||
+          _distanceMeters(
+                    latitude,
+                    longitude,
+                    campaign.latitude,
+                    campaign.longitude,
+                  ) /
+                  1000 >
+              availability.maximumTravelKm) {
+        continue;
+      }
+      final cellLatitude = double.parse(latitude.toStringAsFixed(2));
+      final cellLongitude = double.parse(longitude.toStringAsFixed(2));
+      final key = '$cellLatitude,$cellLongitude';
+      final bucket = groups[key] ??= _ReachBucket(cellLatitude, cellLongitude);
+      bucket.volunteers.add(availability);
+    }
+    return groups;
+  }
+
+  bool _availabilityCoversCampaign(
+    VolunteerAvailability availability,
+    Campaign campaign,
+  ) {
+    final start = campaign.startsAt.toLocal();
+    final end =
+        campaign.endsAt?.toLocal() ?? start.add(const Duration(hours: 3));
+    final now = DateTime.now();
+    final today =
+        start.year == now.year &&
+        start.month == now.month &&
+        start.day == now.day;
+    final days = availability.weekdays
+        .split(',')
+        .map(int.tryParse)
+        .whereType<int>()
+        .toSet();
+    return (days.contains(start.weekday) ||
+            (availability.availableToday && today)) &&
+        availability.startMinutes <= start.hour * 60 + start.minute &&
+        availability.endMinutes >= end.hour * 60 + end.minute;
   }
 
   /// Every check-in and evidence point for one campaign, for the sponsor live
@@ -918,8 +1759,16 @@ class FieldnoteEndpoint extends Endpoint {
         code: 'invalid_amount',
       );
     }
-    final campaign = await _campaign(session, campaignId);
+    final campaign = await _refreshCampaignReadiness(session, campaignId);
     final remainingAmount = campaign.fundingGoal - campaign.sponsoredAmount;
+    if (campaign.status != CampaignStatus.active ||
+        const {'cancelled', 'expired'}.contains(campaign.readinessState) ||
+        !DateTime.now().toUtc().isBefore(campaign.startsAt)) {
+      throw FieldnoteException(
+        message: 'This campaign is closed to new payments.',
+        code: 'campaign_unavailable',
+      );
+    }
     if (remainingAmount <= 0) {
       throw FieldnoteException(
         message: 'This campaign is already fully funded.',
@@ -1018,7 +1867,15 @@ class FieldnoteEndpoint extends Endpoint {
         code: 'payment_order_mismatch',
       );
     }
+    await _refreshCampaignReadiness(session, sponsorship.campaignId);
     if (sponsorship.paymentStatus == 'verified') return sponsorship;
+    if (sponsorship.paymentStatus == 'verified_uncredited') {
+      throw FieldnoteException(
+        message:
+            'This payment succeeded but could not be credited. It needs review.',
+        code: 'payment_uncredited',
+      );
+    }
     if (!RegExp(r'^pay_[A-Za-z0-9]+$').hasMatch(paymentId) ||
         !RegExp(r'^[a-fA-F0-9]{64}$').hasMatch(signature)) {
       throw FieldnoteException(
@@ -1033,8 +1890,20 @@ class FieldnoteEndpoint extends Endpoint {
       keySecret: _requiredPassword(session, 'razorpayKeySecret'),
     );
     if (!verified) {
-      sponsorship.paymentStatus = 'verification_failed';
-      await Sponsorship.db.updateRow(session, sponsorship);
+      final updated = await const PaymentCreditService().markFailed(
+        session,
+        sponsorshipId: sponsorshipId,
+        sponsorAuthUserId: sponsor.authUserId,
+        status: 'verification_failed',
+      );
+      if (updated.paymentStatus == 'verified') return updated;
+      if (updated.paymentStatus == 'verified_uncredited') {
+        throw FieldnoteException(
+          message:
+              'This payment succeeded but could not be credited. It needs review.',
+          code: 'payment_uncredited',
+        );
+      }
       await _audit(
         session,
         event: 'paymentSignatureVerified',
@@ -1049,17 +1918,37 @@ class FieldnoteEndpoint extends Endpoint {
         code: 'payment_verification_failed',
       );
     }
-    sponsorship.paymentStatus = 'verified';
-    sponsorship.providerPaymentId = paymentId;
-    sponsorship.verifiedAt = DateTime.now().toUtc();
-    final updated = await Sponsorship.db.updateRow(session, sponsorship);
-    final campaign = await _campaign(session, sponsorship.campaignId);
-    campaign.sponsoredAmount += sponsorship.amount;
-    campaign.updatedAt = DateTime.now().toUtc();
-    await Campaign.db.updateRow(session, campaign);
+    final result = await const PaymentCreditService().credit(
+      session,
+      sponsorshipId: sponsorshipId,
+      campaignId: sponsorship.campaignId,
+      sponsorAuthUserId: sponsor.authUserId,
+      orderId: orderId,
+      paymentId: paymentId,
+    );
+    if (result.uncredited) {
+      await _audit(
+        session,
+        event: 'paymentVerifiedWithoutCredit',
+        entityType: 'sponsorship',
+        entityId: '$sponsorshipId',
+        outcome: 'requires_review',
+        riskLevel: 'warning',
+        detail:
+            'A valid test payment could not be credited because the campaign closed or its goal was reached.',
+      );
+      throw FieldnoteException(
+        message:
+            'Payment succeeded, but the campaign could not be credited. This payment needs review.',
+        code: 'payment_uncredited',
+      );
+    }
+    final updated = result.sponsorship;
+    if (result.alreadyVerified) return updated;
+    await _refreshCampaignReadiness(session, updated.campaignId);
     await _publish(
       session,
-      campaign.id!,
+      updated.campaignId,
       'sponsorshipAdded',
       'A Razorpay-verified sponsorship of ₹${sponsorship.amount.toStringAsFixed(0)} was recorded.',
     );
@@ -1089,9 +1978,16 @@ class FieldnoteEndpoint extends Endpoint {
         code: 'payment_not_found',
       );
     }
-    if (sponsorship.paymentStatus == 'verified') return sponsorship;
-    sponsorship.paymentStatus = 'failed';
-    final updated = await Sponsorship.db.updateRow(session, sponsorship);
+    final updated = await const PaymentCreditService().markFailed(
+      session,
+      sponsorshipId: sponsorshipId,
+      sponsorAuthUserId: sponsor.authUserId,
+      status: 'failed',
+    );
+    if (updated.paymentStatus == 'verified' ||
+        updated.paymentStatus == 'verified_uncredited') {
+      return updated;
+    }
     final safeReason = reason.trim().replaceAll(RegExp(r'\s+'), ' ');
     await _audit(
       session,
@@ -1114,6 +2010,110 @@ class FieldnoteEndpoint extends Endpoint {
       where: (t) => t.sponsorAuthUserId.equals(sponsor.authUserId),
       orderBy: (t) => t.createdAt.desc(),
     );
+  }
+
+  /// Creator-only demonstration ledger. These rows never initiate a bank
+  /// transfer or call Razorpay Route.
+  Future<List<TestPayout>> listCampaignTestPayouts(
+    Session session,
+    int campaignId,
+  ) async {
+    final sponsor = await _requireRole(session, AccountRole.sponsor);
+    final campaign = await _campaign(session, campaignId);
+    if (campaign.createdBy != sponsor.authUserId) {
+      throw FieldnoteException(
+        message: 'Only the campaign creator can view its payout simulation.',
+        code: 'creator_required',
+      );
+    }
+    return TestPayout.db.find(
+      session,
+      where: (t) => t.campaignId.equals(campaignId),
+      orderBy: (t) => t.simulatedAt.desc(),
+    );
+  }
+
+  /// Records one simulated credit for each newly verified test checkout.
+  /// A campaign row lock and unique sponsorship index make retries safe.
+  Future<List<TestPayout>> simulateCampaignTestPayout(
+    Session session,
+    int campaignId,
+  ) async {
+    final sponsor = await _requireRole(session, AccountRole.sponsor);
+    await _refreshCampaignReadiness(session, campaignId);
+    if (!_requiredPassword(session, 'razorpayKeyId').startsWith('rzp_test_')) {
+      throw FieldnoteException(
+        message:
+            'Payout simulation is available only with Razorpay Test Mode keys.',
+        code: 'test_mode_required',
+      );
+    }
+    final results = await session.db.transaction((transaction) async {
+      final campaign = await Campaign.db.findById(
+        session,
+        campaignId,
+        transaction: transaction,
+        lockMode: LockMode.forUpdate,
+      );
+      if (campaign == null || campaign.createdBy != sponsor.authUserId) {
+        throw FieldnoteException(
+          message: 'Only the campaign creator can simulate its payout.',
+          code: 'creator_required',
+        );
+      }
+      if (campaign.readinessState != 'confirmed' &&
+          campaign.status != CampaignStatus.completed) {
+        throw FieldnoteException(
+          message: 'Confirm the event before simulating a creator payout.',
+          code: 'campaign_not_confirmed',
+        );
+      }
+      final verified = await Sponsorship.db.find(
+        session,
+        where: (t) =>
+            t.campaignId.equals(campaignId) &
+            t.paymentStatus.equals('verified'),
+        transaction: transaction,
+      );
+      final previous = await TestPayout.db.find(
+        session,
+        where: (t) => t.campaignId.equals(campaignId),
+        transaction: transaction,
+      );
+      final processed = previous.map((payout) => payout.sponsorshipId).toSet();
+      for (final payment in verified) {
+        if (processed.contains(payment.id) ||
+            payment.providerPaymentId == null ||
+            payment.paymentProvider != 'razorpay') {
+          continue;
+        }
+        final payout = await TestPayout.db.insertRow(
+          session,
+          TestPayout(
+            campaignId: campaignId,
+            sponsorshipId: payment.id!,
+            creatorAuthUserId: sponsor.authUserId,
+            amount: payment.amount,
+            sourcePaymentId: payment.providerPaymentId!,
+            status: 'simulated',
+          ),
+          transaction: transaction,
+        );
+        previous.add(payout);
+      }
+      return previous;
+    });
+    await _audit(
+      session,
+      event: 'testPayoutSimulated',
+      entityType: 'campaign',
+      entityId: '$campaignId',
+      outcome: 'simulated',
+      riskLevel: 'info',
+      detail:
+          'Test ledger updated; no Razorpay transfer or bank payout was made.',
+    );
+    return results;
   }
 
   Future<List<CampaignMatch>> getCampaignMatches(Session session) async {
@@ -1217,39 +2217,90 @@ class FieldnoteEndpoint extends Endpoint {
     int campaignId,
   ) async {
     final volunteer = await _requireRole(session, AccountRole.volunteer);
-    final campaign = await _campaign(session, campaignId);
-    final existing = await CampaignParticipation.db.findFirstRow(
-      session,
-      where: (t) =>
-          t.campaignId.equals(campaignId) &
-          t.volunteerAuthUserId.equals(volunteer.authUserId),
-    );
-    if (existing != null) return existing;
-    final current = await CampaignParticipation.db.find(
-      session,
-      where: (t) => t.campaignId.equals(campaignId),
-    );
-    if (current.length >= campaign.volunteerCapacity) {
-      throw FieldnoteException(
-        message: 'This campaign has reached volunteer capacity.',
-        code: 'campaign_full',
+    await _refreshCampaignReadiness(session, campaignId);
+    final result = await session.db.transaction((transaction) async {
+      // Lock the campaign so two volunteers cannot both take the last place.
+      final campaign = await Campaign.db.findById(
+        session,
+        campaignId,
+        transaction: transaction,
+        lockMode: LockMode.forUpdate,
       );
-    }
-    final participation = await CampaignParticipation.db.insertRow(
-      session,
-      CampaignParticipation(
-        campaignId: campaignId,
-        volunteerAuthUserId: volunteer.authUserId,
-        status: ParticipationStatus.joined,
-      ),
-    );
+      if (campaign == null ||
+          campaign.status != CampaignStatus.active ||
+          const {'cancelled', 'expired'}.contains(campaign.readinessState) ||
+          !DateTime.now().toUtc().isBefore(campaign.startsAt)) {
+        throw FieldnoteException(
+          message: 'This campaign is not open for joining.',
+          code: 'campaign_unavailable',
+        );
+      }
+      final existing = await CampaignParticipation.db.findFirstRow(
+        session,
+        where: (t) =>
+            t.campaignId.equals(campaignId) &
+            t.volunteerAuthUserId.equals(volunteer.authUserId),
+        transaction: transaction,
+      );
+      if (existing != null) return (participation: existing, joined: false);
+      final current = await CampaignParticipation.db.find(
+        session,
+        where: (t) => t.campaignId.equals(campaignId),
+        transaction: transaction,
+      );
+      if (current.length >= campaign.volunteerCapacity) {
+        throw FieldnoteException(
+          message: 'This campaign has reached volunteer capacity.',
+          code: 'campaign_full',
+        );
+      }
+      final participation = await CampaignParticipation.db.insertRow(
+        session,
+        CampaignParticipation(
+          campaignId: campaignId,
+          volunteerAuthUserId: volunteer.authUserId,
+          status: ParticipationStatus.joined,
+          confirmedRevision: campaign.revision,
+        ),
+        transaction: transaction,
+      );
+      return (participation: participation, joined: true);
+    });
+    if (!result.joined) return result.participation;
+    await _refreshCampaignReadiness(session, campaignId);
     await _publish(
       session,
       campaignId,
       'volunteerJoined',
       '${volunteer.displayName} joined the campaign.',
     );
-    return participation;
+    return result.participation;
+  }
+
+  /// A contact number is private until a volunteer joins this campaign.
+  Future<String?> getCampaignContactPhone(
+    Session session,
+    int campaignId,
+  ) async {
+    final volunteer = await _requireRole(session, AccountRole.volunteer);
+    final campaign = await _campaign(session, campaignId);
+    final joined = await CampaignParticipation.db.findFirstRow(
+      session,
+      where: (t) =>
+          t.campaignId.equals(campaignId) &
+          t.volunteerAuthUserId.equals(volunteer.authUserId),
+    );
+    if (joined == null) {
+      throw FieldnoteException(
+        message: 'Join the campaign to see its contact number.',
+        code: 'join_required',
+      );
+    }
+    final creator = await FieldnoteUserProfile.db.findFirstRow(
+      session,
+      where: (t) => t.authUserId.equals(campaign.createdBy),
+    );
+    return creator?.contactPhone;
   }
 
   Future<List<CampaignParticipation>> listMyParticipations(
@@ -1274,7 +2325,41 @@ class FieldnoteEndpoint extends Endpoint {
     DateTime capturedAt,
   ) async {
     final participation = await _ownedParticipation(session, participationId);
-    final campaign = await _campaign(session, participation.campaignId);
+    if (participation.status == ParticipationStatus.completed ||
+        participation.status == ParticipationStatus.checkedIn) {
+      return participation;
+    }
+    if (participation.status != ParticipationStatus.joined) {
+      throw FieldnoteException(
+        message: 'Join the campaign before checking in.',
+        code: 'join_required',
+      );
+    }
+    final campaign = await _refreshCampaignReadiness(
+      session,
+      participation.campaignId,
+    );
+    if (campaign.readinessState != 'confirmed' ||
+        participation.confirmedRevision != campaign.revision) {
+      throw FieldnoteException(
+        message:
+            'The event must be confirmed and your place reconfirmed before check-in.',
+        code: 'campaign_not_confirmed',
+      );
+    }
+    final now = DateTime.now().toUtc();
+    final checkInOpens = campaign.startsAt.subtract(
+      const Duration(minutes: 30),
+    );
+    final checkInCloses =
+        campaign.endsAt ?? campaign.startsAt.add(const Duration(hours: 2));
+    if (now.isBefore(checkInOpens) || now.isAfter(checkInCloses)) {
+      throw FieldnoteException(
+        message:
+            'GPS check-in is available from 30 minutes before the event until it ends.',
+        code: 'check_in_window_closed',
+      );
+    }
     final distance = _distanceMeters(
       latitude,
       longitude,
@@ -1371,25 +2456,46 @@ class FieldnoteEndpoint extends Endpoint {
       );
     }
     final apiKey = session.passwords['geminiApiKey']?.trim();
-    if (apiKey == null || apiKey.isEmpty) {
+    final groqKey = session.passwords['groqApiKey']?.trim();
+    if ((apiKey == null || apiKey.isEmpty) &&
+        (groqKey == null || groqKey.isEmpty)) {
       throw FieldnoteException(
-        message:
-            'AI evidence analysis is not configured. Add geminiApiKey to the server.',
+        message: 'AI evidence analysis is unavailable. Try again later.',
         code: 'ai_not_configured',
       );
     }
     try {
-      final proposal = await _gemini.analyzeCompletion(
-        apiKey: apiKey,
-        model: _geminiModel(session),
-        note: note.trim(),
-        photograph: photograph,
-        photographMimeType: photographMimeType,
+      return await AiProviderRouter.run<CompletionProposal>(
+        primary: _aiPrimaryProvider(session),
+        gemini: apiKey == null || apiKey.isEmpty
+            ? null
+            : () async {
+                final proposal = await _gemini.analyzeCompletion(
+                  apiKey: apiKey,
+                  model: _geminiModel(session),
+                  note: note.trim(),
+                  photograph: photograph,
+                  photographMimeType: photographMimeType,
+                );
+                session.log('Gemini evidence analysis succeeded.');
+                return proposal;
+              },
+        groq: groqKey == null || groqKey.isEmpty
+            ? null
+            : () async {
+                final proposal = await _groq.analyzeCompletion(
+                  apiKey: groqKey,
+                  note: note.trim(),
+                  photograph: photograph,
+                  photographMimeType: photographMimeType,
+                );
+                session.log('Groq evidence analysis succeeded.');
+                return proposal;
+              },
+        onFallback: (from, to) => session.log(
+          '${from.name} evidence quota exhausted; trying ${to.name}.',
+        ),
       );
-      session.log(
-        'Gemini multimodal evidence analysis succeeded with ${_geminiModel(session)}.',
-      );
-      return proposal;
     } on GeminiAiException catch (error, stackTrace) {
       session.log(
         'Gemini completion analysis failed.',
@@ -1399,8 +2505,20 @@ class FieldnoteEndpoint extends Endpoint {
       );
       throw FieldnoteException(
         message:
-            'Gemini could not analyze this evidence. Check the API key, model, quota, and server connection.',
+            'AI evidence analysis is temporarily unavailable. Try again later.',
         code: 'gemini_unavailable',
+      );
+    } on GroqAiException catch (error, stackTrace) {
+      session.log(
+        'Groq evidence analysis failed.',
+        level: LogLevel.warning,
+        exception: error,
+        stackTrace: stackTrace,
+      );
+      throw FieldnoteException(
+        message:
+            'AI evidence analysis is temporarily unavailable. Try again later.',
+        code: 'ai_unavailable',
       );
     }
   }
@@ -1536,7 +2654,8 @@ class FieldnoteEndpoint extends Endpoint {
     Session session,
     int evidenceId,
   ) async {
-    await _requireProfile(session);
+    final profile = await _requireProfile(session);
+    await _requireRole(session, profile.role);
     final evidence = await CompletionEvidence.db.findById(session, evidenceId);
     if (evidence?.photographPath == null) {
       throw FieldnoteException(
@@ -1544,16 +2663,40 @@ class FieldnoteEndpoint extends Endpoint {
         code: 'evidence_not_found',
       );
     }
+    final participation = await CampaignParticipation.db.findById(
+      session,
+      evidence!.participationId,
+    );
+    if (participation == null ||
+        !(profile.role == AccountRole.volunteer &&
+                participation.volunteerAuthUserId == profile.authUserId) &&
+            !(profile.role == AccountRole.sponsor &&
+                await _canSponsorSeeEvidence(
+                  session,
+                  profile,
+                  participation.campaignId,
+                ))) {
+      throw FieldnoteException(
+        message: 'You cannot view this private evidence.',
+        code: 'forbidden',
+      );
+    }
     final url = await session.storage.temporaryDownloadUrl(
       storageId: 'private',
-      path: evidence!.photographPath!,
+      path: evidence.photographPath!,
     );
     return url.toString();
   }
 
   Future<ImpactSummary> getImpact(Session session, int campaignId) async {
-    await _requireProfile(session);
+    final sponsor = await _requireRole(session, AccountRole.sponsor);
     final campaign = await _campaign(session, campaignId);
+    if (!await _canSponsorSeeEvidence(session, sponsor, campaignId)) {
+      throw FieldnoteException(
+        message: 'You cannot view this campaign impact.',
+        code: 'forbidden',
+      );
+    }
     final participations = await CampaignParticipation.db.find(
       session,
       where: (t) => t.campaignId.equals(campaignId),
@@ -1582,6 +2725,23 @@ class FieldnoteEndpoint extends Endpoint {
       ),
       recentEvidence: evidence.take(6).toList(),
     );
+  }
+
+  Future<bool> _canSponsorSeeEvidence(
+    Session session,
+    FieldnoteUserProfile sponsor,
+    int campaignId,
+  ) async {
+    final campaign = await _campaign(session, campaignId);
+    if (campaign.createdBy == sponsor.authUserId) return true;
+    final funding = await Sponsorship.db.findFirstRow(
+      session,
+      where: (t) =>
+          t.campaignId.equals(campaignId) &
+          t.sponsorAuthUserId.equals(sponsor.authUserId) &
+          t.paymentStatus.equals('verified'),
+    );
+    return funding != null;
   }
 
   Future<CampaignPost> createCampaignPost(
@@ -1656,6 +2816,7 @@ class FieldnoteEndpoint extends Endpoint {
     required List<String> skills,
     String? sponsorType,
     String? organizationName,
+    String? contactPhone,
     String? locationAddress,
     String? locationPlaceId,
     double? locationLatitude,
@@ -1687,6 +2848,7 @@ class FieldnoteEndpoint extends Endpoint {
           displayName: displayName.trim(),
           sponsorType: _blankToNull(sponsorType),
           organizationName: _blankToNull(organizationName),
+          contactPhone: contactPhone,
           city: city.trim(),
           locationAddress: _blankToNull(locationAddress),
           locationPlaceId: _blankToNull(locationPlaceId),
@@ -1700,6 +2862,7 @@ class FieldnoteEndpoint extends Endpoint {
     existing.displayName = displayName.trim();
     existing.sponsorType = _blankToNull(sponsorType);
     existing.organizationName = _blankToNull(organizationName);
+    existing.contactPhone = contactPhone;
     existing.city = city.trim();
     existing.locationAddress = _blankToNull(locationAddress);
     existing.locationPlaceId = _blankToNull(locationPlaceId);
@@ -1715,6 +2878,8 @@ class FieldnoteEndpoint extends Endpoint {
     Session session, {
     required String typedLocation,
     required String? placeId,
+    double? latitude,
+    double? longitude,
     FieldnoteUserProfile? current,
   }) async {
     final fallback = typedLocation.trim();
@@ -1726,6 +2891,45 @@ class FieldnoteEndpoint extends Endpoint {
     }
 
     final apiKey = _mapsKey(session);
+    if (latitude != null || longitude != null) {
+      if (latitude == null || longitude == null) {
+        throw FieldnoteException(
+          message: 'Choose a complete map pin.',
+          code: 'invalid_location',
+        );
+      }
+      _requireValidCoordinates(latitude, longitude);
+      if (apiKey == null) {
+        return _ProfileLocation(
+          name: fallback,
+          address: fallback,
+          latitude: latitude,
+          longitude: longitude,
+        );
+      }
+      try {
+        final place = await _maps.reverseGeocode(
+          apiKey: apiKey,
+          latitude: latitude,
+          longitude: longitude,
+        );
+        return _ProfileLocation(
+          name: place.name.trim().isEmpty ? fallback : place.name.trim(),
+          address: place.address.trim().isEmpty
+              ? fallback
+              : place.address.trim(),
+          latitude: latitude,
+          longitude: longitude,
+        );
+      } on GoogleMapsException {
+        return _ProfileLocation(
+          name: fallback,
+          address: fallback,
+          latitude: latitude,
+          longitude: longitude,
+        );
+      }
+    }
     if (apiKey == null) {
       return _ProfileLocation(name: fallback, address: fallback);
     }
@@ -1920,7 +3124,15 @@ class FieldnoteEndpoint extends Endpoint {
         campaign.endsAt?.toLocal() ??
         campaign.startsAt.toLocal().add(const Duration(hours: 3));
     final endMinutes = end.hour * 60 + end.minute;
-    final dayMatches = days.contains(campaign.startsAt.toLocal().weekday);
+    final localStart = campaign.startsAt.toLocal();
+    final localNow = DateTime.now();
+    final isToday =
+        localStart.year == localNow.year &&
+        localStart.month == localNow.month &&
+        localStart.day == localNow.day;
+    final dayMatches =
+        days.contains(localStart.weekday) ||
+        (availability.availableToday && isToday);
     final timeMatches =
         availability.startMinutes <= startMinutes &&
         availability.endMinutes >= endMinutes;
@@ -2151,6 +3363,23 @@ class FieldnoteEndpoint extends Endpoint {
     return trimmed == null || trimmed.isEmpty ? null : trimmed;
   }
 
+  static String _validatedContactPhone(String? value) {
+    final phone = (value ?? '').replaceAll(RegExp(r'[\s()\-]'), '');
+    if (!RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(phone)) {
+      throw FieldnoteException(
+        message:
+            'Enter a contact number with country code, for example +919876543210.',
+        code: 'invalid_contact_phone',
+      );
+    }
+    return phone;
+  }
+
+  static String? _validatedOptionalContactPhone(String? value) {
+    if (value == null || value.trim().isEmpty) return null;
+    return _validatedContactPhone(value);
+  }
+
   static String _requiredPassword(Session session, String name) {
     final value = session.passwords[name]?.trim();
     if (value == null || value.isEmpty) {
@@ -2182,6 +3411,20 @@ class FieldnoteEndpoint extends Endpoint {
     }
   }
 
+  static AiProvider _aiPrimaryProvider(Session session) {
+    final configured = session.passwords['aiPrimaryProvider']
+        ?.trim()
+        .toLowerCase();
+    if (configured == null || configured.isEmpty || configured == 'gemini') {
+      return AiProvider.gemini;
+    }
+    if (configured == 'groq') return AiProvider.groq;
+    throw FieldnoteException(
+      message: 'The configured AI provider is invalid.',
+      code: 'invalid_ai_provider',
+    );
+  }
+
   static String _transcriptionModel(Session session) {
     final configured = session.passwords['geminiTranscriptionModel']?.trim();
     if (configured == null || configured.isEmpty) {
@@ -2189,7 +3432,7 @@ class FieldnoteEndpoint extends Endpoint {
     }
     if (!RegExp(r'^[a-zA-Z0-9._-]+$').hasMatch(configured)) {
       throw FieldnoteException(
-        message: 'The configured Gemini transcription model name is invalid.',
+        message: 'The configured transcription model name is invalid.',
         code: 'invalid_gemini_model',
       );
     }
@@ -2201,7 +3444,7 @@ class FieldnoteEndpoint extends Endpoint {
     if (configured == null || configured.isEmpty) return 'gemini-3.8-flash';
     if (!RegExp(r'^[a-zA-Z0-9._-]+$').hasMatch(configured)) {
       throw FieldnoteException(
-        message: 'The configured Gemini model name is invalid.',
+        message: 'The configured AI model name is invalid.',
         code: 'invalid_gemini_model',
       );
     }
@@ -2239,6 +3482,13 @@ class FieldnoteEndpoint extends Endpoint {
   ][day - 1];
 }
 
+/// Runs the cutoff check without relying on a user opening the app.
+class CampaignReadinessFutureCall extends FutureCall {
+  Future<void> sweep(Session session) async {
+    await FieldnoteEndpoint()._refreshDueCampaigns(session);
+  }
+}
+
 class _ProfileLocation {
   const _ProfileLocation({
     required this.name,
@@ -2261,4 +3511,5 @@ class _ReachBucket {
   final double latitude;
   final double longitude;
   int count = 0;
+  final List<VolunteerAvailability> volunteers = [];
 }

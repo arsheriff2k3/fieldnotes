@@ -26,6 +26,12 @@ fieldnote:
   - createCampaignFromProposal:
   - listCampaigns:
   - listMyCreatedCampaigns:
+  - refreshCampaignReadiness:
+  - reviseCampaignScope:
+  - postponeCampaign:
+  - cancelCampaign:
+  - reconfirmCampaignParticipation:
+  - listMyJoinedCampaigns:
   - isCitySearchAvailable:
   - searchCities:
   - searchSponsorLocations:
@@ -33,14 +39,21 @@ fieldnote:
   - searchPlaces:
   - resolvePlace:
   - describeCoordinates:
+  - getTravelRoute:
   - previewCampaignReach:
+  - getCampaignVolunteerReach:
+  - inviteCampaignVolunteersInArea:
+  - listMyCampaignInvitations:
   - getCampaignMap:
   - createRazorpayOrder:
   - verifyRazorpayPayment:
   - recordRazorpayFailure:
   - listMySponsorships:
+  - listCampaignTestPayouts:
+  - simulateCampaignTestPayout:
   - getCampaignMatches:
   - joinCampaign:
+  - getCampaignContactPhone:
   - listMyParticipations:
   - checkIn:
   - analyzeCompletion:

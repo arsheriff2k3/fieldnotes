@@ -20,6 +20,7 @@ abstract class CampaignParticipation
     required this.campaignId,
     required this.volunteerAuthUserId,
     required this.status,
+    int? confirmedRevision,
     DateTime? joinedAt,
     this.checkedInAt,
     this.completedAt,
@@ -29,7 +30,8 @@ abstract class CampaignParticipation
     this.locationIntegrityStatus,
     this.locationIntegrityReasons,
     bool? locationIsDemo,
-  }) : joinedAt = joinedAt ?? DateTime.now(),
+  }) : confirmedRevision = confirmedRevision ?? 0,
+       joinedAt = joinedAt ?? DateTime.now(),
        locationIsDemo = locationIsDemo ?? false;
 
   factory CampaignParticipation({
@@ -37,6 +39,7 @@ abstract class CampaignParticipation
     required int campaignId,
     required _isc.UuidValue volunteerAuthUserId,
     required _ie4rmtud.ParticipationStatus status,
+    int? confirmedRevision,
     DateTime? joinedAt,
     DateTime? checkedInAt,
     DateTime? completedAt,
@@ -60,6 +63,7 @@ abstract class CampaignParticipation
       status: _ie4rmtud.ParticipationStatus.fromJson(
         (jsonSerialization['status'] as String),
       ),
+      confirmedRevision: jsonSerialization['confirmedRevision'] as int?,
       joinedAt: jsonSerialization['joinedAt'] == null
           ? null
           : _isc.DateTimeJsonExtension.fromJson(jsonSerialization['joinedAt']),
@@ -102,6 +106,8 @@ abstract class CampaignParticipation
 
   _ie4rmtud.ParticipationStatus status;
 
+  int confirmedRevision;
+
   DateTime joinedAt;
 
   DateTime? checkedInAt;
@@ -128,6 +134,7 @@ abstract class CampaignParticipation
     int? campaignId,
     _isc.UuidValue? volunteerAuthUserId,
     _ie4rmtud.ParticipationStatus? status,
+    int? confirmedRevision,
     DateTime? joinedAt,
     DateTime? checkedInAt,
     DateTime? completedAt,
@@ -146,6 +153,7 @@ abstract class CampaignParticipation
       'campaignId': campaignId,
       'volunteerAuthUserId': volunteerAuthUserId.toJson(),
       'status': status.toJson(),
+      'confirmedRevision': confirmedRevision,
       'joinedAt': joinedAt.toJson(),
       if (checkedInAt != null) 'checkedInAt': checkedInAt?.toJson(),
       if (completedAt != null) 'completedAt': completedAt?.toJson(),
@@ -169,6 +177,7 @@ abstract class CampaignParticipation
       'campaignId': campaignId,
       'volunteerAuthUserId': volunteerAuthUserId.toJson(),
       'status': status.toJson(),
+      'confirmedRevision': confirmedRevision,
       'joinedAt': joinedAt.toJson(),
       if (checkedInAt != null) 'checkedInAt': checkedInAt?.toJson(),
       if (completedAt != null) 'completedAt': completedAt?.toJson(),
@@ -198,6 +207,7 @@ class _CampaignParticipationImpl extends CampaignParticipation {
     required int campaignId,
     required _isc.UuidValue volunteerAuthUserId,
     required _ie4rmtud.ParticipationStatus status,
+    int? confirmedRevision,
     DateTime? joinedAt,
     DateTime? checkedInAt,
     DateTime? completedAt,
@@ -212,6 +222,7 @@ class _CampaignParticipationImpl extends CampaignParticipation {
          campaignId: campaignId,
          volunteerAuthUserId: volunteerAuthUserId,
          status: status,
+         confirmedRevision: confirmedRevision,
          joinedAt: joinedAt,
          checkedInAt: checkedInAt,
          completedAt: completedAt,
@@ -232,6 +243,7 @@ class _CampaignParticipationImpl extends CampaignParticipation {
     int? campaignId,
     _isc.UuidValue? volunteerAuthUserId,
     _ie4rmtud.ParticipationStatus? status,
+    int? confirmedRevision,
     DateTime? joinedAt,
     Object? checkedInAt = _Undefined,
     Object? completedAt = _Undefined,
@@ -247,6 +259,7 @@ class _CampaignParticipationImpl extends CampaignParticipation {
       campaignId: campaignId ?? this.campaignId,
       volunteerAuthUserId: volunteerAuthUserId ?? this.volunteerAuthUserId,
       status: status ?? this.status,
+      confirmedRevision: confirmedRevision ?? this.confirmedRevision,
       joinedAt: joinedAt ?? this.joinedAt,
       checkedInAt: checkedInAt is DateTime? ? checkedInAt : this.checkedInAt,
       completedAt: completedAt is DateTime? ? completedAt : this.completedAt,

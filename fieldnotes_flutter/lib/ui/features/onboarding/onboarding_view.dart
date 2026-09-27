@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../../data/services/device_location_service.dart';
 import '../../../data/services/pending_role_service.dart';
 import '../../core/fieldnote_map.dart';
+import '../../core/location_picker.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/widgets.dart';
 import '../shell/fieldnote_view_model.dart';
@@ -25,9 +26,11 @@ class _OnboardingViewState extends State<OnboardingView> {
   final _name = TextEditingController();
   final _city = TextEditingController();
   final _organization = TextEditingController();
+  final _contactPhone = TextEditingController();
   Timer? _citySearchDebounce;
   List<PlaceSuggestion> _citySuggestions = const [];
   String? _selectedCityPlaceId;
+  SelectedLocation? _sponsorLocation;
   int _citySearchRequest = 0;
   bool _citySearchAvailable = false;
   bool _checkingCitySearch = false;
@@ -44,6 +47,9 @@ class _OnboardingViewState extends State<OnboardingView> {
   bool _pinnedByHand = false;
   bool _saving = false;
   bool _locating = false;
+  bool _resolvingArea = false;
+  LocationAccessException? _locationError;
+  int _areaRequest = 0;
   bool _locationConsent = false;
   bool _aiConsent = false;
   bool _evidenceConsent = false;
@@ -69,6 +75,7 @@ class _OnboardingViewState extends State<OnboardingView> {
     _name.dispose();
     _city.dispose();
     _organization.dispose();
+    _contactPhone.dispose();
     super.dispose();
   }
 
@@ -88,6 +95,7 @@ class _OnboardingViewState extends State<OnboardingView> {
 
   void _onCityQueryChanged(String value) {
     _selectedCityPlaceId = null;
+    _sponsorLocation = null;
     _citySearchDebounce?.cancel();
     if (!_citySearchAvailable || value.trim().length < 2) {
       _citySearchRequest++;
@@ -129,38 +137,124 @@ class _OnboardingViewState extends State<OnboardingView> {
         suggestion.secondaryText,
       ].where((part) => part.trim().isNotEmpty).join(', ');
       _selectedCityPlaceId = suggestion.placeId;
+      _sponsorLocation = null;
       _citySuggestions = const [];
       _searchingCity = false;
     });
   }
 
+  Future<void> _openLocationMap() async {
+    final result = await Navigator.push<SelectedLocation>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LocationPicker(
+          repository: widget.viewModel.repository,
+          title: 'Choose sponsor location',
+          initialQuery: _city.text,
+        ),
+      ),
+    );
+    if (result == null || !mounted) return;
+    setState(() {
+      _sponsorLocation = result;
+      _selectedCityPlaceId = result.placeId;
+      _city.text = result.label;
+      _citySuggestions = const [];
+    });
+  }
+
+  Future<void> _openTravelMap() async {
+    final result = await Navigator.push<SelectedLocation>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LocationPicker(
+          repository: widget.viewModel.repository,
+          title: 'Choose travel area',
+          initialQuery: _city.text,
+          initialLatitude: _deviceLocation?.latitude,
+          initialLongitude: _deviceLocation?.longitude,
+        ),
+      ),
+    );
+    if (result == null || !mounted) return;
+    _movePin(LatLng(result.latitude, result.longitude));
+  }
+
   Future<void> _locate() async {
-    setState(() => _locating = true);
-    final value = await _location.current();
-    if (mounted) {
+    setState(() {
+      _locating = true;
+      _locationError = null;
+    });
+    try {
+      final value = await _location.current();
+      if (!mounted) return;
       setState(() {
         _deviceLocation = value;
         _pinnedByHand = false;
-        _locating = false;
       });
+      unawaited(_describeArea(value));
+    } on LocationAccessException catch (error) {
+      if (mounted) setState(() => _locationError = error);
+    } on Object {
+      if (mounted) {
+        setState(
+          () => _locationError = const LocationAccessException(
+            LocationAccessIssue.unavailable,
+            'The device location is unavailable. Check Location settings and try again.',
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _locating = false);
     }
   }
 
   /// Moves the saved area to a point the volunteer chose on the map, which is
   /// often not where they happen to be standing during onboarding.
   void _movePin(LatLng point) {
+    final location = DeviceLocation(
+      latitude: point.latitude,
+      longitude: point.longitude,
+      accuracyMeters: 50,
+      isLive: true,
+      isMocked: false,
+      capturedAt: DateTime.now().toUtc(),
+      isDemo: false,
+    );
     setState(() {
       _pinnedByHand = true;
-      _deviceLocation = DeviceLocation(
-        latitude: point.latitude,
-        longitude: point.longitude,
-        accuracyMeters: 50,
-        isLive: true,
-        isMocked: false,
-        capturedAt: DateTime.now().toUtc(),
-        isDemo: false,
-      );
+      _deviceLocation = location;
+      _locationError = null;
     });
+    unawaited(_describeArea(location));
+  }
+
+  Future<void> _describeArea(DeviceLocation location) async {
+    final request = ++_areaRequest;
+    final coordinates =
+        '${location.latitude.toStringAsFixed(5)}, '
+        '${location.longitude.toStringAsFixed(5)}';
+    setState(() {
+      _city.text = coordinates;
+      _resolvingArea = true;
+    });
+    try {
+      final place = await widget.viewModel.repository.describeCoordinates(
+        location.latitude,
+        location.longitude,
+      );
+      if (!mounted || request != _areaRequest || place == null) return;
+      final label = place.address.trim().isNotEmpty
+          ? place.address.trim()
+          : place.name.trim();
+      if (label.isNotEmpty) setState(() => _city.text = label);
+    } on Object {
+      // Coordinates remain a usable label when Google Geocoding is unavailable.
+    } finally {
+      if (mounted && request == _areaRequest) {
+        setState(() => _resolvingArea = false);
+      }
+    }
   }
 
   Future<void> _save() async {
@@ -168,17 +262,33 @@ class _OnboardingViewState extends State<OnboardingView> {
       _message('Choose a role and enter your name.');
       return;
     }
-    if (_city.text.trim().length < 2) {
+    if (_role == AccountRole.volunteer && _deviceLocation == null) {
+      _message('Use current GPS or choose your travel area on the map.');
+      return;
+    }
+    if (_role == AccountRole.volunteer && _resolvingArea) {
+      _message('Wait for the selected area to finish loading.');
+      return;
+    }
+    if (_role == AccountRole.sponsor && _city.text.trim().length < 2) {
       _message(
-        _role == AccountRole.sponsor
-            ? 'Choose your location.'
-            : 'Choose your city.',
+        'Choose your location.',
+      );
+      return;
+    }
+    if (_role == AccountRole.sponsor &&
+        !RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(
+          _contactPhone.text.replaceAll(RegExp(r'[\s()\-]'), ''),
+        )) {
+      _message(
+        'Enter a phone number with country code, for example +919876543210.',
       );
       return;
     }
     if (_role == AccountRole.sponsor &&
         _citySearchAvailable &&
-        _selectedCityPlaceId == null) {
+        _selectedCityPlaceId == null &&
+        _sponsorLocation == null) {
       _message('Select your location from the Google suggestions.');
       return;
     }
@@ -194,12 +304,18 @@ class _OnboardingViewState extends State<OnboardingView> {
           displayName: _name.text,
           sponsorType: _sponsorType,
           organizationName: _organization.text,
+          contactPhone: _contactPhone.text,
           city: _city.text,
           cityPlaceId: _selectedCityPlaceId,
+          locationLatitude: _sponsorLocation?.placeId == null
+              ? _sponsorLocation?.latitude
+              : null,
+          locationLongitude: _sponsorLocation?.placeId == null
+              ? _sponsorLocation?.longitude
+              : null,
           interests: _interests.toList(),
         );
       } else {
-        _deviceLocation ??= await _location.current();
         profile = await widget.viewModel.repository.completeVolunteerProfile(
           displayName: _name.text,
           city: _city.text,
@@ -288,17 +404,10 @@ class _OnboardingViewState extends State<OnboardingView> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        if (_role == AccountRole.sponsor)
-                          _sponsorCityField()
-                        else
-                          FieldnoteTextField(
-                            controller: _city,
-                            decoration: const InputDecoration(
-                              labelText: 'City',
-                              prefixIcon: Icon(Icons.location_city_outlined),
-                            ),
-                          ),
-                        const SizedBox(height: 18),
+                        if (_role == AccountRole.sponsor) ...[
+                          _sponsorCityField(),
+                          const SizedBox(height: 18),
+                        ],
                         if (_role == AccountRole.sponsor)
                           _sponsorFields()
                         else
@@ -391,6 +500,12 @@ class _OnboardingViewState extends State<OnboardingView> {
                 : const Icon(Icons.check_circle, color: FieldnoteColors.moss),
           ),
         ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: _openLocationMap,
+          icon: const Icon(Icons.map_outlined),
+          label: const Text('Choose on map'),
+        ),
         if (_citySuggestions.isNotEmpty) ...[
           const SizedBox(height: 8),
           Container(
@@ -450,6 +565,17 @@ class _OnboardingViewState extends State<OnboardingView> {
           controller: _organization,
           decoration: const InputDecoration(
             labelText: 'Organization name (optional)',
+          ),
+        ),
+        const SizedBox(height: 12),
+        FieldnoteTextField(
+          controller: _contactPhone,
+          keyboardType: TextInputType.phone,
+          decoration: const InputDecoration(
+            labelText: 'Contact phone (required)',
+            hintText: '+919876543210',
+            prefixIcon: Icon(Icons.call_outlined),
+            helperText: 'Shared with volunteers after they join your campaign.',
           ),
         ),
         const SizedBox(height: 18),
@@ -516,9 +642,7 @@ class _OnboardingViewState extends State<OnboardingView> {
           onChanged: (value) => setState(() => _radius = value),
         ),
         const SizedBox(height: 8),
-        // Drawn to scale, so the radius is an informed choice rather than a
-        // number picked in the abstract.
-        _areaMap(),
+        const Text('Choose your travel area using GPS or the map pin.'),
         const SizedBox(height: 10),
         OutlinedButton.icon(
           onPressed: _locating ? null : _locate,
@@ -529,15 +653,52 @@ class _OnboardingViewState extends State<OnboardingView> {
                 )
               : const Icon(Icons.my_location),
           label: Text(
-            _deviceLocation == null
+            _locating
+                ? 'Finding your location…'
+                : _deviceLocation == null
                 ? 'Use current GPS location'
                 : _pinnedByHand
-                ? 'Map pin chosen'
+                ? 'Use current GPS instead'
                 : _deviceLocation!.isLive
-                ? 'Live GPS captured'
-                : 'Location captured',
+                ? 'Refresh current GPS location'
+                : 'Use current GPS location',
           ),
         ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: _openTravelMap,
+          icon: const Icon(Icons.map_outlined),
+          label: const Text('Choose travel area on map'),
+        ),
+        if (_locationError != null) ...[
+          const SizedBox(height: 8),
+          Text(_locationError!.message),
+          if (_locationError!.issue == LocationAccessIssue.serviceDisabled)
+            TextButton.icon(
+              onPressed: _location.openLocationSettings,
+              icon: const Icon(Icons.settings_outlined),
+              label: const Text('Enable Location in Settings'),
+            )
+          else if (_locationError!.issue ==
+              LocationAccessIssue.permissionDeniedForever)
+            TextButton.icon(
+              onPressed: _location.openAppSettings,
+              icon: const Icon(Icons.settings_outlined),
+              label: const Text('Open FieldNote permissions'),
+            ),
+        ],
+        const SizedBox(height: 10),
+        // Drawn to scale, so the radius is an informed choice rather than a
+        // number picked in the abstract.
+        _areaMap(),
+        if (_deviceLocation != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            _resolvingArea
+                ? 'Finding the area name…'
+                : 'Selected area: ${_city.text}',
+          ),
+        ],
         const SizedBox(height: 18),
         _choiceChips(
           title: 'Interests',
@@ -623,7 +784,7 @@ class _OnboardingViewState extends State<OnboardingView> {
           CheckboxListTile(
             contentPadding: EdgeInsets.zero,
             value: _aiConsent,
-            title: const Text('Send campaign/evidence input to Gemini AI'),
+            title: const Text('Use AI for campaign and evidence drafts'),
             onChanged: (value) => setState(() => _aiConsent = value ?? false),
           ),
           CheckboxListTile(

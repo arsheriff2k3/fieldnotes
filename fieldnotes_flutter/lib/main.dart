@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'client.dart';
 import 'data/services/map_config_service.dart';
@@ -8,6 +9,9 @@ import 'ui/features/shell/app_shell.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
   await initializeClient();
   // Loads the Maps client key and, on web, the Maps JavaScript API. Never
   // throws; a missing key just leaves every map on its fallback panel.

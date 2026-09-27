@@ -9,6 +9,7 @@ abstract final class FieldnoteColors {
   static const paper = Color(0xFFF4F1E8);
   static const canvas = Color(0xFFE9E5D9);
   static const clay = Color(0xFFC86B49);
+  static const danger = Color(0xFFB42318);
   static const mist = Color(0xFFD9E3DC);
 }
 

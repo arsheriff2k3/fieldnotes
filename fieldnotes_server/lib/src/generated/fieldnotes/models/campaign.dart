@@ -31,6 +31,15 @@ abstract class Campaign
     double? longitude,
     double? geofenceMeters,
     int? volunteerCapacity,
+    int? minimumVolunteers,
+    int? eligibleVolunteers,
+    String? readinessState,
+    int? revision,
+    this.readinessCheckedAt,
+    this.confirmedAt,
+    this.decisionDueAt,
+    this.postponedAt,
+    this.cancelledAt,
     String? requiredSkills,
     String? checklist,
     String? evidenceInstructions,
@@ -46,6 +55,10 @@ abstract class Campaign
        longitude = longitude ?? 73.8567,
        geofenceMeters = geofenceMeters ?? 200.0,
        volunteerCapacity = volunteerCapacity ?? 10,
+       minimumVolunteers = minimumVolunteers ?? 1,
+       eligibleVolunteers = eligibleVolunteers ?? 0,
+       readinessState = readinessState ?? 'open',
+       revision = revision ?? 0,
        requiredSkills = requiredSkills ?? '',
        checklist = checklist ?? '',
        evidenceInstructions = evidenceInstructions ?? '',
@@ -70,6 +83,15 @@ abstract class Campaign
     double? longitude,
     double? geofenceMeters,
     int? volunteerCapacity,
+    int? minimumVolunteers,
+    int? eligibleVolunteers,
+    String? readinessState,
+    int? revision,
+    DateTime? readinessCheckedAt,
+    DateTime? confirmedAt,
+    DateTime? decisionDueAt,
+    DateTime? postponedAt,
+    DateTime? cancelledAt,
     String? requiredSkills,
     String? checklist,
     String? evidenceInstructions,
@@ -107,6 +129,35 @@ abstract class Campaign
       longitude: (jsonSerialization['longitude'] as num?)?.toDouble(),
       geofenceMeters: (jsonSerialization['geofenceMeters'] as num?)?.toDouble(),
       volunteerCapacity: jsonSerialization['volunteerCapacity'] as int?,
+      minimumVolunteers: jsonSerialization['minimumVolunteers'] as int?,
+      eligibleVolunteers: jsonSerialization['eligibleVolunteers'] as int?,
+      readinessState: jsonSerialization['readinessState'] as String?,
+      revision: jsonSerialization['revision'] as int?,
+      readinessCheckedAt: jsonSerialization['readinessCheckedAt'] == null
+          ? null
+          : _is.DateTimeJsonExtension.fromJson(
+              jsonSerialization['readinessCheckedAt'],
+            ),
+      confirmedAt: jsonSerialization['confirmedAt'] == null
+          ? null
+          : _is.DateTimeJsonExtension.fromJson(
+              jsonSerialization['confirmedAt'],
+            ),
+      decisionDueAt: jsonSerialization['decisionDueAt'] == null
+          ? null
+          : _is.DateTimeJsonExtension.fromJson(
+              jsonSerialization['decisionDueAt'],
+            ),
+      postponedAt: jsonSerialization['postponedAt'] == null
+          ? null
+          : _is.DateTimeJsonExtension.fromJson(
+              jsonSerialization['postponedAt'],
+            ),
+      cancelledAt: jsonSerialization['cancelledAt'] == null
+          ? null
+          : _is.DateTimeJsonExtension.fromJson(
+              jsonSerialization['cancelledAt'],
+            ),
       requiredSkills: jsonSerialization['requiredSkills'] as String?,
       checklist: jsonSerialization['checklist'] as String?,
       evidenceInstructions:
@@ -165,6 +216,24 @@ abstract class Campaign
 
   int volunteerCapacity;
 
+  int minimumVolunteers;
+
+  int eligibleVolunteers;
+
+  String readinessState;
+
+  int revision;
+
+  DateTime? readinessCheckedAt;
+
+  DateTime? confirmedAt;
+
+  DateTime? decisionDueAt;
+
+  DateTime? postponedAt;
+
+  DateTime? cancelledAt;
+
   String requiredSkills;
 
   String checklist;
@@ -205,6 +274,15 @@ abstract class Campaign
     double? longitude,
     double? geofenceMeters,
     int? volunteerCapacity,
+    int? minimumVolunteers,
+    int? eligibleVolunteers,
+    String? readinessState,
+    int? revision,
+    DateTime? readinessCheckedAt,
+    DateTime? confirmedAt,
+    DateTime? decisionDueAt,
+    DateTime? postponedAt,
+    DateTime? cancelledAt,
     String? requiredSkills,
     String? checklist,
     String? evidenceInstructions,
@@ -234,6 +312,16 @@ abstract class Campaign
       'longitude': longitude,
       'geofenceMeters': geofenceMeters,
       'volunteerCapacity': volunteerCapacity,
+      'minimumVolunteers': minimumVolunteers,
+      'eligibleVolunteers': eligibleVolunteers,
+      'readinessState': readinessState,
+      'revision': revision,
+      if (readinessCheckedAt != null)
+        'readinessCheckedAt': readinessCheckedAt?.toJson(),
+      if (confirmedAt != null) 'confirmedAt': confirmedAt?.toJson(),
+      if (decisionDueAt != null) 'decisionDueAt': decisionDueAt?.toJson(),
+      if (postponedAt != null) 'postponedAt': postponedAt?.toJson(),
+      if (cancelledAt != null) 'cancelledAt': cancelledAt?.toJson(),
       'requiredSkills': requiredSkills,
       'checklist': checklist,
       'evidenceInstructions': evidenceInstructions,
@@ -265,6 +353,16 @@ abstract class Campaign
       'longitude': longitude,
       'geofenceMeters': geofenceMeters,
       'volunteerCapacity': volunteerCapacity,
+      'minimumVolunteers': minimumVolunteers,
+      'eligibleVolunteers': eligibleVolunteers,
+      'readinessState': readinessState,
+      'revision': revision,
+      if (readinessCheckedAt != null)
+        'readinessCheckedAt': readinessCheckedAt?.toJson(),
+      if (confirmedAt != null) 'confirmedAt': confirmedAt?.toJson(),
+      if (decisionDueAt != null) 'decisionDueAt': decisionDueAt?.toJson(),
+      if (postponedAt != null) 'postponedAt': postponedAt?.toJson(),
+      if (cancelledAt != null) 'cancelledAt': cancelledAt?.toJson(),
       'requiredSkills': requiredSkills,
       'checklist': checklist,
       'evidenceInstructions': evidenceInstructions,
@@ -324,6 +422,15 @@ class _CampaignImpl extends Campaign {
     double? longitude,
     double? geofenceMeters,
     int? volunteerCapacity,
+    int? minimumVolunteers,
+    int? eligibleVolunteers,
+    String? readinessState,
+    int? revision,
+    DateTime? readinessCheckedAt,
+    DateTime? confirmedAt,
+    DateTime? decisionDueAt,
+    DateTime? postponedAt,
+    DateTime? cancelledAt,
     String? requiredSkills,
     String? checklist,
     String? evidenceInstructions,
@@ -349,6 +456,15 @@ class _CampaignImpl extends Campaign {
          longitude: longitude,
          geofenceMeters: geofenceMeters,
          volunteerCapacity: volunteerCapacity,
+         minimumVolunteers: minimumVolunteers,
+         eligibleVolunteers: eligibleVolunteers,
+         readinessState: readinessState,
+         revision: revision,
+         readinessCheckedAt: readinessCheckedAt,
+         confirmedAt: confirmedAt,
+         decisionDueAt: decisionDueAt,
+         postponedAt: postponedAt,
+         cancelledAt: cancelledAt,
          requiredSkills: requiredSkills,
          checklist: checklist,
          evidenceInstructions: evidenceInstructions,
@@ -380,6 +496,15 @@ class _CampaignImpl extends Campaign {
     double? longitude,
     double? geofenceMeters,
     int? volunteerCapacity,
+    int? minimumVolunteers,
+    int? eligibleVolunteers,
+    String? readinessState,
+    int? revision,
+    Object? readinessCheckedAt = _Undefined,
+    Object? confirmedAt = _Undefined,
+    Object? decisionDueAt = _Undefined,
+    Object? postponedAt = _Undefined,
+    Object? cancelledAt = _Undefined,
     String? requiredSkills,
     String? checklist,
     String? evidenceInstructions,
@@ -406,6 +531,19 @@ class _CampaignImpl extends Campaign {
       longitude: longitude ?? this.longitude,
       geofenceMeters: geofenceMeters ?? this.geofenceMeters,
       volunteerCapacity: volunteerCapacity ?? this.volunteerCapacity,
+      minimumVolunteers: minimumVolunteers ?? this.minimumVolunteers,
+      eligibleVolunteers: eligibleVolunteers ?? this.eligibleVolunteers,
+      readinessState: readinessState ?? this.readinessState,
+      revision: revision ?? this.revision,
+      readinessCheckedAt: readinessCheckedAt is DateTime?
+          ? readinessCheckedAt
+          : this.readinessCheckedAt,
+      confirmedAt: confirmedAt is DateTime? ? confirmedAt : this.confirmedAt,
+      decisionDueAt: decisionDueAt is DateTime?
+          ? decisionDueAt
+          : this.decisionDueAt,
+      postponedAt: postponedAt is DateTime? ? postponedAt : this.postponedAt,
+      cancelledAt: cancelledAt is DateTime? ? cancelledAt : this.cancelledAt,
       requiredSkills: requiredSkills ?? this.requiredSkills,
       checklist: checklist ?? this.checklist,
       evidenceInstructions: evidenceInstructions ?? this.evidenceInstructions,
@@ -501,6 +639,57 @@ class CampaignUpdateTable extends _is.UpdateTable<CampaignTable> {
     table.volunteerCapacity,
     value,
   );
+
+  _is.ColumnValue<int, int> minimumVolunteers(int value) => _is.ColumnValue(
+    table.minimumVolunteers,
+    value,
+  );
+
+  _is.ColumnValue<int, int> eligibleVolunteers(int value) => _is.ColumnValue(
+    table.eligibleVolunteers,
+    value,
+  );
+
+  _is.ColumnValue<String, String> readinessState(String value) =>
+      _is.ColumnValue(
+        table.readinessState,
+        value,
+      );
+
+  _is.ColumnValue<int, int> revision(int value) => _is.ColumnValue(
+    table.revision,
+    value,
+  );
+
+  _is.ColumnValue<DateTime, DateTime> readinessCheckedAt(DateTime? value) =>
+      _is.ColumnValue(
+        table.readinessCheckedAt,
+        value,
+      );
+
+  _is.ColumnValue<DateTime, DateTime> confirmedAt(DateTime? value) =>
+      _is.ColumnValue(
+        table.confirmedAt,
+        value,
+      );
+
+  _is.ColumnValue<DateTime, DateTime> decisionDueAt(DateTime? value) =>
+      _is.ColumnValue(
+        table.decisionDueAt,
+        value,
+      );
+
+  _is.ColumnValue<DateTime, DateTime> postponedAt(DateTime? value) =>
+      _is.ColumnValue(
+        table.postponedAt,
+        value,
+      );
+
+  _is.ColumnValue<DateTime, DateTime> cancelledAt(DateTime? value) =>
+      _is.ColumnValue(
+        table.cancelledAt,
+        value,
+      );
 
   _is.ColumnValue<String, String> requiredSkills(String value) =>
       _is.ColumnValue(
@@ -621,6 +810,46 @@ class CampaignTable extends _is.Table<int?> {
       this,
       hasDefault: true,
     );
+    minimumVolunteers = _is.ColumnInt(
+      'minimumVolunteers',
+      this,
+      hasDefault: true,
+    );
+    eligibleVolunteers = _is.ColumnInt(
+      'eligibleVolunteers',
+      this,
+      hasDefault: true,
+    );
+    readinessState = _is.ColumnString(
+      'readinessState',
+      this,
+      hasDefault: true,
+    );
+    revision = _is.ColumnInt(
+      'revision',
+      this,
+      hasDefault: true,
+    );
+    readinessCheckedAt = _is.ColumnDateTime(
+      'readinessCheckedAt',
+      this,
+    );
+    confirmedAt = _is.ColumnDateTime(
+      'confirmedAt',
+      this,
+    );
+    decisionDueAt = _is.ColumnDateTime(
+      'decisionDueAt',
+      this,
+    );
+    postponedAt = _is.ColumnDateTime(
+      'postponedAt',
+      this,
+    );
+    cancelledAt = _is.ColumnDateTime(
+      'cancelledAt',
+      this,
+    );
     requiredSkills = _is.ColumnString(
       'requiredSkills',
       this,
@@ -696,6 +925,24 @@ class CampaignTable extends _is.Table<int?> {
 
   late final _is.ColumnInt volunteerCapacity;
 
+  late final _is.ColumnInt minimumVolunteers;
+
+  late final _is.ColumnInt eligibleVolunteers;
+
+  late final _is.ColumnString readinessState;
+
+  late final _is.ColumnInt revision;
+
+  late final _is.ColumnDateTime readinessCheckedAt;
+
+  late final _is.ColumnDateTime confirmedAt;
+
+  late final _is.ColumnDateTime decisionDueAt;
+
+  late final _is.ColumnDateTime postponedAt;
+
+  late final _is.ColumnDateTime cancelledAt;
+
   late final _is.ColumnString requiredSkills;
 
   late final _is.ColumnString checklist;
@@ -731,6 +978,15 @@ class CampaignTable extends _is.Table<int?> {
     longitude,
     geofenceMeters,
     volunteerCapacity,
+    minimumVolunteers,
+    eligibleVolunteers,
+    readinessState,
+    revision,
+    readinessCheckedAt,
+    confirmedAt,
+    decisionDueAt,
+    postponedAt,
+    cancelledAt,
     requiredSkills,
     checklist,
     evidenceInstructions,

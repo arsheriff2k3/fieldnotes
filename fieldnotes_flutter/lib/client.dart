@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fieldnotes_client/fieldnotes_client.dart';
 import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
 import 'package:serverpod_flutter/serverpod_flutter.dart';
@@ -26,5 +28,11 @@ Future<void> initializeClient() async {
   client = Client(await serverUrl)
     ..connectivityMonitor = FlutterConnectivityMonitor()
     ..authSessionManager = FlutterAuthSessionManager();
-  await client.auth.initialize();
+  try {
+    await client.auth.initialize();
+  } on TimeoutException {
+    // Serverpod has already restored the saved session before validating it.
+    // A slow or temporarily unavailable server must not strand the app on
+    // Android's native splash screen. The app can show its normal retry UI.
+  }
 }

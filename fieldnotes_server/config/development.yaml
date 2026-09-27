@@ -9,9 +9,9 @@
 # Configuration for the main API server.
 apiServer:
   port: 8080
-  publicHost: localhost
-  publicPort: 8080
-  publicScheme: http
+  publicHost: observed-phi-notification-condition.trycloudflare.com
+  publicPort: 443
+  publicScheme: https
 
 # Configuration for the Insights server.
 insightsServer:

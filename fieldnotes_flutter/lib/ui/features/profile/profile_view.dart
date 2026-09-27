@@ -5,16 +5,21 @@ import 'package:flutter/material.dart';
 import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
 
 import '../../../client.dart';
-import '../../../data/services/device_location_service.dart';
-import '../../../data/services/map_launcher_service.dart';
 import '../../core/fieldnote_theme.dart';
+import '../../core/in_app_maps.dart';
+import '../../core/location_picker.dart';
 import '../../core/widgets.dart';
 import '../shell/fieldnote_view_model.dart';
 
 class ProfileView extends StatefulWidget {
-  const ProfileView({super.key, required this.viewModel});
+  const ProfileView({
+    super.key,
+    required this.viewModel,
+    this.onEditAvailability,
+  });
 
   final FieldnoteViewModel viewModel;
+  final VoidCallback? onEditAvailability;
 
   @override
   State<ProfileView> createState() => _ProfileViewState();
@@ -42,17 +47,16 @@ class _ProfileViewState extends State<ProfileView> {
     6: 'Sat',
     7: 'Sun',
   };
-
   final _name = TextEditingController();
   final _city = TextEditingController();
   final _organization = TextEditingController();
-  final _locationService = DeviceLocationService();
+  final _contactPhone = TextEditingController();
   final Set<String> _interests = {};
   final Set<String> _skills = {};
-  final Set<int> _weekdays = {};
   Timer? _cityDebounce;
   List<PlaceSuggestion> _citySuggestions = const [];
   String? _cityPlaceId;
+  SelectedLocation? _sponsorLocation;
   String _originalCity = '';
   String _sponsorType = 'Individual';
   bool _editing = false;
@@ -60,13 +64,6 @@ class _ProfileViewState extends State<ProfileView> {
   bool _citySearchAvailable = false;
   bool _searchingCity = false;
   int _cityRequest = 0;
-  bool _available = true;
-  bool _availableToday = false;
-  double _radius = 10;
-  double? _latitude;
-  double? _longitude;
-  String _locationLabel = '';
-  bool _locating = false;
 
   @override
   void initState() {
@@ -81,6 +78,7 @@ class _ProfileViewState extends State<ProfileView> {
     _name.dispose();
     _city.dispose();
     _organization.dispose();
+    _contactPhone.dispose();
     super.dispose();
   }
 
@@ -92,7 +90,6 @@ class _ProfileViewState extends State<ProfileView> {
 
   void _resetFromModel() {
     final profile = widget.viewModel.profile!;
-    final availability = widget.viewModel.availability;
     _name.text = profile.displayName;
     final displayedLocation = widget.viewModel.isSponsor
         ? profile.locationAddress ?? profile.city
@@ -100,6 +97,7 @@ class _ProfileViewState extends State<ProfileView> {
     _city.text = displayedLocation;
     _originalCity = displayedLocation;
     _organization.text = profile.organizationName ?? '';
+    _contactPhone.text = profile.contactPhone ?? '';
     _sponsorType = profile.sponsorType ?? 'Individual';
     _interests
       ..clear()
@@ -107,19 +105,8 @@ class _ProfileViewState extends State<ProfileView> {
     _skills
       ..clear()
       ..addAll(_values(profile.skills));
-    _weekdays
-      ..clear()
-      ..addAll(
-        availability?.weekdays.split(',').map(int.tryParse).whereType<int>() ??
-            const <int>[],
-      );
-    _available = availability?.isAvailable ?? true;
-    _availableToday = availability?.availableToday ?? false;
-    _radius = availability?.maximumTravelKm ?? 10;
-    _latitude = availability?.latitude;
-    _longitude = availability?.longitude;
-    _locationLabel = availability?.locationLabel ?? '';
     _cityPlaceId = null;
+    _sponsorLocation = null;
     _citySuggestions = const [];
   }
 
@@ -136,6 +123,7 @@ class _ProfileViewState extends State<ProfileView> {
 
   void _cityChanged(String value) {
     _cityPlaceId = null;
+    _sponsorLocation = null;
     _cityDebounce?.cancel();
     if (!_citySearchAvailable || value.trim().length < 2) {
       _cityRequest++;
@@ -178,21 +166,33 @@ class _ProfileViewState extends State<ProfileView> {
             ].where((part) => part.trim().isNotEmpty).join(', ')
           : suggestion.primaryText;
       _cityPlaceId = suggestion.placeId;
+      _sponsorLocation = null;
       _citySuggestions = const [];
     });
   }
 
-  Future<void> _useCurrentLocation() async {
-    setState(() => _locating = true);
-    final location = await _locationService.current();
-    if (!mounted) return;
+  Future<void> _openLocationMap() async {
+    final result = await Navigator.push<SelectedLocation>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LocationPicker(
+          repository: widget.viewModel.repository,
+          title: 'Choose profile location',
+          initialQuery: _city.text,
+          initialLabel:
+              widget.viewModel.profile?.locationAddress ??
+              widget.viewModel.profile?.city,
+          initialLatitude: widget.viewModel.profile?.locationLatitude,
+          initialLongitude: widget.viewModel.profile?.locationLongitude,
+        ),
+      ),
+    );
+    if (result == null || !mounted) return;
     setState(() {
-      _latitude = location.latitude;
-      _longitude = location.longitude;
-      _locationLabel = location.isLive
-          ? 'Current GPS area'
-          : 'Location captured';
-      _locating = false;
+      _city.text = result.label;
+      _citySuggestions = const [];
+      _sponsorLocation = result;
+      _cityPlaceId = result.placeId;
     });
   }
 
@@ -210,7 +210,11 @@ class _ProfileViewState extends State<ProfileView> {
       _message('Choose at least one interest.');
       return;
     }
-    if (_citySearchAvailable && city != _originalCity && _cityPlaceId == null) {
+    if (_citySearchAvailable &&
+        city != _originalCity &&
+        _cityPlaceId == null &&
+        _sponsorLocation == null &&
+        widget.viewModel.isSponsor) {
       _message(
         widget.viewModel.isSponsor
             ? 'Select the new location from the Google suggestions.'
@@ -218,9 +222,17 @@ class _ProfileViewState extends State<ProfileView> {
       );
       return;
     }
-    if (widget.viewModel.isVolunteer &&
-        (_skills.isEmpty || _weekdays.isEmpty)) {
-      _message('Choose at least one skill and one available day.');
+    if (widget.viewModel.isVolunteer && _skills.isEmpty) {
+      _message('Choose at least one skill.');
+      return;
+    }
+    if ((widget.viewModel.isSponsor || _contactPhone.text.trim().isNotEmpty) &&
+        !RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(
+          _contactPhone.text.replaceAll(RegExp(r'[\s()\-]'), ''),
+        )) {
+      _message(
+        'Enter a phone number with country code, for example +919876543210.',
+      );
       return;
     }
 
@@ -232,25 +244,18 @@ class _ProfileViewState extends State<ProfileView> {
         organizationName: widget.viewModel.isSponsor
             ? _organization.text
             : null,
+        contactPhone: _contactPhone.text,
         city: city,
         cityPlaceId: _cityPlaceId,
+        locationLatitude: _sponsorLocation?.placeId == null
+            ? _sponsorLocation?.latitude
+            : null,
+        locationLongitude: _sponsorLocation?.placeId == null
+            ? _sponsorLocation?.longitude
+            : null,
         interests: _interests.toList(),
         skills: _skills.toList(),
       );
-      if (widget.viewModel.isVolunteer) {
-        final current = widget.viewModel.availability;
-        await widget.viewModel.repository.updateAvailability(
-          isAvailable: _available,
-          availableToday: _availableToday,
-          weekdays: _weekdays.toList(),
-          startMinutes: current?.startMinutes ?? 7 * 60,
-          endMinutes: current?.endMinutes ?? 13 * 60,
-          maximumTravelKm: _radius,
-          latitude: _latitude,
-          longitude: _longitude,
-          locationLabel: _locationLabel,
-        );
-      }
       await widget.viewModel.profileUpdated(updated);
       if (!mounted) return;
       _resetFromModel();
@@ -267,21 +272,22 @@ class _ProfileViewState extends State<ProfileView> {
     }
   }
 
-  Future<void> _openSavedLocation(FieldnoteUserProfile profile) async {
+  void _openSavedLocation(FieldnoteUserProfile profile) {
     final latitude = profile.locationLatitude;
     final longitude = profile.locationLongitude;
     if (latitude == null || longitude == null) {
       _message('This profile does not have a mapped location yet.');
       return;
     }
-    final opened = await MapLauncher.openDirections(
-      latitude: latitude,
-      longitude: longitude,
-      mode: 'driving',
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => PlaceMapScreen(
+          title: profile.locationAddress ?? profile.city,
+          latitude: latitude,
+          longitude: longitude,
+        ),
+      ),
     );
-    if (!opened && mounted) {
-      _message('Could not open Google Maps on this device.');
-    }
   }
 
   void _message(String value) {
@@ -336,6 +342,25 @@ class _ProfileViewState extends State<ProfileView> {
               ),
               _detail('Display name', profile.displayName),
               _detail(
+                'Phone number',
+                profile.contactPhone?.isNotEmpty == true
+                    ? profile.contactPhone!
+                    : 'Not provided',
+              ),
+              if (widget.viewModel.isSponsor &&
+                  profile.contactPhone?.isNotEmpty != true) ...[
+                const Text(
+                  'Add your phone number so volunteers who join your campaigns can call you.',
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () => setState(() => _editing = true),
+                  icon: const Icon(Icons.call_outlined),
+                  label: const Text('Add contact number'),
+                ),
+                const SizedBox(height: 12),
+              ],
+              _detail(
                 widget.viewModel.isSponsor ? 'Location' : 'City',
                 widget.viewModel.isSponsor
                     ? profile.locationAddress ?? profile.city
@@ -350,13 +375,16 @@ class _ProfileViewState extends State<ProfileView> {
                     alignment: Alignment.centerLeft,
                     child: OutlinedButton.icon(
                       onPressed: () => _openSavedLocation(profile),
-                      icon: const Icon(Icons.directions_outlined),
-                      label: const Text('Navigate with Google Maps'),
+                      icon: const Icon(Icons.map_outlined),
+                      label: const Text('View location on map'),
                     ),
                   ),
                 ),
               _detail('Interests', _values(profile.interests).join(', ')),
               if (widget.viewModel.isSponsor) ...[
+                const Text(
+                  'Your number is shared only with volunteers who join your campaign.',
+                ),
                 _detail('Sponsor type', profile.sponsorType ?? 'Individual'),
                 _detail(
                   'Organization',
@@ -389,7 +417,36 @@ class _ProfileViewState extends State<ProfileView> {
                       ? availability!.locationLabel
                       : 'Not selected',
                 ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: widget.onEditAvailability,
+                  icon: const Icon(Icons.event_available_outlined),
+                  label: const Text('Edit availability and travel area'),
+                ),
               ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        SurfaceCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Account', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 8),
+              const Text(
+                'You can request deletion of this account and its private data.',
+              ),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: _requestDeletion,
+                style: FilledButton.styleFrom(
+                  backgroundColor: FieldnoteColors.danger,
+                  foregroundColor: Colors.white,
+                ),
+                icon: const Icon(Icons.delete_outline),
+                label: const Text('Request account deletion'),
+              ),
             ],
           ),
         ),
@@ -421,6 +478,21 @@ class _ProfileViewState extends State<ProfileView> {
           FieldnoteTextField(
             controller: _name,
             decoration: const InputDecoration(labelText: 'Display name'),
+          ),
+          const SizedBox(height: 12),
+          FieldnoteTextField(
+            controller: _contactPhone,
+            keyboardType: TextInputType.phone,
+            decoration: InputDecoration(
+              labelText: widget.viewModel.isSponsor
+                  ? 'Phone number (required)'
+                  : 'Phone number (optional)',
+              hintText: '+919876543210',
+              prefixIcon: const Icon(Icons.call_outlined),
+              helperText: widget.viewModel.isSponsor
+                  ? 'Shared only with volunteers who joined your campaign.'
+                  : 'Private to your account.',
+            ),
           ),
           const SizedBox(height: 12),
           TextFormField(
@@ -466,65 +538,12 @@ class _ProfileViewState extends State<ProfileView> {
             const SizedBox(height: 18),
             _chips('Skills', _skillOptions, _skills),
             const Divider(height: 34),
-            SwitchListTile.adaptive(
-              contentPadding: EdgeInsets.zero,
-              value: _available,
-              title: const Text('Available for campaign matches'),
-              onChanged: (value) => setState(() => _available = value),
-            ),
-            SwitchListTile.adaptive(
-              contentPadding: EdgeInsets.zero,
-              value: _availableToday,
-              title: const Text('Available today'),
-              onChanged: (value) => setState(() => _availableToday = value),
-            ),
+            const Text('Travel area and schedule are managed in Availability.'),
             const SizedBox(height: 10),
-            Text('Regular days', style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 7,
-              runSpacing: 7,
-              children: _dayNames.entries
-                  .map(
-                    (entry) => FilterChip(
-                      label: Text(entry.value),
-                      selected: _weekdays.contains(entry.key),
-                      onSelected: (selected) => setState(() {
-                        selected
-                            ? _weekdays.add(entry.key)
-                            : _weekdays.remove(entry.key);
-                      }),
-                    ),
-                  )
-                  .toList(),
-            ),
-            const SizedBox(height: 18),
-            Text('Maximum travel · ${_radius.round()} km'),
-            Slider(
-              value: _radius,
-              min: 2,
-              max: 50,
-              divisions: 24,
-              label: '${_radius.round()} km',
-              onChanged: (value) => setState(() => _radius = value),
-            ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.my_location_outlined),
-              title: Text(
-                _locationLabel.isEmpty
-                    ? 'No travel area selected'
-                    : _locationLabel,
-              ),
-              subtitle: _latitude == null || _longitude == null
-                  ? null
-                  : Text(
-                      '${_latitude!.toStringAsFixed(5)}, ${_longitude!.toStringAsFixed(5)}',
-                    ),
-              trailing: OutlinedButton(
-                onPressed: _locating ? null : _useCurrentLocation,
-                child: Text(_locating ? 'Locating…' : 'Use GPS'),
-              ),
+            OutlinedButton.icon(
+              onPressed: widget.onEditAvailability,
+              icon: const Icon(Icons.event_available_outlined),
+              label: const Text('Edit availability and travel area'),
             ),
           ],
           const SizedBox(height: 22),
@@ -579,6 +598,14 @@ class _ProfileViewState extends State<ProfileView> {
                 : const Icon(Icons.check_circle, color: FieldnoteColors.moss),
           ),
         ),
+        if (isLocation) ...[
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: _openLocationMap,
+            icon: const Icon(Icons.map_outlined),
+            label: const Text('Choose on map'),
+          ),
+        ],
         if (_citySuggestions.isNotEmpty)
           Container(
             margin: const EdgeInsets.only(top: 8),
@@ -672,7 +699,7 @@ class _ProfileViewState extends State<ProfileView> {
             'GPS for matching and evidence',
             consent?.locationConsent,
           ),
-          _lockedChoice('Gemini AI processing', consent?.aiProcessingConsent),
+          _lockedChoice('AI processing', consent?.aiProcessingConsent),
           _lockedChoice('Evidence sharing', consent?.evidenceSharingConsent),
           const SizedBox(height: 4),
           const Text(
@@ -681,6 +708,56 @@ class _ProfileViewState extends State<ProfileView> {
         ],
       ),
     );
+  }
+
+  Future<void> _requestDeletion() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Request account deletion?'),
+        content: const Text(
+          'The request is recorded for review. Shared campaign records are retained until it is processed.',
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                OutlinedButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: FieldnoteColors.danger,
+                    backgroundColor: Colors.transparent,
+                    side: const BorderSide(color: FieldnoteColors.danger),
+                  ),
+                  child: const Text('Cancel'),
+                ),
+                const SizedBox(height: 8),
+                FilledButton(
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: FieldnoteColors.danger,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Yes, request deletion'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await widget.viewModel.requestAccountDeletion();
+      if (mounted) _message('Deletion request recorded.');
+    } on Object {
+      if (mounted) {
+        _message('Could not record the deletion request. Try again.');
+      }
+    }
   }
 
   Widget _lockedChoice(String label, bool? accepted) => Row(

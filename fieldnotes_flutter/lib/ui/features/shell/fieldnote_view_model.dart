@@ -19,6 +19,7 @@ class FieldnoteViewModel extends ChangeNotifier {
   List<Campaign> createdCampaigns = const [];
   List<Sponsorship> sponsorships = const [];
   List<CampaignMatch> matches = const [];
+  List<CampaignInvitation> invitations = const [];
   List<CampaignParticipation> participations = const [];
   final Map<int, ImpactSummary> impacts = {};
   CampaignLiveUpdate? lastLiveUpdate;
@@ -29,7 +30,8 @@ class FieldnoteViewModel extends ChangeNotifier {
 
   FieldnoteRepository get repository => _repository;
   bool get needsOnboarding => !loading && profile == null;
-  bool get needsConsent => !loading && profile != null && consent == null;
+  bool get needsConsent =>
+      !loading && profile != null && needsConsentForCurrentPolicy;
   bool get isSponsor => profile?.role == AccountRole.sponsor;
   bool get isVolunteer => profile?.role == AccountRole.volunteer;
 
@@ -41,7 +43,8 @@ class FieldnoteViewModel extends ChangeNotifier {
       profile = await _repository.profile();
       if (profile != null) {
         consent = await _repository.legalConsent();
-        if (consent != null) await _loadRoleData();
+        trustCenter = await _repository.trustCenter();
+        if (!needsConsentForCurrentPolicy) await _loadRoleData();
       }
     } catch (error) {
       errorMessage = _message(error);
@@ -50,6 +53,15 @@ class FieldnoteViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  bool get needsConsentForCurrentPolicy =>
+      consent == null ||
+      trustCenter == null ||
+      consent!.privacyPolicyVersion != trustCenter!.privacyPolicyVersion ||
+      consent!.termsVersion != trustCenter!.termsVersion ||
+      !consent!.locationConsent ||
+      !consent!.aiProcessingConsent ||
+      !consent!.evidenceSharingConsent;
 
   Future<void> onboardingCompleted(
     FieldnoteUserProfile value,
@@ -74,7 +86,9 @@ class FieldnoteViewModel extends ChangeNotifier {
     notifyListeners();
     try {
       profile = await _repository.profile();
-      await _loadRoleData();
+      consent = await _repository.legalConsent();
+      trustCenter = await _repository.trustCenter();
+      if (!needsConsentForCurrentPolicy) await _loadRoleData();
     } catch (error) {
       errorMessage = _message(error);
     } finally {
@@ -97,6 +111,7 @@ class FieldnoteViewModel extends ChangeNotifier {
       sponsorships = results[2] as List<Sponsorship>;
       final impactCampaigns = <Campaign>{...createdCampaigns};
       for (final sponsorship in sponsorships) {
+        if (sponsorship.paymentStatus != 'verified') continue;
         final campaign = campaigns
             .where((item) => item.id == sponsorship.campaignId)
             .firstOrNull;
@@ -116,11 +131,23 @@ class FieldnoteViewModel extends ChangeNotifier {
         _repository.availability(),
         _repository.matches(),
         _repository.participations(),
+        _repository.myJoinedCampaigns(),
+        _repository.myCampaignInvitations().catchError(
+          (_) => <CampaignInvitation>[],
+        ),
       ]);
-      campaigns = results[0] as List<Campaign>;
+      final discovered = results[0] as List<Campaign>;
+      final joined = results[4] as List<Campaign>;
+      campaigns = [
+        ...discovered,
+        ...joined.where(
+          (item) => !discovered.any((value) => value.id == item.id),
+        ),
+      ];
       availability = results[1] as VolunteerAvailability?;
       matches = results[2] as List<CampaignMatch>;
       participations = results[3] as List<CampaignParticipation>;
+      invitations = results[5] as List<CampaignInvitation>;
     }
   }
 
@@ -135,6 +162,10 @@ class FieldnoteViewModel extends ChangeNotifier {
   CampaignParticipation? participationFor(int campaignId) => participations
       .where((participation) => participation.campaignId == campaignId)
       .firstOrNull;
+
+  bool invitedTo(int campaignId) => invitations.any(
+    (invitation) => invitation.campaignId == campaignId,
+  );
 
   Future<RazorpayCheckoutOrder> createPaymentOrder(
     Campaign campaign,

@@ -11,9 +11,12 @@ class FieldnoteRepository {
     required String displayName,
     required String sponsorType,
     String? organizationName,
+    required String contactPhone,
     required String city,
     String? cityPlaceId,
     required List<String> interests,
+    double? locationLatitude,
+    double? locationLongitude,
   }) => client.fieldnote.completeSponsorProfile(
     displayName,
     sponsorType,
@@ -21,6 +24,9 @@ class FieldnoteRepository {
     city,
     cityPlaceId,
     interests,
+    locationLatitude: locationLatitude,
+    locationLongitude: locationLongitude,
+    contactPhone: contactPhone,
   );
 
   Future<FieldnoteUserProfile> completeVolunteerProfile({
@@ -60,10 +66,13 @@ class FieldnoteRepository {
     required String displayName,
     String? sponsorType,
     String? organizationName,
+    String? contactPhone,
     required String city,
     String? cityPlaceId,
     required List<String> interests,
     required List<String> skills,
+    double? locationLatitude,
+    double? locationLongitude,
   }) => client.fieldnote.updateMyProfile(
     displayName,
     sponsorType,
@@ -72,6 +81,9 @@ class FieldnoteRepository {
     cityPlaceId,
     interests,
     skills,
+    locationLatitude: locationLatitude,
+    locationLongitude: locationLongitude,
+    contactPhone: contactPhone,
   );
 
   Future<VolunteerAvailability> updateAvailability({
@@ -97,10 +109,39 @@ class FieldnoteRepository {
   );
 
   Future<List<Campaign>> campaigns() => client.fieldnote.listCampaigns();
+  Future<String?> campaignContactPhone(int campaignId) =>
+      client.fieldnote.getCampaignContactPhone(campaignId);
   Future<List<Campaign>> myCreatedCampaigns() =>
       client.fieldnote.listMyCreatedCampaigns();
+  Future<List<Campaign>> myJoinedCampaigns() =>
+      client.fieldnote.listMyJoinedCampaigns();
+  Future<List<CampaignPost>> campaignPosts(int campaignId) =>
+      client.fieldnote.listCampaignPosts(campaignId);
+  Future<Campaign> refreshCampaignReadiness(int campaignId) =>
+      client.fieldnote.refreshCampaignReadiness(campaignId);
+  Future<Campaign> reviseCampaignScope(
+    int campaignId,
+    double fundingGoal,
+    int minimumVolunteers,
+    String description,
+  ) => client.fieldnote.reviseCampaignScope(
+    campaignId,
+    fundingGoal,
+    minimumVolunteers,
+    description,
+  );
+  Future<Campaign> postponeCampaign(int campaignId, DateTime newStartsAt) =>
+      client.fieldnote.postponeCampaign(campaignId, newStartsAt);
+  Future<Campaign> cancelCampaign(int campaignId) =>
+      client.fieldnote.cancelCampaign(campaignId);
+  Future<CampaignParticipation> reconfirmParticipation(int participationId) =>
+      client.fieldnote.reconfirmCampaignParticipation(participationId);
   Future<List<Sponsorship>> mySponsorships() =>
       client.fieldnote.listMySponsorships();
+  Future<List<TestPayout>> campaignTestPayouts(int campaignId) =>
+      client.fieldnote.listCampaignTestPayouts(campaignId);
+  Future<List<TestPayout>> simulateCampaignTestPayout(int campaignId) =>
+      client.fieldnote.simulateCampaignTestPayout(campaignId);
   Future<List<CampaignMatch>> matches() =>
       client.fieldnote.getCampaignMatches();
   Future<List<CampaignParticipation>> participations() =>
@@ -162,8 +203,36 @@ class FieldnoteRepository {
     double longitude,
   ) => client.fieldnote.describeCoordinates(latitude, longitude);
 
+  Future<TravelRoute> travelRoute({
+    required int campaignId,
+    required double originLatitude,
+    required double originLongitude,
+    required String travelMode,
+  }) => client.fieldnote.getTravelRoute(
+    campaignId,
+    originLatitude,
+    originLongitude,
+    travelMode,
+  );
+
   Future<CampaignReach> previewReach(double latitude, double longitude) =>
       client.fieldnote.previewCampaignReach(latitude, longitude);
+
+  Future<CampaignReach> campaignVolunteerReach(int campaignId) =>
+      client.fieldnote.getCampaignVolunteerReach(campaignId);
+
+  Future<int> inviteCampaignVolunteersInArea(
+    int campaignId,
+    double latitude,
+    double longitude,
+  ) => client.fieldnote.inviteCampaignVolunteersInArea(
+    campaignId,
+    latitude,
+    longitude,
+  );
+
+  Future<List<CampaignInvitation>> myCampaignInvitations() =>
+      client.fieldnote.listMyCampaignInvitations();
 
   Future<CampaignMapOverview> campaignMap(int campaignId) =>
       client.fieldnote.getCampaignMap(campaignId);

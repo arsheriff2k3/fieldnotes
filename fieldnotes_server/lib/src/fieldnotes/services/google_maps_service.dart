@@ -36,13 +36,18 @@ class RouteLeg {
 /// data, so callers can fall back to the offline straight-line behaviour the
 /// app had before Maps was introduced.
 class GoogleMapsService {
-  GoogleMapsService();
+  GoogleMapsService({Uri? directionsUri})
+    : _directionsUri = directionsUri ?? Uri.parse(directionsEndpoint);
+
+  final Uri _directionsUri;
 
   static const placesEndpoint = 'https://places.googleapis.com/v1';
   static const geocodeEndpoint =
       'https://maps.googleapis.com/maps/api/geocode/json';
   static const routesEndpoint =
       'https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix';
+  static const directionsEndpoint =
+      'https://routes.googleapis.com/directions/v2:computeRoutes';
 
   /// Routes API results are billed per element, so identical origin and
   /// destination pairs are reused for [_cacheTtl]. Campaign pins and volunteer
@@ -167,6 +172,95 @@ class GoogleMapsService {
       address: address is String ? address : '',
       latitude: latitude,
       longitude: longitude,
+    );
+  }
+
+  /// A single route for an in-app travel screen. The map draws the encoded
+  /// road path while the steps provide text guidance inside FieldNote.
+  Future<TravelRoute> travelRoute({
+    required String apiKey,
+    required double originLatitude,
+    required double originLongitude,
+    required double destinationLatitude,
+    required double destinationLongitude,
+    required String travelMode,
+  }) async {
+    final mode = _safeTravelMode(travelMode);
+    final json = await _send(
+      method: 'POST',
+      url: _directionsUri,
+      apiKey: apiKey,
+      fieldMask:
+          'routes.distanceMeters,routes.duration,'
+          'routes.polyline.encodedPolyline,'
+          'routes.legs.steps.distanceMeters,'
+          'routes.legs.steps.navigationInstruction.instructions,'
+          'routes.legs.steps.endLocation.latLng',
+      body: {
+        'origin': _waypoint(originLatitude, originLongitude)['waypoint'],
+        'destination': _waypoint(
+          destinationLatitude,
+          destinationLongitude,
+        )['waypoint'],
+        'travelMode': mode,
+        if (mode == 'DRIVE') 'routingPreference': 'TRAFFIC_AWARE',
+        'languageCode': 'en',
+      },
+    );
+    final routes = json['routes'];
+    final route = routes is List && routes.isNotEmpty ? routes.first : null;
+    if (route is! Map) {
+      throw const GoogleMapsException('No route was found for this journey.');
+    }
+    final distance = route['distanceMeters'];
+    final duration = route['duration'];
+    final polyline = route['polyline'];
+    final encoded = polyline is Map ? polyline['encodedPolyline'] : null;
+    final seconds = duration is String
+        ? double.tryParse(duration.replaceFirst('s', ''))
+        : null;
+    if (distance is! num ||
+        seconds == null ||
+        encoded is! String ||
+        encoded.isEmpty) {
+      throw const GoogleMapsException('The route response was incomplete.');
+    }
+    final legs = route['legs'];
+    final firstLeg = legs is List && legs.isNotEmpty ? legs.first : null;
+    final rawSteps = firstLeg is Map ? firstLeg['steps'] : null;
+    final steps = <TravelStep>[];
+    if (rawSteps is List) {
+      for (final raw in rawSteps) {
+        if (raw is! Map) continue;
+        final navigation = raw['navigationInstruction'];
+        final instruction = navigation is Map
+            ? navigation['instructions']
+            : null;
+        final end = raw['endLocation'];
+        final latLng = end is Map ? end['latLng'] : null;
+        final lat = latLng is Map ? latLng['latitude'] : null;
+        final lng = latLng is Map ? latLng['longitude'] : null;
+        if (instruction is! String ||
+            instruction.isEmpty ||
+            lat is! num ||
+            lng is! num) {
+          continue;
+        }
+        steps.add(
+          TravelStep(
+            instruction: instruction,
+            distanceMeters: (raw['distanceMeters'] as num?)?.round() ?? 0,
+            endLatitude: lat.toDouble(),
+            endLongitude: lng.toDouble(),
+          ),
+        );
+      }
+    }
+    return TravelRoute(
+      distanceMeters: distance.round(),
+      durationSeconds: seconds.round(),
+      encodedPolyline: encoded,
+      steps: steps,
     );
   }
 

@@ -6,6 +6,7 @@ fields:
   displayName: String
   sponsorType: String?
   organizationName: String?
+  contactPhone: String?
   city: String
   locationAddress: String?
   locationPlaceId: String?
