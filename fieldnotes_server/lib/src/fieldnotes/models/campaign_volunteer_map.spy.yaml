@@ -1,0 +1,5 @@
+### Creator-only volunteer roster for a published campaign.
+class: CampaignVolunteerMap
+fields:
+  volunteers: List<CampaignVolunteerMapMember>
+  summary: String

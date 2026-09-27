@@ -48,6 +48,8 @@ import 'fieldnotes/models/campaign_post.dart' as _iz4wi5fy;
 import 'fieldnotes/models/campaign_proposal.dart' as _ibvzmbaz;
 import 'fieldnotes/models/campaign_reach.dart' as _i22k3mw4;
 import 'fieldnotes/models/campaign_status.dart' as _iyus928a;
+import 'fieldnotes/models/campaign_volunteer_map.dart' as _ixxdko7q;
+import 'fieldnotes/models/campaign_volunteer_map_member.dart' as _ioj4s0dr;
 import 'fieldnotes/models/completion_evidence.dart' as _i8shrtkg;
 import 'fieldnotes/models/completion_proposal.dart' as _i60r3uxn;
 import 'fieldnotes/models/dashboard_metrics.dart' as _iq1f4h1t;
@@ -97,6 +99,8 @@ export 'fieldnotes/models/campaign_post.dart';
 export 'fieldnotes/models/campaign_proposal.dart';
 export 'fieldnotes/models/campaign_reach.dart';
 export 'fieldnotes/models/campaign_status.dart';
+export 'fieldnotes/models/campaign_volunteer_map.dart';
+export 'fieldnotes/models/campaign_volunteer_map_member.dart';
 export 'fieldnotes/models/completion_evidence.dart';
 export 'fieldnotes/models/completion_proposal.dart';
 export 'fieldnotes/models/dashboard_metrics.dart';
@@ -2384,6 +2388,12 @@ class Protocol extends _is.DatabaseSerializationManager {
     if (t == _iyus928a.CampaignStatus) {
       return _iyus928a.CampaignStatus.fromJson(data) as T;
     }
+    if (t == _ixxdko7q.CampaignVolunteerMap) {
+      return _ixxdko7q.CampaignVolunteerMap.fromJson(data) as T;
+    }
+    if (t == _ioj4s0dr.CampaignVolunteerMapMember) {
+      return _ioj4s0dr.CampaignVolunteerMapMember.fromJson(data) as T;
+    }
     if (t == _i8shrtkg.CompletionEvidence) {
       return _i8shrtkg.CompletionEvidence.fromJson(data) as T;
     }
@@ -2544,6 +2554,18 @@ class Protocol extends _is.DatabaseSerializationManager {
       return (data != null ? _iyus928a.CampaignStatus.fromJson(data) : null)
           as T;
     }
+    if (t == _is.getType<_ixxdko7q.CampaignVolunteerMap?>()) {
+      return (data != null
+              ? _ixxdko7q.CampaignVolunteerMap.fromJson(data)
+              : null)
+          as T;
+    }
+    if (t == _is.getType<_ioj4s0dr.CampaignVolunteerMapMember?>()) {
+      return (data != null
+              ? _ioj4s0dr.CampaignVolunteerMapMember.fromJson(data)
+              : null)
+          as T;
+    }
     if (t == _is.getType<_i8shrtkg.CompletionEvidence?>()) {
       return (data != null ? _i8shrtkg.CompletionEvidence.fromJson(data) : null)
           as T;
@@ -2693,6 +2715,12 @@ class Protocol extends _is.DatabaseSerializationManager {
               .toList()
           as T;
     }
+    if (t == List<_ioj4s0dr.CampaignVolunteerMapMember>) {
+      return (data as List)
+              .map((e) => deserialize<_ioj4s0dr.CampaignVolunteerMapMember>(e))
+              .toList()
+          as T;
+    }
     if (t == List<_i8shrtkg.CompletionEvidence>) {
       return (data as List)
               .map((e) => deserialize<_i8shrtkg.CompletionEvidence>(e))
@@ -2800,6 +2828,8 @@ class Protocol extends _is.DatabaseSerializationManager {
       _ibvzmbaz.CampaignProposal => 'CampaignProposal',
       _i22k3mw4.CampaignReach => 'CampaignReach',
       _iyus928a.CampaignStatus => 'CampaignStatus',
+      _ixxdko7q.CampaignVolunteerMap => 'CampaignVolunteerMap',
+      _ioj4s0dr.CampaignVolunteerMapMember => 'CampaignVolunteerMapMember',
       _i8shrtkg.CompletionEvidence => 'CompletionEvidence',
       _i60r3uxn.CompletionProposal => 'CompletionProposal',
       _iq1f4h1t.DashboardMetrics => 'DashboardMetrics',
@@ -2878,6 +2908,10 @@ class Protocol extends _is.DatabaseSerializationManager {
         return 'CampaignReach';
       case _iyus928a.CampaignStatus():
         return 'CampaignStatus';
+      case _ixxdko7q.CampaignVolunteerMap():
+        return 'CampaignVolunteerMap';
+      case _ioj4s0dr.CampaignVolunteerMapMember():
+        return 'CampaignVolunteerMapMember';
       case _i8shrtkg.CompletionEvidence():
         return 'CompletionEvidence';
       case _i60r3uxn.CompletionProposal():
@@ -3016,6 +3050,12 @@ class Protocol extends _is.DatabaseSerializationManager {
     }
     if (dataClassName == 'CampaignStatus') {
       return deserialize<_iyus928a.CampaignStatus>(data['data']);
+    }
+    if (dataClassName == 'CampaignVolunteerMap') {
+      return deserialize<_ixxdko7q.CampaignVolunteerMap>(data['data']);
+    }
+    if (dataClassName == 'CampaignVolunteerMapMember') {
+      return deserialize<_ioj4s0dr.CampaignVolunteerMapMember>(data['data']);
     }
     if (dataClassName == 'CompletionEvidence') {
       return deserialize<_i8shrtkg.CompletionEvidence>(data['data']);

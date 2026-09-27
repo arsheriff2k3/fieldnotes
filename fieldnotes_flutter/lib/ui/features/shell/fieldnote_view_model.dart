@@ -129,7 +129,7 @@ class FieldnoteViewModel extends ChangeNotifier {
       final results = await Future.wait<dynamic>([
         _repository.campaigns(),
         _repository.availability(),
-        _repository.matches(),
+        _repository.matches().catchError((_) => <CampaignMatch>[]),
         _repository.participations(),
         _repository.myJoinedCampaigns(),
         _repository.myCampaignInvitations().catchError(

@@ -44,6 +44,8 @@ fieldnote:
   - getTravelRoute:
   - previewCampaignReach:
   - getCampaignVolunteerReach:
+  - getCampaignVolunteerMap:
+  - inviteCampaignVolunteer:
   - inviteCampaignVolunteersInArea:
   - listMyCampaignInvitations:
   - getCampaignMap:

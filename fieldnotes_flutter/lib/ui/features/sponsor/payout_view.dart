@@ -94,7 +94,7 @@ class _CampaignPayoutViewState extends State<CampaignPayoutView> {
       appBar: AppBar(title: const Text('Campaign payout')),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 700),
@@ -106,10 +106,10 @@ class _CampaignPayoutViewState extends State<CampaignPayoutView> {
                     color: FieldnoteColors.clay,
                     icon: Icons.science_outlined,
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 12),
                   Text(
                     widget.campaign.name,
-                    style: Theme.of(context).textTheme.headlineMedium,
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 8),
                   const Text(
@@ -122,7 +122,7 @@ class _CampaignPayoutViewState extends State<CampaignPayoutView> {
                       style: const TextStyle(color: FieldnoteColors.danger),
                     ),
                   ],
-                  const SizedBox(height: 22),
+                  const SizedBox(height: 16),
                   SurfaceCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

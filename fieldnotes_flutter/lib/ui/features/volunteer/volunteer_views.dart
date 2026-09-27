@@ -27,112 +27,201 @@ class VolunteerMatchesView extends StatefulWidget {
 }
 
 class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
-  bool _mapView = false;
-
   FieldnoteViewModel get viewModel => widget.viewModel;
 
   @override
   Widget build(BuildContext context) {
     final availability = viewModel.availability;
+    final invitedCampaigns = viewModel.invitations
+        .map((invitation) => viewModel.campaignById(invitation.campaignId))
+        .whereType<Campaign>()
+        .where(
+          (campaign) => viewModel.participationFor(campaign.id!) == null,
+        )
+        .toList();
     final orderedMatches = [...viewModel.matches]
       ..sort((a, b) {
         final invitedA = viewModel.invitedTo(a.campaign.id!) ? 1 : 0;
         final invitedB = viewModel.invitedTo(b.campaign.id!) ? 1 : 0;
         return invitedB.compareTo(invitedA);
       });
-    return RefreshIndicator(
-      onRefresh: viewModel.refresh,
-      child: FieldnotePageList(
+    return DefaultTabController(
+      length: 3,
+      child: Column(
         children: [
-          SectionHeading(
-            eyebrow: 'AI opportunity matching',
-            title: 'Campaigns that fit your life',
-            description:
-                'Every score is explained using your availability, travel radius, interests, and remaining campaign places.',
-            trailing: StatusPill(
-              label: availability?.isAvailable == true
-                  ? 'Available for matches'
-                  : 'Availability paused',
-              color: availability?.isAvailable == true
-                  ? FieldnoteColors.forest
-                  : FieldnoteColors.clay,
-              icon: availability?.isAvailable == true
-                  ? Icons.bolt
-                  : Icons.pause,
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              FieldnoteSpacing.pageGutter(context),
+              16,
+              FieldnoteSpacing.pageGutter(context),
+              12,
+            ),
+            child: SectionHeading(
+              eyebrow: 'Volunteer campaigns',
+              title: 'Find a campaign',
+              description: 'Browse nearby work and invitations.',
             ),
           ),
-          const SizedBox(height: 18),
-          if (viewModel.matches.isNotEmpty && mapsAvailable)
-            Align(
-              alignment: Alignment.centerLeft,
-              child: SegmentedButton<bool>(
-                segments: const [
-                  ButtonSegment(
-                    value: false,
-                    icon: Icon(Icons.view_agenda_outlined),
-                    label: Text('List'),
-                  ),
-                  ButtonSegment(
-                    value: true,
-                    icon: Icon(Icons.map_outlined),
-                    label: Text('Map'),
-                  ),
-                ],
-                selected: {_mapView},
-                onSelectionChanged: (value) =>
-                    setState(() => _mapView = value.first),
-              ),
-            ),
-          const SizedBox(height: 18),
-          if (viewModel.matches.isEmpty)
-            EmptyPanel(
-              icon: Icons.travel_explore,
-              title: 'No matches yet',
-              message: availability?.isAvailable == true
-                  ? 'Try increasing your travel radius or choosing more available days.'
-                  : 'Turn on availability to let AI recommend campaigns.',
-            )
-          else if (_mapView && mapsAvailable)
-            _MatchMap(
-              matches: orderedMatches,
-              availability: availability,
-              onOpen: _openMatch,
-            )
-          else
-            ResponsiveCardGrid(
+          const FieldnoteSectionTabs(
+            compact: true,
+            tabs: [
+              FieldnoteSectionTab('List', Icons.view_agenda_outlined),
+              FieldnoteSectionTab('Map', Icons.map_outlined),
+              FieldnoteSectionTab('Invites', Icons.mark_email_unread_outlined),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Expanded(
+            child: TabBarView(
               children: [
-                for (var index = 0; index < orderedMatches.length; index++)
-                  Builder(
-                    builder: (context) {
-                      final match = orderedMatches[index];
-                      final joined = viewModel.participationFor(
-                        match.campaign.id!,
-                      );
-                      return CampaignCard(
-                        campaign: match.campaign,
-                        showFunding: false,
-                        score: match.score,
-                        reasons: [
-                          if (viewModel.invitedTo(match.campaign.id!))
-                            'The campaign creator invited you to join',
-                          ...match.reasons,
-                          distanceLabel(match),
-                        ],
-                        actionLabel: joined == null
-                            ? 'Join campaign'
-                            : 'View my work',
-                        onAction: joined == null
-                            ? () => _join(context, match.campaign)
-                            : () => viewModel.selectSection(1),
-                      );
-                    },
-                  ),
+                _matchesList(orderedMatches, availability),
+                _matchesMap(orderedMatches, availability),
+                _invitations(invitedCampaigns),
               ],
             ),
+          ),
         ],
       ),
     );
   }
+
+  Widget _matchesList(
+    List<CampaignMatch> matches,
+    VolunteerAvailability? availability,
+  ) => RefreshIndicator(
+    onRefresh: viewModel.refresh,
+    child: FieldnotePageList(
+      key: const PageStorageKey('volunteer-matches-list'),
+      top: 12,
+      children: [
+        if (matches.isEmpty)
+          EmptyPanel(
+            icon: Icons.travel_explore,
+            title: 'No matches yet',
+            message: availability?.isAvailable == true
+                ? 'Try increasing your travel radius or choosing more available days.'
+                : 'Turn on availability to let AI recommend campaigns.',
+          )
+        else
+          ResponsiveCardGrid(
+            children: [
+              for (final match in matches)
+                Builder(
+                  builder: (context) {
+                    final joined = viewModel.participationFor(
+                      match.campaign.id!,
+                    );
+                    return CampaignCard(
+                      campaign: match.campaign,
+                      showFunding: false,
+                      score: match.score,
+                      reasons: [
+                        if (viewModel.invitedTo(match.campaign.id!))
+                          'The campaign creator invited you to join',
+                        ...match.reasons,
+                        distanceLabel(match),
+                      ],
+                      actionLabel: joined == null
+                          ? 'Join campaign'
+                          : 'View my work',
+                      onAction: joined == null
+                          ? () => _join(context, match.campaign)
+                          : () => viewModel.selectSection(1),
+                    );
+                  },
+                ),
+            ],
+          ),
+      ],
+    ),
+  );
+
+  Widget _matchesMap(
+    List<CampaignMatch> matches,
+    VolunteerAvailability? availability,
+  ) => RefreshIndicator(
+    onRefresh: viewModel.refresh,
+    child: FieldnotePageList(
+      key: const PageStorageKey('volunteer-matches-map'),
+      top: 12,
+      children: [
+        if (!mapsAvailable)
+          const EmptyPanel(
+            icon: Icons.map_outlined,
+            title: 'Map unavailable',
+            message: 'Open List to browse and join campaigns.',
+          )
+        else if (matches.isEmpty)
+          const EmptyPanel(
+            icon: Icons.travel_explore,
+            title: 'No campaigns on the map yet',
+            message: 'Check your availability and travel radius, then refresh.',
+          )
+        else
+          _MatchMap(
+            matches: matches,
+            availability: availability,
+            onOpen: _openMatch,
+          ),
+      ],
+    ),
+  );
+
+  Widget _invitations(List<Campaign> campaigns) => RefreshIndicator(
+    onRefresh: viewModel.refresh,
+    child: FieldnotePageList(
+      key: const PageStorageKey('volunteer-invitations'),
+      top: 12,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                campaigns.isEmpty
+                    ? 'Invitations'
+                    : 'Invitations (${campaigns.length})',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ),
+            IconButton.filledTonal(
+              tooltip: 'Check for invitations',
+              onPressed: viewModel.refresh,
+              icon: const Icon(Icons.refresh),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (campaigns.isEmpty)
+          SurfaceCard(
+            child: Row(
+              children: [
+                const Icon(Icons.mark_email_unread_outlined, size: 28),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    'No invitations yet. Pull down to check again.',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          ResponsiveCardGrid(
+            children: [
+              for (final campaign in campaigns)
+                CampaignCard(
+                  campaign: campaign,
+                  showFunding: false,
+                  reasons: const ['The campaign creator invited you to join'],
+                  actionLabel: 'Join campaign',
+                  onAction: () => _join(context, campaign),
+                ),
+            ],
+          ),
+      ],
+    ),
+  );
 
   void _openMatch(CampaignMatch match) {
     final reasons = [
@@ -162,7 +251,7 @@ class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
                 children: [
                   Text(
                     match.campaign.name,
-                    style: Theme.of(sheetContext).textTheme.headlineMedium,
+                    style: Theme.of(sheetContext).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 6),
                   Text(match.campaign.locationName),
@@ -301,7 +390,7 @@ class _MatchMap extends StatelessWidget {
       children: [
         FieldnoteMap(
           target: points.first,
-          height: 420,
+          height: 330,
           semanticLabel: 'Map of matched campaigns inside your travel radius',
           fitBounds: points,
           markers: {
@@ -381,18 +470,33 @@ class VolunteerWorkView extends StatelessWidget {
       child: FieldnotePageList(
         children: [
           const SectionHeading(
-            eyebrow: 'Volunteer mission control',
-            title: 'Arrive. Verify. Show impact.',
+            eyebrow: 'Your campaigns',
+            title: 'My work',
             description:
-                'GPS confirms arrival. A photo and voice note become sponsor-ready evidence with AI.',
+                'See your joined campaigns, directions, and next steps.',
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           if (viewModel.participations.isEmpty)
-            const EmptyPanel(
-              icon: Icons.hiking_outlined,
-              title: 'No active campaigns',
-              message:
-                  'Choose a recommended campaign to begin your first mission.',
+            SurfaceCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.hiking_outlined, size: 30),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No joined campaigns yet',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 6),
+                  const Text('Find a campaign nearby and join when it fits.'),
+                  const SizedBox(height: 14),
+                  FilledButton.icon(
+                    onPressed: () => viewModel.selectSection(0),
+                    icon: const Icon(Icons.travel_explore),
+                    label: const Text('Browse campaigns'),
+                  ),
+                ],
+              ),
             )
           else
             ...viewModel.participations.map((participation) {
@@ -454,9 +558,10 @@ class _MissionCardState extends State<_MissionCard> {
         oldWidget.campaign.readinessState != widget.campaign.readinessState) {
       _posts = widget.viewModel.repository.campaignPosts(widget.campaign.id!);
     }
-    if (!_loadingContact && _contactPhone == null) {
+    if (oldWidget.campaign.id != widget.campaign.id) {
+      _contactPhone = null;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && !_loadingContact && _contactPhone == null) {
+        if (mounted) {
           _loadContact();
         }
       });
@@ -654,13 +759,16 @@ class _MissionCardState extends State<_MissionCard> {
               ),
             ],
           ),
-          const SizedBox(height: 15),
+          const SizedBox(height: 12),
           Text(
             widget.campaign.name,
-            style: Theme.of(context).textTheme.headlineMedium,
+            style: Theme.of(context).textTheme.titleLarge,
           ),
-          const SizedBox(height: 6),
-          Text(widget.campaign.locationName),
+          const SizedBox(height: 4),
+          Text(
+            widget.campaign.locationName,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
           const SizedBox(height: 10),
           StatusPill(
             label: switch (widget.campaign.readinessState) {
@@ -1690,12 +1798,11 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
     return FieldnotePageList(
       children: [
         const SectionHeading(
-          eyebrow: 'Your most important setting',
-          title: 'Availability powers every match',
-          description:
-              'FieldNote only recommends work that fits your schedule and chosen travel radius.',
+          eyebrow: 'Volunteer preferences',
+          title: 'Availability',
+          description: 'Choose when and how far you can travel.',
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
         SurfaceCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,0 +1,10 @@
+### A volunteer visible to the creator of a published campaign. Map
+### coordinates are rounded to a coarse area, never the person's GPS point.
+class: CampaignVolunteerMapMember
+fields:
+  profileId: int
+  displayName: String
+  areaLabel: String
+  latitude: double?
+  longitude: double?
+  status: String
