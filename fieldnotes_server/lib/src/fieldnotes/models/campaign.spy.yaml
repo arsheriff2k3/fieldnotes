@@ -15,6 +15,15 @@ fields:
   longitude: double, default=73.8567
   geofenceMeters: double, default=200
   volunteerCapacity: int, default=10
+  minimumVolunteers: int, default=1
+  eligibleVolunteers: int, default=0
+  readinessState: String, default='open'
+  revision: int, default=0
+  readinessCheckedAt: DateTime?
+  confirmedAt: DateTime?
+  decisionDueAt: DateTime?
+  postponedAt: DateTime?
+  cancelledAt: DateTime?
   requiredSkills: String, default=''
   checklist: String, default=''
   evidenceInstructions: String, default=''

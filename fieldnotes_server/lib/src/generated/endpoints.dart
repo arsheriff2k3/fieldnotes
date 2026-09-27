@@ -13,6 +13,7 @@
 import 'dart:typed_data' as _idt;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/campaign_proposal.dart'
     as _imistozd;
+import 'package:fieldnotes_server/src/generated/future_calls.dart' as _ivhm99lh;
 import 'package:serverpod/serverpod.dart' as _is;
 import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
     as _iacs;
@@ -22,6 +23,7 @@ import '../auth/email_idp_endpoint.dart' as _iuc1hd5t;
 import '../auth/jwt_refresh_endpoint.dart' as _inwq3ztq;
 import '../fieldnotes/fieldnote_endpoint.dart' as _i4pdwwji;
 import '../greetings/greeting_endpoint.dart' as _il624ik7;
+export 'future_calls.dart' show ServerpodFutureCallsGetter;
 
 class Endpoints extends _is.EndpointDispatch {
   @override
@@ -376,6 +378,21 @@ class Endpoints extends _is.EndpointDispatch {
               type: _is.getType<List<String>>(),
               nullable: false,
             ),
+            'locationLatitude': _is.ParameterDescription(
+              name: 'locationLatitude',
+              type: _is.getType<double?>(),
+              nullable: true,
+            ),
+            'locationLongitude': _is.ParameterDescription(
+              name: 'locationLongitude',
+              type: _is.getType<double?>(),
+              nullable: true,
+            ),
+            'contactPhone': _is.ParameterDescription(
+              name: 'contactPhone',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
           },
           call:
               (
@@ -390,6 +407,9 @@ class Endpoints extends _is.EndpointDispatch {
                     params['city'],
                     params['cityPlaceId'],
                     params['interests'],
+                    locationLatitude: params['locationLatitude'],
+                    locationLongitude: params['locationLongitude'],
+                    contactPhone: params['contactPhone'],
                   ),
         ),
         'completeVolunteerProfile': _is.MethodConnector(
@@ -521,6 +541,21 @@ class Endpoints extends _is.EndpointDispatch {
               type: _is.getType<List<String>>(),
               nullable: false,
             ),
+            'locationLatitude': _is.ParameterDescription(
+              name: 'locationLatitude',
+              type: _is.getType<double?>(),
+              nullable: true,
+            ),
+            'locationLongitude': _is.ParameterDescription(
+              name: 'locationLongitude',
+              type: _is.getType<double?>(),
+              nullable: true,
+            ),
+            'contactPhone': _is.ParameterDescription(
+              name: 'contactPhone',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
           },
           call:
               (
@@ -536,6 +571,9 @@ class Endpoints extends _is.EndpointDispatch {
                     params['cityPlaceId'],
                     params['interests'],
                     params['skills'],
+                    locationLatitude: params['locationLatitude'],
+                    locationLongitude: params['locationLongitude'],
+                    contactPhone: params['contactPhone'],
                   ),
         ),
         'getMyAvailability': _is.MethodConnector(
@@ -728,6 +766,135 @@ class Endpoints extends _is.EndpointDispatch {
               ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
                   .listMyCreatedCampaigns(session),
         ),
+        'refreshCampaignReadiness': _is.MethodConnector(
+          name: 'refreshCampaignReadiness',
+          params: {
+            'campaignId': _is.ParameterDescription(
+              name: 'campaignId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .refreshCampaignReadiness(
+                    session,
+                    params['campaignId'],
+                  ),
+        ),
+        'reviseCampaignScope': _is.MethodConnector(
+          name: 'reviseCampaignScope',
+          params: {
+            'campaignId': _is.ParameterDescription(
+              name: 'campaignId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'fundingGoal': _is.ParameterDescription(
+              name: 'fundingGoal',
+              type: _is.getType<double>(),
+              nullable: false,
+            ),
+            'minimumVolunteers': _is.ParameterDescription(
+              name: 'minimumVolunteers',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'description': _is.ParameterDescription(
+              name: 'description',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .reviseCampaignScope(
+                    session,
+                    params['campaignId'],
+                    params['fundingGoal'],
+                    params['minimumVolunteers'],
+                    params['description'],
+                  ),
+        ),
+        'postponeCampaign': _is.MethodConnector(
+          name: 'postponeCampaign',
+          params: {
+            'campaignId': _is.ParameterDescription(
+              name: 'campaignId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'newStartsAt': _is.ParameterDescription(
+              name: 'newStartsAt',
+              type: _is.getType<DateTime>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .postponeCampaign(
+                    session,
+                    params['campaignId'],
+                    params['newStartsAt'],
+                  ),
+        ),
+        'cancelCampaign': _is.MethodConnector(
+          name: 'cancelCampaign',
+          params: {
+            'campaignId': _is.ParameterDescription(
+              name: 'campaignId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .cancelCampaign(
+                    session,
+                    params['campaignId'],
+                  ),
+        ),
+        'reconfirmCampaignParticipation': _is.MethodConnector(
+          name: 'reconfirmCampaignParticipation',
+          params: {
+            'participationId': _is.ParameterDescription(
+              name: 'participationId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .reconfirmCampaignParticipation(
+                    session,
+                    params['participationId'],
+                  ),
+        ),
+        'listMyJoinedCampaigns': _is.MethodConnector(
+          name: 'listMyJoinedCampaigns',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .listMyJoinedCampaigns(session),
+        ),
         'isCitySearchAvailable': _is.MethodConnector(
           name: 'isCitySearchAvailable',
           params: {},
@@ -861,6 +1028,43 @@ class Endpoints extends _is.EndpointDispatch {
                     params['longitude'],
                   ),
         ),
+        'getTravelRoute': _is.MethodConnector(
+          name: 'getTravelRoute',
+          params: {
+            'campaignId': _is.ParameterDescription(
+              name: 'campaignId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'originLatitude': _is.ParameterDescription(
+              name: 'originLatitude',
+              type: _is.getType<double>(),
+              nullable: false,
+            ),
+            'originLongitude': _is.ParameterDescription(
+              name: 'originLongitude',
+              type: _is.getType<double>(),
+              nullable: false,
+            ),
+            'travelMode': _is.ParameterDescription(
+              name: 'travelMode',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .getTravelRoute(
+                    session,
+                    params['campaignId'],
+                    params['originLatitude'],
+                    params['originLongitude'],
+                    params['travelMode'],
+                  ),
+        ),
         'previewCampaignReach': _is.MethodConnector(
           name: 'previewCampaignReach',
           params: {
@@ -885,6 +1089,66 @@ class Endpoints extends _is.EndpointDispatch {
                     params['latitude'],
                     params['longitude'],
                   ),
+        ),
+        'getCampaignVolunteerReach': _is.MethodConnector(
+          name: 'getCampaignVolunteerReach',
+          params: {
+            'campaignId': _is.ParameterDescription(
+              name: 'campaignId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .getCampaignVolunteerReach(
+                    session,
+                    params['campaignId'],
+                  ),
+        ),
+        'inviteCampaignVolunteersInArea': _is.MethodConnector(
+          name: 'inviteCampaignVolunteersInArea',
+          params: {
+            'campaignId': _is.ParameterDescription(
+              name: 'campaignId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'areaLatitude': _is.ParameterDescription(
+              name: 'areaLatitude',
+              type: _is.getType<double>(),
+              nullable: false,
+            ),
+            'areaLongitude': _is.ParameterDescription(
+              name: 'areaLongitude',
+              type: _is.getType<double>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .inviteCampaignVolunteersInArea(
+                    session,
+                    params['campaignId'],
+                    params['areaLatitude'],
+                    params['areaLongitude'],
+                  ),
+        ),
+        'listMyCampaignInvitations': _is.MethodConnector(
+          name: 'listMyCampaignInvitations',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .listMyCampaignInvitations(session),
         ),
         'getCampaignMap': _is.MethodConnector(
           name: 'getCampaignMap',
@@ -1008,6 +1272,44 @@ class Endpoints extends _is.EndpointDispatch {
               ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
                   .listMySponsorships(session),
         ),
+        'listCampaignTestPayouts': _is.MethodConnector(
+          name: 'listCampaignTestPayouts',
+          params: {
+            'campaignId': _is.ParameterDescription(
+              name: 'campaignId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .listCampaignTestPayouts(
+                    session,
+                    params['campaignId'],
+                  ),
+        ),
+        'simulateCampaignTestPayout': _is.MethodConnector(
+          name: 'simulateCampaignTestPayout',
+          params: {
+            'campaignId': _is.ParameterDescription(
+              name: 'campaignId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .simulateCampaignTestPayout(
+                    session,
+                    params['campaignId'],
+                  ),
+        ),
         'getCampaignMatches': _is.MethodConnector(
           name: 'getCampaignMatches',
           params: {},
@@ -1033,6 +1335,25 @@ class Endpoints extends _is.EndpointDispatch {
                 Map<String, dynamic> params,
               ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
                   .joinCampaign(
+                    session,
+                    params['campaignId'],
+                  ),
+        ),
+        'getCampaignContactPhone': _is.MethodConnector(
+          name: 'getCampaignContactPhone',
+          params: {
+            'campaignId': _is.ParameterDescription(
+              name: 'campaignId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .getCampaignContactPhone(
                     session,
                     params['campaignId'],
                   ),
@@ -1384,5 +1705,10 @@ class Endpoints extends _is.EndpointDispatch {
       ..initializeEndpoints(server);
     modules['serverpod_auth_core'] = _iacs.Endpoints()
       ..initializeEndpoints(server);
+  }
+
+  @override
+  _is.FutureCallDispatch? get futureCalls {
+    return _ivhm99lh.FutureCalls();
   }
 }

@@ -1,0 +1,7 @@
+### One instruction on a route from the volunteer's live position to a campaign.
+class: TravelStep
+fields:
+  instruction: String
+  distanceMeters: int
+  endLatitude: double
+  endLongitude: double

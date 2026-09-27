@@ -1,0 +1,15 @@
+### An invitation from a campaign creator to an available volunteer. The
+### volunteer sees it privately in Matches and chooses whether to join.
+class: CampaignInvitation
+table: fieldnote_campaign_invitation
+fields:
+  campaignId: int, relation(parent=fieldnote_campaign)
+  volunteerAuthUserId: UuidValue
+  sponsorAuthUserId: UuidValue
+  createdAt: DateTime, default=now
+indexes:
+  fieldnote_invitation_campaign_volunteer_idx:
+    fields: campaignId, volunteerAuthUserId
+    unique: true
+  fieldnote_invitation_volunteer_idx:
+    fields: volunteerAuthUserId

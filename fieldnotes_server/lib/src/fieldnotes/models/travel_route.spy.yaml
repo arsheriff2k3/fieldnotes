@@ -1,0 +1,7 @@
+### A route preview and its steps. The API key stays on the server.
+class: TravelRoute
+fields:
+  distanceMeters: int
+  durationSeconds: int
+  encodedPolyline: String
+  steps: List<TravelStep>

@@ -4,9 +4,12 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 class SpeechTranscriptionException implements Exception {
-  const SpeechTranscriptionException(this.message);
+  const SpeechTranscriptionException(this.message, [this.statusCode]);
 
   final String message;
+  final int? statusCode;
+
+  bool get isQuotaExhausted => statusCode == 429;
 
   @override
   String toString() => 'SpeechTranscriptionException: $message';
@@ -68,6 +71,7 @@ class GeminiSpeechService {
           uploadUrl == null) {
         throw SpeechTranscriptionException(
           'Gemini file upload initialization returned HTTP ${start.statusCode}.',
+          start.statusCode,
         );
       }
       final uploaded = await _client
@@ -84,6 +88,7 @@ class GeminiSpeechService {
       if (uploaded.statusCode < 200 || uploaded.statusCode >= 300) {
         throw SpeechTranscriptionException(
           'Gemini file upload returned HTTP ${uploaded.statusCode}.',
+          uploaded.statusCode,
         );
       }
       final fileBody = jsonDecode(uploaded.body);
@@ -132,6 +137,7 @@ class GeminiSpeechService {
         }
         throw SpeechTranscriptionException(
           'Gemini transcription returned HTTP ${response.statusCode}.',
+          response.statusCode,
         );
       }
       final body = jsonDecode(response.body);

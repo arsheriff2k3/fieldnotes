@@ -13,6 +13,8 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign.dart'
     as _i6ar8a32;
+import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign_invitation.dart'
+    as _ilmm7kn9;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign_match.dart'
     as _ifn539xv;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign_participation.dart'
@@ -23,6 +25,8 @@ import 'package:fieldnotes_client/src/protocol/fieldnotes/models/place_suggestio
     as _igynj288;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/sponsorship.dart'
     as _iffokzpe;
+import 'package:fieldnotes_client/src/protocol/fieldnotes/models/test_payout.dart'
+    as _irfbdx5f;
 import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
     as _iacc;
 import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
@@ -33,6 +37,7 @@ import 'fieldnotes/models/ai_confidence.dart' as _icuvt3ro;
 import 'fieldnotes/models/asset.dart' as _iyem7tcm;
 import 'fieldnotes/models/audit_event.dart' as _i3s6sm3e;
 import 'fieldnotes/models/campaign.dart' as _imoyt016;
+import 'fieldnotes/models/campaign_invitation.dart' as _ibb1uwag;
 import 'fieldnotes/models/campaign_live_update.dart' as _ixbyjocu;
 import 'fieldnotes/models/campaign_map_overview.dart' as _ia1ix8k0;
 import 'fieldnotes/models/campaign_map_pin.dart' as _iaixb6xr;
@@ -67,6 +72,10 @@ import 'fieldnotes/models/review_outcome.dart' as _imia3a4e;
 import 'fieldnotes/models/review_state.dart' as _iulscgnl;
 import 'fieldnotes/models/sponsorship.dart' as _i1cgh9io;
 import 'fieldnotes/models/task_status.dart' as _ixrvqme0;
+import 'fieldnotes/models/test_payout.dart' as _ibdacauq;
+import 'fieldnotes/models/test_refund.dart' as _iviseq0a;
+import 'fieldnotes/models/travel_route.dart' as _it2sjc8r;
+import 'fieldnotes/models/travel_step.dart' as _ik5r1rtc;
 import 'fieldnotes/models/trust_center_summary.dart' as _ip0a93i5;
 import 'fieldnotes/models/user_profile.dart' as _iq3hh8xc;
 import 'fieldnotes/models/volunteer_availability.dart' as _ifa4ljot;
@@ -77,6 +86,7 @@ export 'fieldnotes/models/ai_confidence.dart';
 export 'fieldnotes/models/asset.dart';
 export 'fieldnotes/models/audit_event.dart';
 export 'fieldnotes/models/campaign.dart';
+export 'fieldnotes/models/campaign_invitation.dart';
 export 'fieldnotes/models/campaign_live_update.dart';
 export 'fieldnotes/models/campaign_map_overview.dart';
 export 'fieldnotes/models/campaign_map_pin.dart';
@@ -111,6 +121,10 @@ export 'fieldnotes/models/review_outcome.dart';
 export 'fieldnotes/models/review_state.dart';
 export 'fieldnotes/models/sponsorship.dart';
 export 'fieldnotes/models/task_status.dart';
+export 'fieldnotes/models/test_payout.dart';
+export 'fieldnotes/models/test_refund.dart';
+export 'fieldnotes/models/travel_route.dart';
+export 'fieldnotes/models/travel_step.dart';
 export 'fieldnotes/models/trust_center_summary.dart';
 export 'fieldnotes/models/user_profile.dart';
 export 'fieldnotes/models/volunteer_availability.dart';
@@ -166,6 +180,9 @@ class Protocol extends _isc.SerializationManager {
     }
     if (t == _imoyt016.Campaign) {
       return _imoyt016.Campaign.fromJson(data) as T;
+    }
+    if (t == _ibb1uwag.CampaignInvitation) {
+      return _ibb1uwag.CampaignInvitation.fromJson(data) as T;
     }
     if (t == _ixbyjocu.CampaignLiveUpdate) {
       return _ixbyjocu.CampaignLiveUpdate.fromJson(data) as T;
@@ -269,6 +286,18 @@ class Protocol extends _isc.SerializationManager {
     if (t == _ixrvqme0.TaskStatus) {
       return _ixrvqme0.TaskStatus.fromJson(data) as T;
     }
+    if (t == _ibdacauq.TestPayout) {
+      return _ibdacauq.TestPayout.fromJson(data) as T;
+    }
+    if (t == _iviseq0a.TestRefund) {
+      return _iviseq0a.TestRefund.fromJson(data) as T;
+    }
+    if (t == _it2sjc8r.TravelRoute) {
+      return _it2sjc8r.TravelRoute.fromJson(data) as T;
+    }
+    if (t == _ik5r1rtc.TravelStep) {
+      return _ik5r1rtc.TravelStep.fromJson(data) as T;
+    }
     if (t == _ip0a93i5.TrustCenterSummary) {
       return _ip0a93i5.TrustCenterSummary.fromJson(data) as T;
     }
@@ -298,6 +327,10 @@ class Protocol extends _isc.SerializationManager {
     }
     if (t == _isc.getType<_imoyt016.Campaign?>()) {
       return (data != null ? _imoyt016.Campaign.fromJson(data) : null) as T;
+    }
+    if (t == _isc.getType<_ibb1uwag.CampaignInvitation?>()) {
+      return (data != null ? _ibb1uwag.CampaignInvitation.fromJson(data) : null)
+          as T;
     }
     if (t == _isc.getType<_ixbyjocu.CampaignLiveUpdate?>()) {
       return (data != null ? _ixbyjocu.CampaignLiveUpdate.fromJson(data) : null)
@@ -437,6 +470,18 @@ class Protocol extends _isc.SerializationManager {
     if (t == _isc.getType<_ixrvqme0.TaskStatus?>()) {
       return (data != null ? _ixrvqme0.TaskStatus.fromJson(data) : null) as T;
     }
+    if (t == _isc.getType<_ibdacauq.TestPayout?>()) {
+      return (data != null ? _ibdacauq.TestPayout.fromJson(data) : null) as T;
+    }
+    if (t == _isc.getType<_iviseq0a.TestRefund?>()) {
+      return (data != null ? _iviseq0a.TestRefund.fromJson(data) : null) as T;
+    }
+    if (t == _isc.getType<_it2sjc8r.TravelRoute?>()) {
+      return (data != null ? _it2sjc8r.TravelRoute.fromJson(data) : null) as T;
+    }
+    if (t == _isc.getType<_ik5r1rtc.TravelStep?>()) {
+      return (data != null ? _ik5r1rtc.TravelStep.fromJson(data) : null) as T;
+    }
     if (t == _isc.getType<_ip0a93i5.TrustCenterSummary?>()) {
       return (data != null ? _ip0a93i5.TrustCenterSummary.fromJson(data) : null)
           as T;
@@ -481,6 +526,12 @@ class Protocol extends _isc.SerializationManager {
               .toList()
           as T;
     }
+    if (t == List<_ik5r1rtc.TravelStep>) {
+      return (data as List)
+              .map((e) => deserialize<_ik5r1rtc.TravelStep>(e))
+              .toList()
+          as T;
+    }
     if (t == List<_i3s6sm3e.AuditEvent>) {
       return (data as List)
               .map((e) => deserialize<_i3s6sm3e.AuditEvent>(e))
@@ -511,9 +562,21 @@ class Protocol extends _isc.SerializationManager {
               .toList()
           as T;
     }
+    if (t == List<_ilmm7kn9.CampaignInvitation>) {
+      return (data as List)
+              .map((e) => deserialize<_ilmm7kn9.CampaignInvitation>(e))
+              .toList()
+          as T;
+    }
     if (t == List<_iffokzpe.Sponsorship>) {
       return (data as List)
               .map((e) => deserialize<_iffokzpe.Sponsorship>(e))
+              .toList()
+          as T;
+    }
+    if (t == List<_irfbdx5f.TestPayout>) {
+      return (data as List)
+              .map((e) => deserialize<_irfbdx5f.TestPayout>(e))
               .toList()
           as T;
     }
@@ -551,6 +614,7 @@ class Protocol extends _isc.SerializationManager {
       _iyem7tcm.Asset => 'Asset',
       _i3s6sm3e.AuditEvent => 'AuditEvent',
       _imoyt016.Campaign => 'Campaign',
+      _ibb1uwag.CampaignInvitation => 'CampaignInvitation',
       _ixbyjocu.CampaignLiveUpdate => 'CampaignLiveUpdate',
       _ia1ix8k0.CampaignMapOverview => 'CampaignMapOverview',
       _iaixb6xr.CampaignMapPin => 'CampaignMapPin',
@@ -585,6 +649,10 @@ class Protocol extends _isc.SerializationManager {
       _iulscgnl.ReviewState => 'ReviewState',
       _i1cgh9io.Sponsorship => 'Sponsorship',
       _ixrvqme0.TaskStatus => 'TaskStatus',
+      _ibdacauq.TestPayout => 'TestPayout',
+      _iviseq0a.TestRefund => 'TestRefund',
+      _it2sjc8r.TravelRoute => 'TravelRoute',
+      _ik5r1rtc.TravelStep => 'TravelStep',
       _ip0a93i5.TrustCenterSummary => 'TrustCenterSummary',
       _iq3hh8xc.FieldnoteUserProfile => 'FieldnoteUserProfile',
       _ifa4ljot.VolunteerAvailability => 'VolunteerAvailability',
@@ -614,6 +682,8 @@ class Protocol extends _isc.SerializationManager {
         return 'AuditEvent';
       case _imoyt016.Campaign():
         return 'Campaign';
+      case _ibb1uwag.CampaignInvitation():
+        return 'CampaignInvitation';
       case _ixbyjocu.CampaignLiveUpdate():
         return 'CampaignLiveUpdate';
       case _ia1ix8k0.CampaignMapOverview():
@@ -682,6 +752,14 @@ class Protocol extends _isc.SerializationManager {
         return 'Sponsorship';
       case _ixrvqme0.TaskStatus():
         return 'TaskStatus';
+      case _ibdacauq.TestPayout():
+        return 'TestPayout';
+      case _iviseq0a.TestRefund():
+        return 'TestRefund';
+      case _it2sjc8r.TravelRoute():
+        return 'TravelRoute';
+      case _ik5r1rtc.TravelStep():
+        return 'TravelStep';
       case _ip0a93i5.TrustCenterSummary():
         return 'TrustCenterSummary';
       case _iq3hh8xc.FieldnoteUserProfile():
@@ -728,6 +806,9 @@ class Protocol extends _isc.SerializationManager {
     }
     if (dataClassName == 'Campaign') {
       return deserialize<_imoyt016.Campaign>(data['data']);
+    }
+    if (dataClassName == 'CampaignInvitation') {
+      return deserialize<_ibb1uwag.CampaignInvitation>(data['data']);
     }
     if (dataClassName == 'CampaignLiveUpdate') {
       return deserialize<_ixbyjocu.CampaignLiveUpdate>(data['data']);
@@ -830,6 +911,18 @@ class Protocol extends _isc.SerializationManager {
     }
     if (dataClassName == 'TaskStatus') {
       return deserialize<_ixrvqme0.TaskStatus>(data['data']);
+    }
+    if (dataClassName == 'TestPayout') {
+      return deserialize<_ibdacauq.TestPayout>(data['data']);
+    }
+    if (dataClassName == 'TestRefund') {
+      return deserialize<_iviseq0a.TestRefund>(data['data']);
+    }
+    if (dataClassName == 'TravelRoute') {
+      return deserialize<_it2sjc8r.TravelRoute>(data['data']);
+    }
+    if (dataClassName == 'TravelStep') {
+      return deserialize<_ik5r1rtc.TravelStep>(data['data']);
     }
     if (dataClassName == 'TrustCenterSummary') {
       return deserialize<_ip0a93i5.TrustCenterSummary>(data['data']);

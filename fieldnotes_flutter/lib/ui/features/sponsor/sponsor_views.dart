@@ -11,10 +11,14 @@ import '../../../data/repositories/fieldnote_repository.dart';
 import '../../../data/services/device_location_service.dart';
 import '../../../data/services/razorpay_checkout_service.dart';
 import '../../core/fieldnote_theme.dart';
+import '../../core/location_picker.dart';
 import '../../core/widgets.dart';
 import '../shell/fieldnote_view_model.dart';
 import 'campaign_map_view.dart';
 import 'campaign_pin_picker.dart';
+import 'payout_view.dart';
+import 'campaign_readiness_view.dart';
+import 'campaign_volunteer_reach_view.dart';
 
 class SponsorDiscoverView extends StatelessWidget {
   const SponsorDiscoverView({super.key, required this.viewModel});
@@ -39,6 +43,58 @@ class SponsorDiscoverView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
+          SurfaceCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Your campaigns',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  viewModel.createdCampaigns.isEmpty
+                      ? 'Create a campaign to see nearby volunteer areas and invite people.'
+                      : 'View nearby volunteer areas and invite people to your campaign.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 16),
+                if (viewModel.createdCampaigns.isEmpty)
+                  OutlinedButton.icon(
+                    onPressed: () => viewModel.selectSection(1),
+                    icon: const Icon(Icons.add_circle_outline),
+                    label: const Text('Create a campaign'),
+                  ),
+                for (final campaign in viewModel.createdCampaigns) ...[
+                  Text(
+                    campaign.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.of(context).push<void>(
+                        MaterialPageRoute(
+                          builder: (_) => CampaignVolunteerReachView(
+                            campaign: campaign,
+                            repository: viewModel.repository,
+                          ),
+                        ),
+                      ),
+                      icon: const Icon(Icons.map_outlined),
+                      label: const Text('View volunteer map'),
+                    ),
+                  ),
+                  if (campaign != viewModel.createdCampaigns.last)
+                    const Divider(height: 26),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
           ResponsiveCardGrid(
             children: [
               for (var index = 0; index < viewModel.campaigns.length; index++)
@@ -51,6 +107,7 @@ class SponsorDiscoverView extends StatelessWidget {
                             .toDouble();
                     return CampaignCard(
                       campaign: campaign,
+                      showFunding: true,
                       actionLabel: remaining > 0
                           ? 'Sponsor campaign'
                           : 'Fully funded',
@@ -90,6 +147,7 @@ class SponsorDiscoverView extends StatelessWidget {
     RazorpayCheckoutOrder? createdOrder;
     var saving = false;
     var paymentCompleted = false;
+    var checkoutReturned = false;
     try {
       final verified =
           await showDialog<bool>(
@@ -97,7 +155,32 @@ class SponsorDiscoverView extends StatelessWidget {
             builder: (dialogContext) => StatefulBuilder(
               builder: (context, setDialogState) => AlertDialog(
                 scrollable: true,
-                title: Text('Sponsor ${campaign.name}'),
+                insetPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 24,
+                ),
+                titlePadding: const EdgeInsets.fromLTRB(20, 22, 20, 12),
+                contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                actionsPadding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                title: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Sponsor campaign',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      campaign.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
                 content: SizedBox(
                   width: 480,
                   child: Column(
@@ -105,9 +188,9 @@ class SponsorDiscoverView extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(14),
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: FieldnoteColors.acid.withValues(alpha: .4),
+                          color: FieldnoteColors.acid.withValues(alpha: .24),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: const Row(
@@ -116,59 +199,76 @@ class SponsorDiscoverView extends StatelessWidget {
                             SizedBox(width: 9),
                             Expanded(
                               child: Text(
-                                'Secure Razorpay checkout with server-side signature verification.',
+                                'Razorpay test checkout. Payment is credited after verification.',
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
                       Text(
                         '${_formatRupees(remainingAmount)} remaining',
-                        style: Theme.of(context).textTheme.titleSmall,
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Choose how much to contribute',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 12),
                       Column(
                         children: [
                           for (var row = 0; row < 2; row++) ...[
                             Row(
                               children: [
                                 for (var column = 0; column < 2; column++) ...[
-                                  if (column > 0) const SizedBox(width: 8),
+                                  if (column > 0) const SizedBox(width: 12),
                                   Expanded(
                                     child: Builder(
                                       builder: (context) {
                                         final index = row * 2 + column;
                                         final portion = portions[index];
                                         final value = amounts[index];
-                                        return SizedBox(
-                                          width: double.infinity,
-                                          child: ChoiceChip(
-                                            showCheckmark: true,
-                                            label: Column(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Text(
-                                                  '${(portion * 100).round()}%',
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.w800,
-                                                  ),
-                                                ),
-                                                Text(
-                                                  _formatRupees(value),
-                                                  style: Theme.of(
-                                                    context,
-                                                  ).textTheme.labelSmall,
-                                                ),
-                                              ],
-                                            ),
-                                            selected:
-                                                selectedPortion == portion,
-                                            onSelected: (_) =>
-                                                setDialogState(() {
+                                        final selected =
+                                            selectedPortion == portion;
+                                        return OutlinedButton(
+                                          onPressed: saving
+                                              ? null
+                                              : () => setDialogState(() {
                                                   selectedPortion = portion;
                                                   amount = value;
                                                 }),
+                                          style: OutlinedButton.styleFrom(
+                                            minimumSize: const Size(0, 72),
+                                            padding: const EdgeInsets.all(10),
+                                            backgroundColor: selected
+                                                ? FieldnoteColors.moss
+                                                      .withValues(alpha: .18)
+                                                : null,
+                                            side: BorderSide(
+                                              color: selected
+                                                  ? FieldnoteColors.forest
+                                                  : FieldnoteColors.moss
+                                                        .withValues(alpha: .4),
+                                              width: selected ? 2 : 1,
+                                            ),
+                                          ),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                '${(portion * 100).round()}%',
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.w800,
+                                                ),
+                                              ),
+                                              Text(
+                                                _formatRupees(value),
+                                                style: Theme.of(
+                                                  context,
+                                                ).textTheme.labelSmall,
+                                              ),
+                                            ],
                                           ),
                                         );
                                       },
@@ -177,13 +277,14 @@ class SponsorDiscoverView extends StatelessWidget {
                                 ],
                               ],
                             ),
-                            if (row == 0) const SizedBox(height: 8),
+                            if (row == 0) const SizedBox(height: 12),
                           ],
                         ],
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 20),
                       FieldnoteTextField(
                         controller: note,
+                        maxLines: 2,
                         decoration: const InputDecoration(
                           labelText: 'Message (optional)',
                           hintText: 'Why this campaign matters to you',
@@ -193,65 +294,76 @@ class SponsorDiscoverView extends StatelessWidget {
                   ),
                 ),
                 actions: [
-                  TextButton(
-                    onPressed: saving
-                        ? null
-                        : () => Navigator.pop(dialogContext),
-                    child: const Text('Cancel'),
-                  ),
-                  FilledButton.icon(
-                    onPressed: saving
-                        ? null
-                        : () async {
-                            setDialogState(() => saving = true);
-                            try {
-                              final order = await viewModel.createPaymentOrder(
-                                campaign,
-                                amount,
-                                note.text,
-                              );
-                              createdOrder = order;
-                              final result = await checkout.open(order);
-                              await viewModel.verifyPayment(
-                                order,
-                                returnedOrderId: result.orderId,
-                                paymentId: result.paymentId,
-                                signature: result.signature,
-                              );
-                              if (dialogContext.mounted) {
-                                paymentCompleted = true;
-                                Navigator.pop(dialogContext, true);
-                              }
-                            } catch (error) {
-                              final order = createdOrder;
-                              if (order != null) {
-                                try {
-                                  await viewModel.repository
-                                      .recordRazorpayFailure(
-                                        order.sponsorshipId,
-                                        _paymentError(error),
-                                      );
-                                } catch (_) {}
-                              }
-                              if (dialogContext.mounted) {
-                                showFieldnoteNotice(
-                                  dialogContext,
-                                  title: 'Payment unsuccessful',
-                                  message: _paymentError(error),
-                                  kind: FieldnoteNoticeKind.error,
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: saving
+                          ? null
+                          : () async {
+                              setDialogState(() => saving = true);
+                              try {
+                                final order = await viewModel
+                                    .createPaymentOrder(
+                                      campaign,
+                                      amount,
+                                      note.text,
+                                    );
+                                createdOrder = order;
+                                final result = await checkout.open(order);
+                                checkoutReturned = true;
+                                await viewModel.verifyPayment(
+                                  order,
+                                  returnedOrderId: result.orderId,
+                                  paymentId: result.paymentId,
+                                  signature: result.signature,
                                 );
+                                if (dialogContext.mounted) {
+                                  paymentCompleted = true;
+                                  Navigator.pop(dialogContext, true);
+                                }
+                              } catch (error) {
+                                final order = createdOrder;
+                                if (order != null && !checkoutReturned) {
+                                  try {
+                                    await viewModel.repository
+                                        .recordRazorpayFailure(
+                                          order.sponsorshipId,
+                                          _paymentError(error),
+                                        );
+                                  } catch (_) {}
+                                }
+                                if (dialogContext.mounted) {
+                                  showFieldnoteNotice(
+                                    dialogContext,
+                                    title: checkoutReturned
+                                        ? 'Payment needs review'
+                                        : 'Payment unsuccessful',
+                                    message: _paymentError(error),
+                                    kind: FieldnoteNoticeKind.error,
+                                  );
+                                }
+                              } finally {
+                                if (!paymentCompleted &&
+                                    dialogContext.mounted) {
+                                  setDialogState(() => saving = false);
+                                }
                               }
-                            } finally {
-                              if (!paymentCompleted && dialogContext.mounted) {
-                                setDialogState(() => saving = false);
-                              }
-                            }
-                          },
-                    icon: const Icon(Icons.lock_outline),
-                    label: Text(
-                      saving
-                          ? 'Opening Razorpay…'
-                          : 'Pay ${_formatRupees(amount)}',
+                            },
+                      icon: const Icon(Icons.lock_outline),
+                      label: Text(
+                        saving
+                            ? 'Opening Razorpay…'
+                            : 'Pay ${_formatRupees(amount)}',
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: saving
+                          ? null
+                          : () => Navigator.pop(dialogContext),
+                      child: const Text('Cancel'),
                     ),
                   ),
                 ],
@@ -278,7 +390,11 @@ class SponsorDiscoverView extends StatelessWidget {
 
   static String _paymentError(Object error) {
     if (error is FieldnoteException) return error.message;
-    if (error is RazorpayCheckoutException) return error.message;
+    if (error is RazorpayCheckoutException &&
+        error.message.trim().isNotEmpty &&
+        error.message.trim().toLowerCase() != 'undefined') {
+      return error.message;
+    }
     return 'The Razorpay test payment was not completed.';
   }
 
@@ -379,6 +495,8 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
     isDeviceLocation: false,
   );
   bool _locationSelected = false;
+  bool _locationQueryPending = false;
+  int _locationRequest = 0;
   StreamSubscription<Uint8List>? _audioSubscription;
   BytesBuilder _audioBuffer = BytesBuilder(copy: false);
   Timer? _recordingTimer;
@@ -604,6 +722,8 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
       confirmLabel: 'Use these details',
       initial: null,
       seedPrompt: _prompt.text.trim(),
+      repository: widget.viewModel.repository,
+      onLocationPicked: _acceptFormLocation,
     );
     if (entered != null && mounted) setState(() => _applyProposal(entered));
   }
@@ -611,10 +731,30 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
   /// Seeds the map pin's name from the proposal, but never overwrites a name
   /// the sponsor has already chosen on the map.
   void _applyProposal(CampaignProposal value) {
-    _proposal = value;
-    if (_pin.locationName.trim().isEmpty) {
-      _pin = _pin.copyWith(locationName: value.locationName.trim());
+    if (_proposal != null &&
+        _proposal!.locationName != value.locationName &&
+        _pin.locationName != value.locationName) {
+      _locationSelected = false;
     }
+    _proposal = value;
+    if (!_locationSelected) {
+      _pin = _pin.copyWith(locationName: value.locationName.trim());
+      _locationQueryPending = false;
+    }
+  }
+
+  void _acceptFormLocation(SelectedLocation location) {
+    ++_locationRequest;
+    setState(() {
+      _pin = _pin.copyWith(
+        latitude: location.latitude,
+        longitude: location.longitude,
+        locationName: location.label,
+        isDeviceLocation: false,
+      );
+      _locationSelected = true;
+      _locationQueryPending = false;
+    });
   }
 
   Future<void> _generate() async {
@@ -640,10 +780,13 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
   }
 
   Future<void> _useLocation() async {
+    final request = ++_locationRequest;
     try {
       final value = await _location.current();
-      if (!mounted) return;
-      var label = _pin.locationName;
+      if (!mounted || request != _locationRequest) return;
+      var label =
+          '${value.latitude.toStringAsFixed(5)}, '
+          '${value.longitude.toStringAsFixed(5)}';
       try {
         final place = await widget.viewModel.repository.describeCoordinates(
           value.latitude,
@@ -657,7 +800,7 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
       } on Object {
         // Coordinates remain useful even when reverse geocoding is offline.
       }
-      if (!mounted) return;
+      if (!mounted || request != _locationRequest) return;
       setState(() {
         _pin = _pin.copyWith(
           latitude: value.latitude,
@@ -666,11 +809,14 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
           isDeviceLocation: true,
         );
         _locationSelected = true;
+        _locationQueryPending = false;
       });
     } on LocationAccessException catch (error) {
-      if (mounted) await _showLocationProblem(error);
+      if (mounted && request == _locationRequest) {
+        await _showLocationProblem(error);
+      }
     } on Object {
-      if (mounted) {
+      if (mounted && request == _locationRequest) {
         _notify(
           'Could not read this device location. Check Settings and try again.',
         );
@@ -729,12 +875,18 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
       heading: 'Confirm campaign details',
       confirmLabel: 'Use these details',
       initial: proposal,
+      repository: widget.viewModel.repository,
+      onLocationPicked: _acceptFormLocation,
     );
     if (edited != null && mounted) setState(() => _applyProposal(edited));
   }
 
   Future<void> _publish() async {
     if (_proposal == null) return;
+    if (_locationQueryPending) {
+      _notify('Select a place result or restore the selected campaign pin.');
+      return;
+    }
     if (!_locationSelected) {
       _notify('Choose the campaign location on the map before publishing.');
       return;
@@ -854,26 +1006,6 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
                     ),
                   ],
                   const SizedBox(height: 12),
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 240),
-                    switchInCurve: Curves.easeOut,
-                    switchOutCurve: Curves.easeIn,
-                    child: _transcribing
-                        ? const _CreateProcessingNotice(
-                            key: ValueKey('transcribing'),
-                            title: 'Processing your recording',
-                            detail: 'Turning your voice into a campaign brief…',
-                          )
-                        : _working
-                        ? const _CreateProcessingNotice(
-                            key: ValueKey('generating'),
-                            title: 'Generating your campaign',
-                            detail:
-                                'Waiting for the server to prepare your draft…',
-                          )
-                        : const SizedBox.shrink(key: ValueKey('idle')),
-                  ),
-                  if (_transcribing || _working) const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
@@ -887,7 +1019,7 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
                           alpha: .82,
                         ),
                       ),
-                      icon: _working
+                      icon: _working || _transcribing
                           ? const SizedBox.square(
                               dimension: 18,
                               child: CircularProgressIndicator(
@@ -897,7 +1029,11 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
                             )
                           : const Icon(Icons.auto_awesome),
                       label: Text(
-                        _working ? 'Generating campaign…' : 'Generate campaign',
+                        _transcribing
+                            ? 'Processing recording…'
+                            : _working
+                            ? 'Generating campaign…'
+                            : 'Generate campaign',
                       ),
                     ),
                   ),
@@ -941,9 +1077,19 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
                     proposal: _proposal!,
                     repository: widget.viewModel.repository,
                     pin: _pin,
+                    locationSelected: _locationSelected,
+                    onSearchPendingChanged: (pending) =>
+                        _locationQueryPending = pending,
                     onPinChanged: (value) => setState(() {
+                      ++_locationRequest;
+                      final moved =
+                          value.latitude != _pin.latitude ||
+                          value.longitude != _pin.longitude ||
+                          value.locationName != _pin.locationName ||
+                          value.isDeviceLocation != _pin.isDeviceLocation;
                       _pin = value;
-                      _locationSelected = true;
+                      if (moved) _locationSelected = true;
+                      if (moved) _locationQueryPending = false;
                     }),
                     onUseLocation: _useLocation,
                     onEdit: _editProposal,
@@ -969,68 +1115,13 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
   }
 }
 
-class _CreateProcessingNotice extends StatelessWidget {
-  const _CreateProcessingNotice({
-    super.key,
-    required this.title,
-    required this.detail,
-  });
-
-  final String title;
-  final String detail;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: .09),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: .13)),
-      ),
-      child: Row(
-        children: [
-          const SizedBox.square(
-            dimension: 24,
-            child: CircularProgressIndicator(
-              strokeWidth: 2.4,
-              color: FieldnoteColors.acid,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  detail,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: Colors.white70),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _ProposalCard extends StatelessWidget {
   const _ProposalCard({
     required this.proposal,
     required this.repository,
     required this.pin,
+    required this.locationSelected,
+    required this.onSearchPendingChanged,
     required this.onPinChanged,
     required this.onUseLocation,
     required this.onEdit,
@@ -1040,6 +1131,8 @@ class _ProposalCard extends StatelessWidget {
   final CampaignProposal proposal;
   final FieldnoteRepository repository;
   final CampaignPin pin;
+  final bool locationSelected;
+  final ValueChanged<bool> onSearchPendingChanged;
   final ValueChanged<CampaignPin> onPinChanged;
   final Future<void> Function() onUseLocation;
   final VoidCallback onEdit;
@@ -1080,7 +1173,7 @@ class _ProposalCard extends StatelessWidget {
           ),
           _detail(
             Icons.group_outlined,
-            '${proposal.volunteerCapacity} volunteers · ${proposal.durationMinutes ~/ 60} hours',
+            '${proposal.volunteerCapacity} places · ${proposal.minimumVolunteers ?? (proposal.volunteerCapacity / 2).ceil()} minimum safe team · ${proposal.durationMinutes ~/ 60} hours',
           ),
           _detail(
             Icons.location_on_outlined,
@@ -1090,6 +1183,8 @@ class _ProposalCard extends StatelessWidget {
           CampaignPinPicker(
             repository: repository,
             pin: pin,
+            locationSelected: locationSelected,
+            onSearchPendingChanged: onSearchPendingChanged,
             onChanged: onPinChanged,
             onUseDeviceLocation: onUseLocation,
           ),
@@ -1169,7 +1264,9 @@ class SponsorImpactView extends StatelessWidget {
       ...viewModel.campaigns.where(
         (campaign) =>
             viewModel.sponsorships.any(
-              (item) => item.campaignId == campaign.id,
+              (item) =>
+                  item.campaignId == campaign.id &&
+                  item.paymentStatus == 'verified',
             ) &&
             !viewModel.createdCampaigns.any((item) => item.id == campaign.id),
       ),
@@ -1278,6 +1375,45 @@ class _ImpactCard extends StatelessWidget {
           ),
           if (isCreator) ...[
             const Divider(height: 30),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).push<void>(
+                MaterialPageRoute(
+                  builder: (_) => CampaignVolunteerReachView(
+                    campaign: campaign,
+                    repository: viewModel.repository,
+                  ),
+                ),
+              ),
+              icon: const Icon(Icons.groups_outlined),
+              label: const Text('Find and invite nearby volunteers'),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).push<void>(
+                MaterialPageRoute(
+                  builder: (_) => CampaignReadinessView(
+                    campaign: campaign,
+                    viewModel: viewModel,
+                  ),
+                ),
+              ),
+              icon: const Icon(Icons.event_available_outlined),
+              label: const Text('Manage event readiness'),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).push<void>(
+                MaterialPageRoute(
+                  builder: (_) => CampaignPayoutView(
+                    campaign: campaign,
+                    repository: viewModel.repository,
+                  ),
+                ),
+              ),
+              icon: const Icon(Icons.account_balance_outlined),
+              label: const Text('Payout status'),
+            ),
+            const SizedBox(height: 16),
             CampaignProofMap(
               repository: viewModel.repository,
               campaign: campaign,
@@ -1492,6 +1628,7 @@ class CampaignCard extends StatelessWidget {
     required this.campaign,
     required this.actionLabel,
     required this.onAction,
+    required this.showFunding,
     this.score,
     this.reasons = const [],
   });
@@ -1499,6 +1636,7 @@ class CampaignCard extends StatelessWidget {
   final Campaign campaign;
   final String actionLabel;
   final VoidCallback? onAction;
+  final bool showFunding;
   final double? score;
   final List<String> reasons;
 
@@ -1519,10 +1657,19 @@ class CampaignCard extends StatelessWidget {
                   icon: Icons.auto_awesome,
                 )
               else
-                const StatusPill(
-                  label: 'Open campaign',
-                  color: FieldnoteColors.forest,
-                  icon: Icons.public,
+                StatusPill(
+                  label: switch (campaign.readinessState) {
+                    'confirmed' => 'Confirmed',
+                    'postponed' => 'Postponed',
+                    'fundingShort' ||
+                    'volunteersShort' ||
+                    'bothShort' => 'Awaiting decision',
+                    _ => 'Date tentative',
+                  },
+                  color: campaign.readinessState == 'confirmed'
+                      ? FieldnoteColors.forest
+                      : FieldnoteColors.clay,
+                  icon: Icons.event_outlined,
                 ),
               const Spacer(),
               Text('${campaign.volunteerCapacity} places'),
@@ -1568,12 +1715,15 @@ class CampaignCard extends StatelessWidget {
                   ),
                 ),
           ],
-          const SizedBox(height: 20),
-          _AnimatedFundingProgress(
-            sponsoredAmount: campaign.sponsoredAmount,
-            fundingGoal: campaign.fundingGoal,
-          ),
-          const SizedBox(height: 12),
+          if (showFunding) ...[
+            const SizedBox(height: 20),
+            _AnimatedFundingProgress(
+              sponsoredAmount: campaign.sponsoredAmount,
+              fundingGoal: campaign.fundingGoal,
+            ),
+            const SizedBox(height: 12),
+          ] else
+            const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
             child: FilledButton(onPressed: onAction, child: Text(actionLabel)),
@@ -1660,6 +1810,8 @@ Future<CampaignProposal?> showProposalFormDialog(
   required String confirmLabel,
   CampaignProposal? initial,
   String seedPrompt = '',
+  FieldnoteRepository? repository,
+  ValueChanged<SelectedLocation>? onLocationPicked,
 }) {
   return showDialog<CampaignProposal>(
     context: context,
@@ -1668,6 +1820,8 @@ Future<CampaignProposal?> showProposalFormDialog(
       confirmLabel: confirmLabel,
       initial: initial,
       seedPrompt: seedPrompt,
+      repository: repository,
+      onLocationPicked: onLocationPicked,
     ),
   );
 }
@@ -1678,12 +1832,16 @@ class _ProposalFormDialog extends StatefulWidget {
     required this.confirmLabel,
     required this.initial,
     required this.seedPrompt,
+    required this.repository,
+    required this.onLocationPicked,
   });
 
   final String heading;
   final String confirmLabel;
   final CampaignProposal? initial;
   final String seedPrompt;
+  final FieldnoteRepository? repository;
+  final ValueChanged<SelectedLocation>? onLocationPicked;
 
   @override
   State<_ProposalFormDialog> createState() => _ProposalFormDialogState();
@@ -1695,6 +1853,7 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
   late final TextEditingController _locationName;
   late final TextEditingController _funding;
   late final TextEditingController _capacity;
+  late final TextEditingController _minimum;
   late final TextEditingController _duration;
   late final TextEditingController _skills;
   late final TextEditingController _checklist;
@@ -1702,6 +1861,27 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
   late final TextEditingController _tags;
   late DateTime _startsAt;
   String? _error;
+  SelectedLocation? _selectedLocation;
+
+  Future<void> _chooseLocation() async {
+    final repository = widget.repository;
+    if (repository == null) return;
+    final selected = await Navigator.push<SelectedLocation>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LocationPicker(
+          repository: repository,
+          title: 'Choose campaign location',
+          initialQuery: _locationName.text,
+        ),
+      ),
+    );
+    if (selected == null || !mounted) return;
+    setState(() {
+      _selectedLocation = selected;
+      _locationName.text = selected.label;
+    });
+  }
 
   @override
   void initState() {
@@ -1717,6 +1897,12 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
     );
     _capacity = TextEditingController(
       text: (initial?.volunteerCapacity ?? 10).toString(),
+    );
+    _minimum = TextEditingController(
+      text:
+          (initial?.minimumVolunteers ??
+                  ((initial?.volunteerCapacity ?? 10) / 2).ceil())
+              .toString(),
     );
     _duration = TextEditingController(
       text: (initial?.durationMinutes ?? 180).toString(),
@@ -1747,6 +1933,7 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
     _locationName.dispose();
     _funding.dispose();
     _capacity.dispose();
+    _minimum.dispose();
     _duration.dispose();
     _skills.dispose();
     _checklist.dispose();
@@ -1800,6 +1987,7 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
     final locationName = _locationName.text.trim();
     final funding = double.tryParse(_funding.text.trim());
     final capacity = int.tryParse(_capacity.text.trim());
+    final minimum = int.tryParse(_minimum.text.trim());
     final duration = int.tryParse(_duration.text.trim());
     final checklist = _lines(_checklist.text);
     final evidence = _evidence.text.trim();
@@ -1815,6 +2003,8 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
         'Duration must be between 30 and 720 minutes.',
       _ when capacity == null || capacity < 1 || capacity > 1000 =>
         'Volunteer places must be between 1 and 1000.',
+      _ when minimum == null || minimum < 1 || minimum > capacity =>
+        'Choose a minimum team between 1 and the volunteer places.',
       _ when funding == null || funding < 100 =>
         'Funding goal must be at least ₹100.',
       _ when checklist.isEmpty => 'Add at least one checklist task.',
@@ -1827,6 +2017,9 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
     }
 
     final initial = widget.initial;
+    if (_selectedLocation != null) {
+      widget.onLocationPicked?.call(_selectedLocation!);
+    }
     Navigator.pop(
       context,
       CampaignProposal(
@@ -1836,6 +2029,7 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
         startsAt: _startsAt.toUtc(),
         durationMinutes: duration!,
         volunteerCapacity: capacity!,
+        minimumVolunteers: minimum!,
         fundingGoal: funding!,
         requiredSkills: _lines(_skills.text),
         checklist: checklist,
@@ -1851,56 +2045,79 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.heading),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      titlePadding: const EdgeInsets.fromLTRB(20, 22, 20, 12),
+      contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+      actionsPadding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      title: Text(
+        widget.heading,
+        style: Theme.of(context).textTheme.titleLarge,
+      ),
       content: SizedBox(
         width: 560,
+        height:
+            (MediaQuery.sizeOf(context).height -
+                    MediaQuery.viewInsetsOf(context).bottom -
+                    240)
+                .clamp(180.0, 620.0),
         child: SingleChildScrollView(
+          padding: const EdgeInsets.only(bottom: 12),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Text('Basics', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 12),
               FieldnoteTextField(
                 controller: _title,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: const InputDecoration(labelText: 'Campaign title'),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 18),
               FieldnoteTextField(
                 controller: _description,
-                minLines: 2,
-                maxLines: 4,
+                minLines: 3,
+                maxLines: 5,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: const InputDecoration(labelText: 'Description'),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 18),
               FieldnoteTextField(
                 controller: _locationName,
+                onChanged: (_) => _selectedLocation = null,
                 decoration: const InputDecoration(labelText: 'Location name'),
               ),
-              const SizedBox(height: 10),
-              InputDecorator(
-                decoration: const InputDecoration(labelText: 'Starts at'),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        DateFormat(
-                          'EEE, d MMM yyyy · h:mm a',
-                        ).format(_startsAt),
-                      ),
-                    ),
-                    TextButton.icon(
-                      onPressed: _pickStart,
-                      icon: const Icon(Icons.event, size: 18),
-                      label: const Text('Change'),
-                    ),
-                  ],
+              if (widget.repository != null) ...[
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: _chooseLocation,
+                  icon: const Icon(Icons.map_outlined),
+                  label: const Text('Choose on map'),
+                ),
+              ],
+              const SizedBox(height: 24),
+              Text(
+                'Schedule and capacity',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 12),
+              Text('Starts at', style: Theme.of(context).textTheme.labelLarge),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _pickStart,
+                  icon: const Icon(Icons.event_outlined),
+                  label: Text(
+                    DateFormat('EEE, d MMM yyyy · h:mm a').format(_startsAt),
+                  ),
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 18),
               ResponsiveCardGrid(
                 minimumItemWidth: 150,
-                spacing: 10,
+                spacing: 16,
                 children: [
                   FieldnoteTextField(
                     controller: _funding,
@@ -1917,13 +2134,25 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
                     ),
                   ),
                   FieldnoteTextField(
+                    controller: _minimum,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Minimum safe team',
+                    ),
+                  ),
+                  FieldnoteTextField(
                     controller: _duration,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(labelText: 'Minutes'),
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 24),
+              Text(
+                'Work and evidence',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 12),
               FieldnoteTextField(
                 controller: _checklist,
                 minLines: 3,
@@ -1933,7 +2162,7 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
                   helperText: 'One task per line',
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 18),
               FieldnoteTextField(
                 controller: _skills,
                 minLines: 1,
@@ -1943,7 +2172,7 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
                   helperText: 'One per line',
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 18),
               FieldnoteTextField(
                 controller: _evidence,
                 minLines: 2,
@@ -1952,7 +2181,7 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
                   labelText: 'Evidence instructions',
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 18),
               FieldnoteTextField(
                 controller: _tags,
                 minLines: 1,
@@ -1977,11 +2206,20 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            onPressed: _submit,
+            child: Text(widget.confirmLabel),
+          ),
         ),
-        FilledButton(onPressed: _submit, child: Text(widget.confirmLabel)),
+        SizedBox(
+          width: double.infinity,
+          child: TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ),
       ],
     );
   }

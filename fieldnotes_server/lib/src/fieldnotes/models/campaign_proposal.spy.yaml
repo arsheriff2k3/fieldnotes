@@ -6,10 +6,10 @@ fields:
   startsAt: DateTime
   durationMinutes: int
   volunteerCapacity: int
+  minimumVolunteers: int?
   fundingGoal: double
   requiredSkills: List<String>
   checklist: List<String>
   evidenceInstructions: String
   tags: List<String>
   rationale: String
-

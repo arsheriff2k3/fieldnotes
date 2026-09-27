@@ -58,7 +58,7 @@ abstract final class MapConfig {
       _apiKey = await _fromLegacyAssetConfig();
     }
     if (_apiKey.isNotEmpty) {
-      await bootstrapMapsSdk(_apiKey);
+      if (!await bootstrapMapsSdk(_apiKey)) _apiKey = '';
     }
   }
 

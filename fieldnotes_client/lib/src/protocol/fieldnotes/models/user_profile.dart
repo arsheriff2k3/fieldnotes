@@ -22,6 +22,7 @@ abstract class FieldnoteUserProfile
     required this.displayName,
     this.sponsorType,
     this.organizationName,
+    this.contactPhone,
     required this.city,
     this.locationAddress,
     this.locationPlaceId,
@@ -41,6 +42,7 @@ abstract class FieldnoteUserProfile
     required String displayName,
     String? sponsorType,
     String? organizationName,
+    String? contactPhone,
     required String city,
     String? locationAddress,
     String? locationPlaceId,
@@ -66,6 +68,7 @@ abstract class FieldnoteUserProfile
       displayName: jsonSerialization['displayName'] as String,
       sponsorType: jsonSerialization['sponsorType'] as String?,
       organizationName: jsonSerialization['organizationName'] as String?,
+      contactPhone: jsonSerialization['contactPhone'] as String?,
       city: jsonSerialization['city'] as String,
       locationAddress: jsonSerialization['locationAddress'] as String?,
       locationPlaceId: jsonSerialization['locationPlaceId'] as String?,
@@ -99,6 +102,8 @@ abstract class FieldnoteUserProfile
 
   String? organizationName;
 
+  String? contactPhone;
+
   String city;
 
   String? locationAddress;
@@ -127,6 +132,7 @@ abstract class FieldnoteUserProfile
     String? displayName,
     String? sponsorType,
     String? organizationName,
+    String? contactPhone,
     String? city,
     String? locationAddress,
     String? locationPlaceId,
@@ -147,6 +153,7 @@ abstract class FieldnoteUserProfile
       'displayName': displayName,
       if (sponsorType != null) 'sponsorType': sponsorType,
       if (organizationName != null) 'organizationName': organizationName,
+      if (contactPhone != null) 'contactPhone': contactPhone,
       'city': city,
       if (locationAddress != null) 'locationAddress': locationAddress,
       if (locationPlaceId != null) 'locationPlaceId': locationPlaceId,
@@ -169,6 +176,7 @@ abstract class FieldnoteUserProfile
       'displayName': displayName,
       if (sponsorType != null) 'sponsorType': sponsorType,
       if (organizationName != null) 'organizationName': organizationName,
+      if (contactPhone != null) 'contactPhone': contactPhone,
       'city': city,
       if (locationAddress != null) 'locationAddress': locationAddress,
       if (locationPlaceId != null) 'locationPlaceId': locationPlaceId,
@@ -197,6 +205,7 @@ class _FieldnoteUserProfileImpl extends FieldnoteUserProfile {
     required String displayName,
     String? sponsorType,
     String? organizationName,
+    String? contactPhone,
     required String city,
     String? locationAddress,
     String? locationPlaceId,
@@ -213,6 +222,7 @@ class _FieldnoteUserProfileImpl extends FieldnoteUserProfile {
          displayName: displayName,
          sponsorType: sponsorType,
          organizationName: organizationName,
+         contactPhone: contactPhone,
          city: city,
          locationAddress: locationAddress,
          locationPlaceId: locationPlaceId,
@@ -235,6 +245,7 @@ class _FieldnoteUserProfileImpl extends FieldnoteUserProfile {
     String? displayName,
     Object? sponsorType = _Undefined,
     Object? organizationName = _Undefined,
+    Object? contactPhone = _Undefined,
     String? city,
     Object? locationAddress = _Undefined,
     Object? locationPlaceId = _Undefined,
@@ -254,6 +265,7 @@ class _FieldnoteUserProfileImpl extends FieldnoteUserProfile {
       organizationName: organizationName is String?
           ? organizationName
           : this.organizationName,
+      contactPhone: contactPhone is String? ? contactPhone : this.contactPhone,
       city: city ?? this.city,
       locationAddress: locationAddress is String?
           ? locationAddress

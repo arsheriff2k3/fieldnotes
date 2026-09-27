@@ -13,6 +13,8 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/campaign.dart'
     as _iuzdi22u;
+import 'package:fieldnotes_server/src/generated/fieldnotes/models/campaign_invitation.dart'
+    as _icudrue1;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/campaign_match.dart'
     as _i3ipc266;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/campaign_participation.dart'
@@ -23,6 +25,8 @@ import 'package:fieldnotes_server/src/generated/fieldnotes/models/place_suggesti
     as _i18eudx8;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/sponsorship.dart'
     as _iwnubjux;
+import 'package:fieldnotes_server/src/generated/fieldnotes/models/test_payout.dart'
+    as _i1fp4tnr;
 import 'package:serverpod/protocol.dart' as _isp;
 import 'package:serverpod/serverpod.dart' as _is;
 import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
@@ -34,6 +38,7 @@ import 'fieldnotes/models/ai_confidence.dart' as _icuvt3ro;
 import 'fieldnotes/models/asset.dart' as _iyem7tcm;
 import 'fieldnotes/models/audit_event.dart' as _i3s6sm3e;
 import 'fieldnotes/models/campaign.dart' as _imoyt016;
+import 'fieldnotes/models/campaign_invitation.dart' as _ibb1uwag;
 import 'fieldnotes/models/campaign_live_update.dart' as _ixbyjocu;
 import 'fieldnotes/models/campaign_map_overview.dart' as _ia1ix8k0;
 import 'fieldnotes/models/campaign_map_pin.dart' as _iaixb6xr;
@@ -68,6 +73,10 @@ import 'fieldnotes/models/review_outcome.dart' as _imia3a4e;
 import 'fieldnotes/models/review_state.dart' as _iulscgnl;
 import 'fieldnotes/models/sponsorship.dart' as _i1cgh9io;
 import 'fieldnotes/models/task_status.dart' as _ixrvqme0;
+import 'fieldnotes/models/test_payout.dart' as _ibdacauq;
+import 'fieldnotes/models/test_refund.dart' as _iviseq0a;
+import 'fieldnotes/models/travel_route.dart' as _it2sjc8r;
+import 'fieldnotes/models/travel_step.dart' as _ik5r1rtc;
 import 'fieldnotes/models/trust_center_summary.dart' as _ip0a93i5;
 import 'fieldnotes/models/user_profile.dart' as _iq3hh8xc;
 import 'fieldnotes/models/volunteer_availability.dart' as _ifa4ljot;
@@ -78,6 +87,7 @@ export 'fieldnotes/models/ai_confidence.dart';
 export 'fieldnotes/models/asset.dart';
 export 'fieldnotes/models/audit_event.dart';
 export 'fieldnotes/models/campaign.dart';
+export 'fieldnotes/models/campaign_invitation.dart';
 export 'fieldnotes/models/campaign_live_update.dart';
 export 'fieldnotes/models/campaign_map_overview.dart';
 export 'fieldnotes/models/campaign_map_pin.dart';
@@ -112,6 +122,10 @@ export 'fieldnotes/models/review_outcome.dart';
 export 'fieldnotes/models/review_state.dart';
 export 'fieldnotes/models/sponsorship.dart';
 export 'fieldnotes/models/task_status.dart';
+export 'fieldnotes/models/test_payout.dart';
+export 'fieldnotes/models/test_refund.dart';
+export 'fieldnotes/models/travel_route.dart';
+export 'fieldnotes/models/travel_step.dart';
 export 'fieldnotes/models/trust_center_summary.dart';
 export 'fieldnotes/models/user_profile.dart';
 export 'fieldnotes/models/volunteer_availability.dart';
@@ -420,6 +434,64 @@ class Protocol extends _is.DatabaseSerializationManager {
           columnDefault: '10',
         ),
         _isp.ColumnDefinition(
+          name: 'minimumVolunteers',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+          columnDefault: '1',
+        ),
+        _isp.ColumnDefinition(
+          name: 'eligibleVolunteers',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+          columnDefault: '0',
+        ),
+        _isp.ColumnDefinition(
+          name: 'readinessState',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+          columnDefault: '\'open\'',
+        ),
+        _isp.ColumnDefinition(
+          name: 'revision',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+          columnDefault: '0',
+        ),
+        _isp.ColumnDefinition(
+          name: 'readinessCheckedAt',
+          columnType: _isp.ColumnType.timestampWithoutTimeZone,
+          isNullable: true,
+          dartType: 'DateTime?',
+        ),
+        _isp.ColumnDefinition(
+          name: 'confirmedAt',
+          columnType: _isp.ColumnType.timestampWithoutTimeZone,
+          isNullable: true,
+          dartType: 'DateTime?',
+        ),
+        _isp.ColumnDefinition(
+          name: 'decisionDueAt',
+          columnType: _isp.ColumnType.timestampWithoutTimeZone,
+          isNullable: true,
+          dartType: 'DateTime?',
+        ),
+        _isp.ColumnDefinition(
+          name: 'postponedAt',
+          columnType: _isp.ColumnType.timestampWithoutTimeZone,
+          isNullable: true,
+          dartType: 'DateTime?',
+        ),
+        _isp.ColumnDefinition(
+          name: 'cancelledAt',
+          columnType: _isp.ColumnType.timestampWithoutTimeZone,
+          isNullable: true,
+          dartType: 'DateTime?',
+        ),
+        _isp.ColumnDefinition(
           name: 'requiredSkills',
           columnType: _isp.ColumnType.text,
           isNullable: false,
@@ -511,6 +583,91 @@ class Protocol extends _is.DatabaseSerializationManager {
       managed: true,
     ),
     _isp.TableDefinition(
+      name: 'fieldnote_campaign_invitation',
+      dartName: 'CampaignInvitation',
+      schema: 'public',
+      module: 'fieldnotes',
+      columns: [
+        _isp.ColumnDefinition(
+          name: 'id',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'serial',
+        ),
+        _isp.ColumnDefinition(
+          name: 'campaignId',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _isp.ColumnDefinition(
+          name: 'volunteerAuthUserId',
+          columnType: _isp.ColumnType.uuid,
+          isNullable: false,
+          dartType: 'UuidValue',
+        ),
+        _isp.ColumnDefinition(
+          name: 'sponsorAuthUserId',
+          columnType: _isp.ColumnType.uuid,
+          isNullable: false,
+          dartType: 'UuidValue',
+        ),
+        _isp.ColumnDefinition(
+          name: 'createdAt',
+          columnType: _isp.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+          columnDefault: 'now',
+        ),
+      ],
+      foreignKeys: [
+        _isp.ForeignKeyDefinition(
+          constraintName: 'fieldnote_campaign_invitation_fk_0',
+          columns: ['campaignId'],
+          referenceTable: 'fieldnote_campaign',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _isp.ForeignKeyAction.noAction,
+          onDelete: _isp.ForeignKeyAction.noAction,
+          matchType: null,
+        ),
+      ],
+      indexes: [
+        _isp.IndexDefinition(
+          indexName: 'fieldnote_invitation_campaign_volunteer_idx',
+          tableSpace: null,
+          elements: [
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'campaignId',
+            ),
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'volunteerAuthUserId',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: false,
+        ),
+        _isp.IndexDefinition(
+          indexName: 'fieldnote_invitation_volunteer_idx',
+          tableSpace: null,
+          elements: [
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'volunteerAuthUserId',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
+        ),
+      ],
+      managed: true,
+    ),
+    _isp.TableDefinition(
       name: 'fieldnote_campaign_participation',
       dartName: 'CampaignParticipation',
       schema: 'public',
@@ -540,6 +697,13 @@ class Protocol extends _is.DatabaseSerializationManager {
           columnType: _isp.ColumnType.text,
           isNullable: false,
           dartType: 'protocol:ParticipationStatus',
+        ),
+        _isp.ColumnDefinition(
+          name: 'confirmedRevision',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+          columnDefault: '0',
         ),
         _isp.ColumnDefinition(
           name: 'joinedAt',
@@ -1710,6 +1874,214 @@ class Protocol extends _is.DatabaseSerializationManager {
       managed: true,
     ),
     _isp.TableDefinition(
+      name: 'fieldnote_test_payout',
+      dartName: 'TestPayout',
+      schema: 'public',
+      module: 'fieldnotes',
+      columns: [
+        _isp.ColumnDefinition(
+          name: 'id',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'serial',
+        ),
+        _isp.ColumnDefinition(
+          name: 'campaignId',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _isp.ColumnDefinition(
+          name: 'sponsorshipId',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _isp.ColumnDefinition(
+          name: 'creatorAuthUserId',
+          columnType: _isp.ColumnType.uuid,
+          isNullable: false,
+          dartType: 'UuidValue',
+        ),
+        _isp.ColumnDefinition(
+          name: 'amount',
+          columnType: _isp.ColumnType.doublePrecision,
+          isNullable: false,
+          dartType: 'double',
+        ),
+        _isp.ColumnDefinition(
+          name: 'sourcePaymentId',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _isp.ColumnDefinition(
+          name: 'status',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+          columnDefault: '\'simulated\'',
+        ),
+        _isp.ColumnDefinition(
+          name: 'simulatedAt',
+          columnType: _isp.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+          columnDefault: 'now',
+        ),
+      ],
+      foreignKeys: [
+        _isp.ForeignKeyDefinition(
+          constraintName: 'fieldnote_test_payout_fk_0',
+          columns: ['campaignId'],
+          referenceTable: 'fieldnote_campaign',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _isp.ForeignKeyAction.noAction,
+          onDelete: _isp.ForeignKeyAction.noAction,
+          matchType: null,
+        ),
+        _isp.ForeignKeyDefinition(
+          constraintName: 'fieldnote_test_payout_fk_1',
+          columns: ['sponsorshipId'],
+          referenceTable: 'fieldnote_sponsorship',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _isp.ForeignKeyAction.noAction,
+          onDelete: _isp.ForeignKeyAction.noAction,
+          matchType: null,
+        ),
+      ],
+      indexes: [
+        _isp.IndexDefinition(
+          indexName: 'fieldnote_test_payout_campaign_idx',
+          tableSpace: null,
+          elements: [
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'campaignId',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
+        ),
+        _isp.IndexDefinition(
+          indexName: 'fieldnote_test_payout_sponsorship_idx',
+          tableSpace: null,
+          elements: [
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'sponsorshipId',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: false,
+        ),
+      ],
+      managed: true,
+    ),
+    _isp.TableDefinition(
+      name: 'fieldnote_test_refund',
+      dartName: 'TestRefund',
+      schema: 'public',
+      module: 'fieldnotes',
+      columns: [
+        _isp.ColumnDefinition(
+          name: 'id',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'serial',
+        ),
+        _isp.ColumnDefinition(
+          name: 'campaignId',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _isp.ColumnDefinition(
+          name: 'sponsorshipId',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _isp.ColumnDefinition(
+          name: 'amount',
+          columnType: _isp.ColumnType.doublePrecision,
+          isNullable: false,
+          dartType: 'double',
+        ),
+        _isp.ColumnDefinition(
+          name: 'status',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+          columnDefault: '\'refund_due_test\'',
+        ),
+        _isp.ColumnDefinition(
+          name: 'createdAt',
+          columnType: _isp.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+          columnDefault: 'now',
+        ),
+      ],
+      foreignKeys: [
+        _isp.ForeignKeyDefinition(
+          constraintName: 'fieldnote_test_refund_fk_0',
+          columns: ['campaignId'],
+          referenceTable: 'fieldnote_campaign',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _isp.ForeignKeyAction.noAction,
+          onDelete: _isp.ForeignKeyAction.noAction,
+          matchType: null,
+        ),
+        _isp.ForeignKeyDefinition(
+          constraintName: 'fieldnote_test_refund_fk_1',
+          columns: ['sponsorshipId'],
+          referenceTable: 'fieldnote_sponsorship',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _isp.ForeignKeyAction.noAction,
+          onDelete: _isp.ForeignKeyAction.noAction,
+          matchType: null,
+        ),
+      ],
+      indexes: [
+        _isp.IndexDefinition(
+          indexName: 'fieldnote_test_refund_campaign_idx',
+          tableSpace: null,
+          elements: [
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'campaignId',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
+        ),
+        _isp.IndexDefinition(
+          indexName: 'fieldnote_test_refund_sponsorship_idx',
+          tableSpace: null,
+          elements: [
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'sponsorshipId',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: false,
+        ),
+      ],
+      managed: true,
+    ),
+    _isp.TableDefinition(
       name: 'fieldnote_user_profile',
       dartName: 'FieldnoteUserProfile',
       schema: 'public',
@@ -1748,6 +2120,12 @@ class Protocol extends _is.DatabaseSerializationManager {
         ),
         _isp.ColumnDefinition(
           name: 'organizationName',
+          columnType: _isp.ColumnType.text,
+          isNullable: true,
+          dartType: 'String?',
+        ),
+        _isp.ColumnDefinition(
+          name: 'contactPhone',
           columnType: _isp.ColumnType.text,
           isNullable: true,
           dartType: 'String?',
@@ -1976,6 +2354,9 @@ class Protocol extends _is.DatabaseSerializationManager {
     if (t == _imoyt016.Campaign) {
       return _imoyt016.Campaign.fromJson(data) as T;
     }
+    if (t == _ibb1uwag.CampaignInvitation) {
+      return _ibb1uwag.CampaignInvitation.fromJson(data) as T;
+    }
     if (t == _ixbyjocu.CampaignLiveUpdate) {
       return _ixbyjocu.CampaignLiveUpdate.fromJson(data) as T;
     }
@@ -2078,6 +2459,18 @@ class Protocol extends _is.DatabaseSerializationManager {
     if (t == _ixrvqme0.TaskStatus) {
       return _ixrvqme0.TaskStatus.fromJson(data) as T;
     }
+    if (t == _ibdacauq.TestPayout) {
+      return _ibdacauq.TestPayout.fromJson(data) as T;
+    }
+    if (t == _iviseq0a.TestRefund) {
+      return _iviseq0a.TestRefund.fromJson(data) as T;
+    }
+    if (t == _it2sjc8r.TravelRoute) {
+      return _it2sjc8r.TravelRoute.fromJson(data) as T;
+    }
+    if (t == _ik5r1rtc.TravelStep) {
+      return _ik5r1rtc.TravelStep.fromJson(data) as T;
+    }
     if (t == _ip0a93i5.TrustCenterSummary) {
       return _ip0a93i5.TrustCenterSummary.fromJson(data) as T;
     }
@@ -2107,6 +2500,10 @@ class Protocol extends _is.DatabaseSerializationManager {
     }
     if (t == _is.getType<_imoyt016.Campaign?>()) {
       return (data != null ? _imoyt016.Campaign.fromJson(data) : null) as T;
+    }
+    if (t == _is.getType<_ibb1uwag.CampaignInvitation?>()) {
+      return (data != null ? _ibb1uwag.CampaignInvitation.fromJson(data) : null)
+          as T;
     }
     if (t == _is.getType<_ixbyjocu.CampaignLiveUpdate?>()) {
       return (data != null ? _ixbyjocu.CampaignLiveUpdate.fromJson(data) : null)
@@ -2246,6 +2643,18 @@ class Protocol extends _is.DatabaseSerializationManager {
     if (t == _is.getType<_ixrvqme0.TaskStatus?>()) {
       return (data != null ? _ixrvqme0.TaskStatus.fromJson(data) : null) as T;
     }
+    if (t == _is.getType<_ibdacauq.TestPayout?>()) {
+      return (data != null ? _ibdacauq.TestPayout.fromJson(data) : null) as T;
+    }
+    if (t == _is.getType<_iviseq0a.TestRefund?>()) {
+      return (data != null ? _iviseq0a.TestRefund.fromJson(data) : null) as T;
+    }
+    if (t == _is.getType<_it2sjc8r.TravelRoute?>()) {
+      return (data != null ? _it2sjc8r.TravelRoute.fromJson(data) : null) as T;
+    }
+    if (t == _is.getType<_ik5r1rtc.TravelStep?>()) {
+      return (data != null ? _ik5r1rtc.TravelStep.fromJson(data) : null) as T;
+    }
     if (t == _is.getType<_ip0a93i5.TrustCenterSummary?>()) {
       return (data != null ? _ip0a93i5.TrustCenterSummary.fromJson(data) : null)
           as T;
@@ -2290,6 +2699,12 @@ class Protocol extends _is.DatabaseSerializationManager {
               .toList()
           as T;
     }
+    if (t == List<_ik5r1rtc.TravelStep>) {
+      return (data as List)
+              .map((e) => deserialize<_ik5r1rtc.TravelStep>(e))
+              .toList()
+          as T;
+    }
     if (t == List<_i3s6sm3e.AuditEvent>) {
       return (data as List)
               .map((e) => deserialize<_i3s6sm3e.AuditEvent>(e))
@@ -2320,9 +2735,21 @@ class Protocol extends _is.DatabaseSerializationManager {
               .toList()
           as T;
     }
+    if (t == List<_icudrue1.CampaignInvitation>) {
+      return (data as List)
+              .map((e) => deserialize<_icudrue1.CampaignInvitation>(e))
+              .toList()
+          as T;
+    }
     if (t == List<_iwnubjux.Sponsorship>) {
       return (data as List)
               .map((e) => deserialize<_iwnubjux.Sponsorship>(e))
+              .toList()
+          as T;
+    }
+    if (t == List<_i1fp4tnr.TestPayout>) {
+      return (data as List)
+              .map((e) => deserialize<_i1fp4tnr.TestPayout>(e))
               .toList()
           as T;
     }
@@ -2363,6 +2790,7 @@ class Protocol extends _is.DatabaseSerializationManager {
       _iyem7tcm.Asset => 'Asset',
       _i3s6sm3e.AuditEvent => 'AuditEvent',
       _imoyt016.Campaign => 'Campaign',
+      _ibb1uwag.CampaignInvitation => 'CampaignInvitation',
       _ixbyjocu.CampaignLiveUpdate => 'CampaignLiveUpdate',
       _ia1ix8k0.CampaignMapOverview => 'CampaignMapOverview',
       _iaixb6xr.CampaignMapPin => 'CampaignMapPin',
@@ -2397,6 +2825,10 @@ class Protocol extends _is.DatabaseSerializationManager {
       _iulscgnl.ReviewState => 'ReviewState',
       _i1cgh9io.Sponsorship => 'Sponsorship',
       _ixrvqme0.TaskStatus => 'TaskStatus',
+      _ibdacauq.TestPayout => 'TestPayout',
+      _iviseq0a.TestRefund => 'TestRefund',
+      _it2sjc8r.TravelRoute => 'TravelRoute',
+      _ik5r1rtc.TravelStep => 'TravelStep',
       _ip0a93i5.TrustCenterSummary => 'TrustCenterSummary',
       _iq3hh8xc.FieldnoteUserProfile => 'FieldnoteUserProfile',
       _ifa4ljot.VolunteerAvailability => 'VolunteerAvailability',
@@ -2426,6 +2858,8 @@ class Protocol extends _is.DatabaseSerializationManager {
         return 'AuditEvent';
       case _imoyt016.Campaign():
         return 'Campaign';
+      case _ibb1uwag.CampaignInvitation():
+        return 'CampaignInvitation';
       case _ixbyjocu.CampaignLiveUpdate():
         return 'CampaignLiveUpdate';
       case _ia1ix8k0.CampaignMapOverview():
@@ -2494,6 +2928,14 @@ class Protocol extends _is.DatabaseSerializationManager {
         return 'Sponsorship';
       case _ixrvqme0.TaskStatus():
         return 'TaskStatus';
+      case _ibdacauq.TestPayout():
+        return 'TestPayout';
+      case _iviseq0a.TestRefund():
+        return 'TestRefund';
+      case _it2sjc8r.TravelRoute():
+        return 'TravelRoute';
+      case _ik5r1rtc.TravelStep():
+        return 'TravelStep';
       case _ip0a93i5.TrustCenterSummary():
         return 'TrustCenterSummary';
       case _iq3hh8xc.FieldnoteUserProfile():
@@ -2544,6 +2986,9 @@ class Protocol extends _is.DatabaseSerializationManager {
     }
     if (dataClassName == 'Campaign') {
       return deserialize<_imoyt016.Campaign>(data['data']);
+    }
+    if (dataClassName == 'CampaignInvitation') {
+      return deserialize<_ibb1uwag.CampaignInvitation>(data['data']);
     }
     if (dataClassName == 'CampaignLiveUpdate') {
       return deserialize<_ixbyjocu.CampaignLiveUpdate>(data['data']);
@@ -2647,6 +3092,18 @@ class Protocol extends _is.DatabaseSerializationManager {
     if (dataClassName == 'TaskStatus') {
       return deserialize<_ixrvqme0.TaskStatus>(data['data']);
     }
+    if (dataClassName == 'TestPayout') {
+      return deserialize<_ibdacauq.TestPayout>(data['data']);
+    }
+    if (dataClassName == 'TestRefund') {
+      return deserialize<_iviseq0a.TestRefund>(data['data']);
+    }
+    if (dataClassName == 'TravelRoute') {
+      return deserialize<_it2sjc8r.TravelRoute>(data['data']);
+    }
+    if (dataClassName == 'TravelStep') {
+      return deserialize<_ik5r1rtc.TravelStep>(data['data']);
+    }
     if (dataClassName == 'TrustCenterSummary') {
       return deserialize<_ip0a93i5.TrustCenterSummary>(data['data']);
     }
@@ -2709,6 +3166,8 @@ class Protocol extends _is.DatabaseSerializationManager {
         return _i3s6sm3e.AuditEvent.t;
       case _imoyt016.Campaign:
         return _imoyt016.Campaign.t;
+      case _ibb1uwag.CampaignInvitation:
+        return _ibb1uwag.CampaignInvitation.t;
       case _i8osbdqi.CampaignParticipation:
         return _i8osbdqi.CampaignParticipation.t;
       case _iz4wi5fy.CampaignPost:
@@ -2731,6 +3190,10 @@ class Protocol extends _is.DatabaseSerializationManager {
         return _iotfc67y.ReviewDecision.t;
       case _i1cgh9io.Sponsorship:
         return _i1cgh9io.Sponsorship.t;
+      case _ibdacauq.TestPayout:
+        return _ibdacauq.TestPayout.t;
+      case _iviseq0a.TestRefund:
+        return _iviseq0a.TestRefund.t;
       case _iq3hh8xc.FieldnoteUserProfile:
         return _iq3hh8xc.FieldnoteUserProfile.t;
       case _ifa4ljot.VolunteerAvailability:

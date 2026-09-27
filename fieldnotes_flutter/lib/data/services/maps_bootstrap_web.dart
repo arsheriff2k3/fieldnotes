@@ -11,15 +11,15 @@ import 'package:web/web.dart' as web;
 /// pointed at a different restricted browser key without editing HTML. A
 /// browser Maps key is public by design and must be locked down with an HTTP
 /// referrer restriction in the Google Cloud console.
-Future<void> bootstrapMapsSdk(String apiKey) {
+Future<bool> bootstrapMapsSdk(String apiKey) {
   return _loading ??= _inject(apiKey);
 }
 
-Future<void>? _loading;
+Future<bool>? _loading;
 
-Future<void> _inject(String apiKey) {
-  if (_alreadyLoaded()) return Future.value();
-  final completer = Completer<void>();
+Future<bool> _inject(String apiKey) {
+  if (_alreadyLoaded()) return Future.value(true);
+  final completer = Completer<bool>();
   final script = web.document.createElement('script') as web.HTMLScriptElement
     ..type = 'text/javascript'
     ..async = true
@@ -28,21 +28,21 @@ Future<void> _inject(String apiKey) {
         'https://maps.googleapis.com/maps/api/js'
         '?key=${Uri.encodeComponent(apiKey)}&libraries=marker';
   script.onload = (web.Event _) {
-    if (!completer.isCompleted) completer.complete();
+    if (!completer.isCompleted) completer.complete(_alreadyLoaded());
   }.toJS;
   script.onerror = (web.Event _) {
-    // Resolve rather than reject: the app must still run with the map
-    // fallback panel when the tiles cannot be reached.
-    if (!completer.isCompleted) completer.complete();
+    if (!completer.isCompleted) completer.complete(false);
   }.toJS;
   web.document.head!.appendChild(script);
   return completer.future.timeout(
     const Duration(seconds: 10),
-    onTimeout: () {},
+    onTimeout: () => false,
   );
 }
 
 bool _alreadyLoaded() {
-  final maps = web.window.getProperty('google'.toJS);
+  final google = web.window.getProperty('google'.toJS);
+  if (google == null || !google.isDefinedAndNotNull) return false;
+  final maps = (google as JSObject).getProperty('maps'.toJS);
   return maps != null && maps.isDefinedAndNotNull;
 }

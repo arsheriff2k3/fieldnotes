@@ -16,6 +16,8 @@ import 'package:fieldnotes_client/src/protocol/fieldnotes/models/audit_event.dar
     as _ixscx4wv;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign.dart'
     as _i6ar8a32;
+import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign_invitation.dart'
+    as _ilmm7kn9;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign_live_update.dart'
     as _ivzrz8af;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign_map_overview.dart'
@@ -46,6 +48,10 @@ import 'package:fieldnotes_client/src/protocol/fieldnotes/models/resolved_place.
     as _iigiw870;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/sponsorship.dart'
     as _iffokzpe;
+import 'package:fieldnotes_client/src/protocol/fieldnotes/models/test_payout.dart'
+    as _irfbdx5f;
+import 'package:fieldnotes_client/src/protocol/fieldnotes/models/travel_route.dart'
+    as _il9u2d3q;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/trust_center_summary.dart'
     as _im0kjztm;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/user_profile.dart'
@@ -348,8 +354,11 @@ class EndpointFieldnote extends _isc.EndpointRef {
     String? organizationName,
     String city,
     String? cityPlaceId,
-    List<String> interests,
-  ) => caller.callServerEndpoint<_isdhijrt.FieldnoteUserProfile>(
+    List<String> interests, {
+    double? locationLatitude,
+    double? locationLongitude,
+    String? contactPhone,
+  }) => caller.callServerEndpoint<_isdhijrt.FieldnoteUserProfile>(
     'fieldnote',
     'completeSponsorProfile',
     {
@@ -359,6 +368,9 @@ class EndpointFieldnote extends _isc.EndpointRef {
       'city': city,
       'cityPlaceId': cityPlaceId,
       'interests': interests,
+      'locationLatitude': locationLatitude,
+      'locationLongitude': locationLongitude,
+      'contactPhone': contactPhone,
     },
   );
 
@@ -405,8 +417,11 @@ class EndpointFieldnote extends _isc.EndpointRef {
     String city,
     String? cityPlaceId,
     List<String> interests,
-    List<String> skills,
-  ) => caller.callServerEndpoint<_isdhijrt.FieldnoteUserProfile>(
+    List<String> skills, {
+    double? locationLatitude,
+    double? locationLongitude,
+    String? contactPhone,
+  }) => caller.callServerEndpoint<_isdhijrt.FieldnoteUserProfile>(
     'fieldnote',
     'updateMyProfile',
     {
@@ -417,6 +432,9 @@ class EndpointFieldnote extends _isc.EndpointRef {
       'cityPlaceId': cityPlaceId,
       'interests': interests,
       'skills': skills,
+      'locationLatitude': locationLatitude,
+      'locationLongitude': locationLongitude,
+      'contactPhone': contactPhone,
     },
   );
 
@@ -514,6 +532,63 @@ class EndpointFieldnote extends _isc.EndpointRef {
         {},
       );
 
+  _ida.Future<_i6ar8a32.Campaign> refreshCampaignReadiness(int campaignId) =>
+      caller.callServerEndpoint<_i6ar8a32.Campaign>(
+        'fieldnote',
+        'refreshCampaignReadiness',
+        {'campaignId': campaignId},
+      );
+
+  _ida.Future<_i6ar8a32.Campaign> reviseCampaignScope(
+    int campaignId,
+    double fundingGoal,
+    int minimumVolunteers,
+    String description,
+  ) => caller.callServerEndpoint<_i6ar8a32.Campaign>(
+    'fieldnote',
+    'reviseCampaignScope',
+    {
+      'campaignId': campaignId,
+      'fundingGoal': fundingGoal,
+      'minimumVolunteers': minimumVolunteers,
+      'description': description,
+    },
+  );
+
+  _ida.Future<_i6ar8a32.Campaign> postponeCampaign(
+    int campaignId,
+    DateTime newStartsAt,
+  ) => caller.callServerEndpoint<_i6ar8a32.Campaign>(
+    'fieldnote',
+    'postponeCampaign',
+    {
+      'campaignId': campaignId,
+      'newStartsAt': newStartsAt,
+    },
+  );
+
+  _ida.Future<_i6ar8a32.Campaign> cancelCampaign(int campaignId) =>
+      caller.callServerEndpoint<_i6ar8a32.Campaign>(
+        'fieldnote',
+        'cancelCampaign',
+        {'campaignId': campaignId},
+      );
+
+  _ida.Future<_i43ypuev.CampaignParticipation> reconfirmCampaignParticipation(
+    int participationId,
+  ) => caller.callServerEndpoint<_i43ypuev.CampaignParticipation>(
+    'fieldnote',
+    'reconfirmCampaignParticipation',
+    {'participationId': participationId},
+  );
+
+  _ida.Future<List<_i6ar8a32.Campaign>> listMyJoinedCampaigns() =>
+      caller.callServerEndpoint<List<_i6ar8a32.Campaign>>(
+        'fieldnote',
+        'listMyJoinedCampaigns',
+        {},
+      );
+
   /// Whether Google Places autocomplete is available during account setup.
   /// This deliberately requires authentication but not an existing profile,
   /// because it is called before onboarding creates the profile row.
@@ -586,6 +661,25 @@ class EndpointFieldnote extends _isc.EndpointRef {
     },
   );
 
+  /// Route a volunteer from their current device position to a campaign.
+  /// The saved availability area is only for matching and is never the
+  /// origin of an active journey.
+  _ida.Future<_il9u2d3q.TravelRoute> getTravelRoute(
+    int campaignId,
+    double originLatitude,
+    double originLongitude,
+    String travelMode,
+  ) => caller.callServerEndpoint<_il9u2d3q.TravelRoute>(
+    'fieldnote',
+    'getTravelRoute',
+    {
+      'campaignId': campaignId,
+      'originLatitude': originLatitude,
+      'originLongitude': originLongitude,
+      'travelMode': travelMode,
+    },
+  );
+
   /// How many volunteers could actually reach a proposed pin, before the
   /// sponsor commits money to it.
   ///
@@ -603,6 +697,41 @@ class EndpointFieldnote extends _isc.EndpointRef {
       'longitude': longitude,
     },
   );
+
+  /// Shows coarse groups of available, unjoined volunteers who can travel to
+  /// this published campaign. Only its creator may inspect the map. Small
+  /// groups and individual distances are never returned.
+  _ida.Future<_i7z8ummg.CampaignReach> getCampaignVolunteerReach(
+    int campaignId,
+  ) => caller.callServerEndpoint<_i7z8ummg.CampaignReach>(
+    'fieldnote',
+    'getCampaignVolunteerReach',
+    {'campaignId': campaignId},
+  );
+
+  /// Delivers a private in-app invitation to everyone in a visible map area.
+  /// Eligibility and the anonymity threshold are checked again on the server
+  /// at send time. Repeated taps do not create duplicate invitations.
+  _ida.Future<int> inviteCampaignVolunteersInArea(
+    int campaignId,
+    double areaLatitude,
+    double areaLongitude,
+  ) => caller.callServerEndpoint<int>(
+    'fieldnote',
+    'inviteCampaignVolunteersInArea',
+    {
+      'campaignId': campaignId,
+      'areaLatitude': areaLatitude,
+      'areaLongitude': areaLongitude,
+    },
+  );
+
+  _ida.Future<List<_ilmm7kn9.CampaignInvitation>> listMyCampaignInvitations() =>
+      caller.callServerEndpoint<List<_ilmm7kn9.CampaignInvitation>>(
+        'fieldnote',
+        'listMyCampaignInvitations',
+        {},
+      );
 
   /// Every check-in and evidence point for one campaign, for the sponsor live
   /// map. Restricted to the sponsor who created the campaign.
@@ -662,6 +791,26 @@ class EndpointFieldnote extends _isc.EndpointRef {
         {},
       );
 
+  /// Creator-only demonstration ledger. These rows never initiate a bank
+  /// transfer or call Razorpay Route.
+  _ida.Future<List<_irfbdx5f.TestPayout>> listCampaignTestPayouts(
+    int campaignId,
+  ) => caller.callServerEndpoint<List<_irfbdx5f.TestPayout>>(
+    'fieldnote',
+    'listCampaignTestPayouts',
+    {'campaignId': campaignId},
+  );
+
+  /// Records one simulated credit for each newly verified test checkout.
+  /// A campaign row lock and unique sponsorship index make retries safe.
+  _ida.Future<List<_irfbdx5f.TestPayout>> simulateCampaignTestPayout(
+    int campaignId,
+  ) => caller.callServerEndpoint<List<_irfbdx5f.TestPayout>>(
+    'fieldnote',
+    'simulateCampaignTestPayout',
+    {'campaignId': campaignId},
+  );
+
   _ida.Future<List<_ifn539xv.CampaignMatch>> getCampaignMatches() =>
       caller.callServerEndpoint<List<_ifn539xv.CampaignMatch>>(
         'fieldnote',
@@ -673,6 +822,14 @@ class EndpointFieldnote extends _isc.EndpointRef {
       caller.callServerEndpoint<_i43ypuev.CampaignParticipation>(
         'fieldnote',
         'joinCampaign',
+        {'campaignId': campaignId},
+      );
+
+  /// A contact number is private until a volunteer joins this campaign.
+  _ida.Future<String?> getCampaignContactPhone(int campaignId) =>
+      caller.callServerEndpoint<String?>(
+        'fieldnote',
+        'getCampaignContactPhone',
         {'campaignId': campaignId},
       );
 

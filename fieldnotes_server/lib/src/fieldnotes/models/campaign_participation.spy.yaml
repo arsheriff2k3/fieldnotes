@@ -4,6 +4,7 @@ fields:
   campaignId: int, relation(parent=fieldnote_campaign)
   volunteerAuthUserId: UuidValue
   status: ParticipationStatus
+  confirmedRevision: int, default=0
   joinedAt: DateTime, default=now
   checkedInAt: DateTime?
   completedAt: DateTime?

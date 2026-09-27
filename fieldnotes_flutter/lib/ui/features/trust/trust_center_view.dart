@@ -1,10 +1,11 @@
+import 'package:fieldnotes_client/fieldnotes_client.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/fieldnote_theme.dart';
 import '../../core/widgets.dart';
 import '../shell/fieldnote_view_model.dart';
+import 'account_data_export_view.dart';
 
 class LegalConsentGate extends StatefulWidget {
   const LegalConsentGate({super.key, required this.viewModel});
@@ -78,9 +79,9 @@ class _LegalConsentGateState extends State<LegalConsentGate> {
                       ),
                       CheckboxListTile(
                         value: _ai,
-                        title: const Text('Use Gemini AI assistance'),
+                        title: const Text('Use AI assistance'),
                         subtitle: const Text(
-                          'Campaign text and evidence inputs can be sent to Gemini for structured drafts.',
+                          'Campaign text and evidence inputs can be sent to an AI provider for structured drafts.',
                         ),
                         onChanged: (value) =>
                             setState(() => _ai = value ?? false),
@@ -95,10 +96,13 @@ class _LegalConsentGateState extends State<LegalConsentGate> {
                             setState(() => _evidence = value ?? false),
                       ),
                       const Divider(),
-                      const Padding(
-                        padding: EdgeInsets.all(12),
+                      Padding(
+                        padding: const EdgeInsets.all(12),
                         child: Text(
-                          'By continuing you accept the FieldNote Terms and Privacy Policy v2026-09-22.',
+                          'By continuing you accept the FieldNote Terms '
+                          'v${widget.viewModel.trustCenter?.termsVersion ?? 'current'} '
+                          'and Privacy Policy '
+                          'v${widget.viewModel.trustCenter?.privacyPolicyVersion ?? 'current'}.',
                         ),
                       ),
                       SizedBox(
@@ -213,12 +217,7 @@ class TrustCenterView extends StatelessWidget {
                       OutlinedButton.icon(
                         onPressed: () => _export(context),
                         icon: const Icon(Icons.download_outlined),
-                        label: const Text('Export my data'),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: () => _requestDeletion(context),
-                        icon: const Icon(Icons.delete_outline),
-                        label: const Text('Request deletion'),
+                        label: const Text('View and export my data'),
                       ),
                     ],
                   ),
@@ -237,30 +236,26 @@ class TrustCenterView extends StatelessWidget {
                   const SizedBox(height: 10),
                   if (trust.recentEvents.isEmpty)
                     const Text('No security events recorded yet.')
-                  else
-                    ...trust.recentEvents
-                        .take(12)
-                        .map(
-                          (event) => ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: Icon(
-                              event.outcome == 'rejected'
-                                  ? Icons.gpp_bad_outlined
-                                  : Icons.verified_user_outlined,
-                              color: event.outcome == 'rejected'
-                                  ? FieldnoteColors.clay
-                                  : FieldnoteColors.forest,
-                            ),
-                            title: Text(_eventTitle(event.event)),
-                            subtitle: Text(event.detail),
-                            trailing: Text(
-                              DateFormat(
-                                'HH:mm',
-                              ).format(event.occurredAt.toLocal()),
-                              style: Theme.of(context).textTheme.labelSmall,
-                            ),
+                  else ...[
+                    for (final event in trust.recentEvents.take(3))
+                      _activityTile(context, event),
+                    if (trust.recentEvents.length > 3) ...[
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          onPressed: () => _showActivity(
+                            context,
+                            trust.recentEvents,
+                          ),
+                          icon: const Icon(Icons.history),
+                          label: Text(
+                            'View all ${trust.recentEvents.length} events',
                           ),
                         ),
+                      ),
+                    ],
+                  ],
                 ],
               ),
             ),
@@ -270,68 +265,93 @@ class TrustCenterView extends StatelessWidget {
     );
   }
 
-  Future<void> _export(BuildContext context) async {
-    try {
-      final data = await viewModel.exportMyData();
-      if (!context.mounted) return;
-      await showDialog<void>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Your FieldNote data'),
-          content: SizedBox(
-            width: 620,
-            child: SingleChildScrollView(
-              child: SelectableText(data, style: const TextStyle(fontSize: 12)),
+  Widget _activityTile(
+    BuildContext context,
+    AuditEvent event, {
+    bool compact = true,
+  }) {
+    final rejected = event.outcome == 'rejected';
+    final detail = event.detail.trim();
+    final shownDetail = detail.isEmpty || detail.toLowerCase() == 'undefined'
+        ? event.event == 'paymentCheckoutFailed'
+              ? 'Checkout did not complete.'
+              : ''
+        : detail;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(
+        rejected ? Icons.gpp_bad_outlined : Icons.verified_user_outlined,
+        color: rejected ? FieldnoteColors.clay : FieldnoteColors.forest,
+      ),
+      title: Text(_eventTitle(event.event)),
+      subtitle: shownDetail.isEmpty
+          ? null
+          : Text(
+              shownDetail,
+              maxLines: compact ? 2 : null,
+              overflow: compact ? TextOverflow.ellipsis : null,
             ),
-          ),
-          actions: [
-            TextButton.icon(
-              onPressed: () async {
-                await Clipboard.setData(ClipboardData(text: data));
-                if (dialogContext.mounted) Navigator.pop(dialogContext);
-              },
-              icon: const Icon(Icons.copy),
-              label: const Text('Copy JSON'),
+      trailing: Text(
+        DateFormat('HH:mm').format(event.occurredAt.toLocal()),
+        style: Theme.of(context).textTheme.labelSmall,
+      ),
+    );
+  }
+
+  void _showActivity(BuildContext context, List<AuditEvent> events) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (sheetContext) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: .78,
+        minChildSize: .45,
+        maxChildSize: .95,
+        builder: (context, controller) => Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Security activity',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  ),
+                  Text('${events.length} events'),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: ListView.separated(
+                controller: controller,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: events.length,
+                itemBuilder: (context, index) => _activityTile(
+                  context,
+                  events[index],
+                  compact: false,
+                ),
+                separatorBuilder: (_, _) => const Divider(height: 1),
+              ),
             ),
           ],
         ),
-      );
-    } catch (error) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export failed: $error')),
-        );
-      }
-    }
-  }
-
-  Future<void> _requestDeletion(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Request account deletion?'),
-        content: const Text(
-          'The request is securely logged for review. Shared campaign records are retained until the request is processed.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Record request'),
-          ),
-        ],
       ),
     );
-    if (confirmed != true) return;
-    await viewModel.requestAccountDeletion();
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Deletion request recorded.')),
-      );
-    }
+  }
+
+  Future<void> _export(BuildContext context) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => AccountDataExportView(viewModel: viewModel),
+      ),
+    );
+    if (context.mounted) await viewModel.refresh();
   }
 
   static String _eventTitle(String value) => switch (value) {

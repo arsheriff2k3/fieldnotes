@@ -35,6 +35,9 @@ You are FieldNote's campaign planner. Convert the sponsor request into one
 safe, achievable local volunteer campaign. Today is ${now.toUtc().toIso8601String()}.
 Return a future ISO-8601 date-time. Preserve an explicit budget and volunteer
 count when present. Do not invent legal, medical, or environmental certainty.
+Keep the sponsor's named city or place in locationName exactly as given. Do not
+replace it with a nearby or more familiar place. The sponsor will verify the
+exact map pin before publishing.
 
 Sponsor request:
 ${prompt.trim()}
@@ -152,6 +155,8 @@ ${note.trim()}
         throw GeminiAiException(
           'Gemini returned HTTP ${response.statusCode}: '
           '${_safeErrorMessage(responseBody)}',
+          null,
+          response.statusCode,
         );
       }
       final envelope = jsonDecode(responseBody);
@@ -328,10 +333,13 @@ ${note.trim()}
 }
 
 class GeminiAiException implements Exception {
-  const GeminiAiException(this.message, [this.cause]);
+  const GeminiAiException(this.message, [this.cause, this.statusCode]);
 
   final String message;
   final Object? cause;
+  final int? statusCode;
+
+  bool get isQuotaExhausted => statusCode == 429;
 
   @override
   String toString() => 'GeminiAiException: $message';

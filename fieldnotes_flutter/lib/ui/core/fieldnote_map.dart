@@ -126,6 +126,7 @@ class FieldnoteMap extends StatefulWidget {
 
 class _FieldnoteMapState extends State<FieldnoteMap> {
   GoogleMapController? _controller;
+  bool _showFallback = false;
 
   @override
   void didUpdateWidget(FieldnoteMap oldWidget) {
@@ -172,56 +173,90 @@ class _FieldnoteMapState extends State<FieldnoteMap> {
     if (!MapConfig.isConfigured) {
       return widget.fallback ?? const MapUnavailableNotice();
     }
+    if (_showFallback) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          widget.fallback ?? const MapUnavailableNotice(),
+          TextButton.icon(
+            onPressed: () => setState(() => _showFallback = false),
+            icon: const Icon(Icons.refresh),
+            label: const Text('Retry map'),
+          ),
+        ],
+      );
+    }
     return ClipRRect(
       borderRadius: BorderRadius.circular(18),
       child: SizedBox(
         height: widget.height,
         width: double.infinity,
-        child: Semantics(
-          label: widget.semanticLabel,
-          child: GoogleMap(
-            initialCameraPosition: CameraPosition(
-              target: widget.target,
-              zoom: widget.zoom,
-            ),
-            style: fieldnoteMapStyle,
-            markers: widget.markers,
-            circles: widget.circles,
-            polylines: widget.polylines,
-            onTap: widget.onTap,
-            mapType: widget.mapType,
-            myLocationEnabled: widget.myLocationEnabled,
-            myLocationButtonEnabled: widget.myLocationEnabled,
-            zoomControlsEnabled: false,
-            mapToolbarEnabled: false,
-            compassEnabled: false,
-            rotateGesturesEnabled: false,
-            tiltGesturesEnabled: false,
-            scrollGesturesEnabled: widget.interactive,
-            zoomGesturesEnabled: widget.interactive,
-            // Every map in FieldNote sits inside a scrolling column. Without an
-            // eager recognizer the parent scrollable swallows the drag and the
-            // map cannot be panned at all.
-            gestureRecognizers: widget.interactive
-                ? <Factory<OneSequenceGestureRecognizer>>{
-                    Factory<OneSequenceGestureRecognizer>(
-                      EagerGestureRecognizer.new,
-                    ),
+        child: Stack(
+          children: [
+            Semantics(
+              label: widget.semanticLabel,
+              child: GoogleMap(
+                initialCameraPosition: CameraPosition(
+                  target: widget.target,
+                  zoom: widget.zoom,
+                ),
+                // Google's default style keeps street, locality and place labels
+                // visible while someone chooses or checks an exact work site.
+                markers: widget.markers,
+                circles: widget.circles,
+                polylines: widget.polylines,
+                onTap: widget.onTap,
+                mapType: widget.mapType,
+                myLocationEnabled: widget.myLocationEnabled,
+                myLocationButtonEnabled: widget.myLocationEnabled,
+                zoomControlsEnabled: false,
+                mapToolbarEnabled: false,
+                compassEnabled: false,
+                rotateGesturesEnabled: false,
+                tiltGesturesEnabled: false,
+                scrollGesturesEnabled: widget.interactive,
+                zoomGesturesEnabled: widget.interactive,
+                // Every map in FieldNote sits inside a scrolling column. Without an
+                // eager recognizer the parent scrollable swallows the drag and the
+                // map cannot be panned at all.
+                gestureRecognizers: widget.interactive
+                    ? <Factory<OneSequenceGestureRecognizer>>{
+                        Factory<OneSequenceGestureRecognizer>(
+                          EagerGestureRecognizer.new,
+                        ),
+                      }
+                    : const <Factory<OneSequenceGestureRecognizer>>{},
+                onMapCreated: (controller) {
+                  _controller = controller;
+                  widget.onMapCreated?.call(controller);
+                  final bounds = widget.fitBounds;
+                  if (bounds != null && bounds.length > 1) {
+                    // The platform view needs a frame before it can measure the
+                    // viewport a bounds animation is fitted against.
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      _frame(bounds);
+                    });
                   }
-                : const <Factory<OneSequenceGestureRecognizer>>{},
-            onMapCreated: (controller) {
-              _controller = controller;
-              widget.onMapCreated?.call(controller);
-              final bounds = widget.fitBounds;
-              if (bounds != null && bounds.length > 1) {
-                // The platform view needs a frame before it can measure the
-                // viewport a bounds animation is fitted against.
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _frame(bounds);
-                });
-              }
-            },
-          ),
+                },
+              ),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Material(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(12),
+                child: IconButton(
+                  tooltip: 'Map not loading? Show location details',
+                  onPressed: () => setState(() {
+                    _controller = null;
+                    _showFallback = true;
+                  }),
+                  icon: const Icon(Icons.map_outlined),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -251,8 +286,7 @@ class MapUnavailableNotice extends StatelessWidget {
           Expanded(
             child: Text(
               message ??
-                  'Map preview is off. Add this platform\'s Google Maps key '
-                      'to .env.maps to draw pins and geofences.',
+                  'Map preview is unavailable. Location details are still shown below.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
