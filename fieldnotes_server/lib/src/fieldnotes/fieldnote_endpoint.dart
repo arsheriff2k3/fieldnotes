@@ -1544,6 +1544,200 @@ class FieldnoteEndpoint extends Endpoint {
     );
   }
 
+  /// Shows the campaign creator every joined volunteer and each currently
+  /// eligible volunteer who has published availability. Coordinates are
+  /// rounded to an area before leaving the server; exact GPS is never sent.
+  Future<CampaignVolunteerMap> getCampaignVolunteerMap(
+    Session session,
+    int campaignId,
+  ) async {
+    final sponsor = await _requireRole(session, AccountRole.sponsor);
+    final campaign = await _campaign(session, campaignId);
+    if (campaign.createdBy != sponsor.authUserId) {
+      throw FieldnoteException(
+        message: 'Only the campaign creator can view nearby volunteers.',
+        code: 'forbidden',
+      );
+    }
+    if (campaign.status == CampaignStatus.draft) {
+      throw FieldnoteException(
+        message: 'Publish the campaign before viewing nearby volunteers.',
+        code: 'campaign_unavailable',
+      );
+    }
+    final joined = await CampaignParticipation.db.find(
+      session,
+      where: (t) => t.campaignId.equals(campaignId),
+    );
+    final joinedIds = joined.map((item) => item.volunteerAuthUserId).toSet();
+    final invitations = await CampaignInvitation.db.find(
+      session,
+      where: (t) => t.campaignId.equals(campaignId),
+    );
+    final invitedIds = invitations
+        .map((item) => item.volunteerAuthUserId)
+        .toSet();
+    final availabilities = await VolunteerAvailability.db.find(session);
+    final availabilityByUser = {
+      for (final availability in availabilities)
+        availability.volunteerAuthUserId: availability,
+    };
+    final visibleIds = {...joinedIds};
+    for (final availability in availabilities) {
+      if (campaign.status == CampaignStatus.active &&
+          DateTime.now().toUtc().isBefore(campaign.startsAt) &&
+          availability.isAvailable &&
+          _availabilityCoversCampaign(availability, campaign) &&
+          availability.latitude != null &&
+          availability.longitude != null &&
+          _distanceMeters(
+                    availability.latitude!,
+                    availability.longitude!,
+                    campaign.latitude,
+                    campaign.longitude,
+                  ) /
+                  1000 <=
+              availability.maximumTravelKm) {
+        visibleIds.add(availability.volunteerAuthUserId);
+      }
+    }
+    final volunteers = <CampaignVolunteerMapMember>[];
+    for (final userId in visibleIds) {
+      final profile = await FieldnoteUserProfile.db.findFirstRow(
+        session,
+        where: (t) => t.authUserId.equals(userId),
+      );
+      if (profile == null || profile.role != AccountRole.volunteer) continue;
+      final availability = availabilityByUser[userId];
+      final latitude = availability?.isAvailable == true
+          ? availability?.latitude
+          : null;
+      final longitude = availability?.isAvailable == true
+          ? availability?.longitude
+          : null;
+      volunteers.add(
+        CampaignVolunteerMapMember(
+          profileId: profile.id!,
+          displayName: profile.displayName,
+          areaLabel: latitude == null || longitude == null
+              ? 'Area not shared'
+              : 'Approximate area',
+          latitude: latitude == null
+              ? null
+              : double.parse(latitude.toStringAsFixed(2)),
+          longitude: longitude == null
+              ? null
+              : double.parse(longitude.toStringAsFixed(2)),
+          status: joinedIds.contains(userId)
+              ? 'joined'
+              : invitedIds.contains(userId)
+              ? 'invited'
+              : 'available',
+        ),
+      );
+    }
+    volunteers.sort((a, b) {
+      const order = {'joined': 0, 'available': 1, 'invited': 2};
+      final statusOrder = (order[a.status] ?? 3).compareTo(
+        order[b.status] ?? 3,
+      );
+      return statusOrder != 0
+          ? statusOrder
+          : a.displayName.compareTo(b.displayName);
+    });
+    final joinedCount = volunteers
+        .where((person) => person.status == 'joined')
+        .length;
+    final inviteableCount = volunteers
+        .where((person) => person.status == 'available')
+        .length;
+    return CampaignVolunteerMap(
+      volunteers: volunteers,
+      summary:
+          '$joinedCount joined · $inviteableCount ready to invite · ${volunteers.length} shown',
+    );
+  }
+
+  /// Invites one volunteer selected from the creator-only approximate map.
+  /// Eligibility is checked again at send time.
+  Future<bool> inviteCampaignVolunteer(
+    Session session,
+    int campaignId,
+    int volunteerProfileId,
+  ) async {
+    final sponsor = await _requireRole(session, AccountRole.sponsor);
+    final campaign = await _campaign(session, campaignId);
+    if (campaign.createdBy != sponsor.authUserId) {
+      throw FieldnoteException(
+        message: 'Only the campaign creator can invite volunteers.',
+        code: 'forbidden',
+      );
+    }
+    if (campaign.status != CampaignStatus.active ||
+        !DateTime.now().toUtc().isBefore(campaign.startsAt) ||
+        const {'cancelled', 'expired'}.contains(campaign.readinessState)) {
+      throw FieldnoteException(
+        message: 'This campaign is no longer open for invitations.',
+        code: 'campaign_unavailable',
+      );
+    }
+    final profile = await FieldnoteUserProfile.db.findById(
+      session,
+      volunteerProfileId,
+    );
+    if (profile == null || profile.role != AccountRole.volunteer) {
+      throw FieldnoteException(
+        message: 'This volunteer is no longer available.',
+        code: 'volunteer_unavailable',
+      );
+    }
+    final joined = await CampaignParticipation.db.findFirstRow(
+      session,
+      where: (t) =>
+          t.campaignId.equals(campaignId) &
+          t.volunteerAuthUserId.equals(profile.authUserId),
+    );
+    if (joined != null) return false;
+    final availability = await VolunteerAvailability.db.findFirstRow(
+      session,
+      where: (t) => t.volunteerAuthUserId.equals(profile.authUserId),
+    );
+    if (availability == null ||
+        !availability.isAvailable ||
+        availability.latitude == null ||
+        availability.longitude == null ||
+        !_availabilityCoversCampaign(availability, campaign) ||
+        _distanceMeters(
+                  availability.latitude!,
+                  availability.longitude!,
+                  campaign.latitude,
+                  campaign.longitude,
+                ) /
+                1000 >
+            availability.maximumTravelKm) {
+      throw FieldnoteException(
+        message: 'This volunteer can no longer reach the campaign.',
+        code: 'volunteer_unavailable',
+      );
+    }
+    final existing = await CampaignInvitation.db.findFirstRow(
+      session,
+      where: (t) =>
+          t.campaignId.equals(campaignId) &
+          t.volunteerAuthUserId.equals(profile.authUserId),
+    );
+    if (existing != null) return false;
+    await CampaignInvitation.db.insertRow(
+      session,
+      CampaignInvitation(
+        campaignId: campaignId,
+        volunteerAuthUserId: profile.authUserId,
+        sponsorAuthUserId: sponsor.authUserId,
+      ),
+    );
+    return true;
+  }
+
   /// Delivers a private in-app invitation to everyone in a visible map area.
   /// Eligibility and the anonymity threshold are checked again on the server
   /// at send time. Repeated taps do not create duplicate invitations.

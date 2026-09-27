@@ -32,6 +32,8 @@ import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign_propos
     as _i9wpoa9q;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign_reach.dart'
     as _i7z8ummg;
+import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign_volunteer_map.dart'
+    as _ipqasx2l;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/completion_evidence.dart'
     as _i82sjar3;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/completion_proposal.dart'
@@ -723,6 +725,31 @@ class EndpointFieldnote extends _isc.EndpointRef {
     'fieldnote',
     'getCampaignVolunteerReach',
     {'campaignId': campaignId},
+  );
+
+  /// Shows the campaign creator every joined volunteer and each currently
+  /// eligible volunteer who has published availability. Coordinates are
+  /// rounded to an area before leaving the server; exact GPS is never sent.
+  _ida.Future<_ipqasx2l.CampaignVolunteerMap> getCampaignVolunteerMap(
+    int campaignId,
+  ) => caller.callServerEndpoint<_ipqasx2l.CampaignVolunteerMap>(
+    'fieldnote',
+    'getCampaignVolunteerMap',
+    {'campaignId': campaignId},
+  );
+
+  /// Invites one volunteer selected from the creator-only approximate map.
+  /// Eligibility is checked again at send time.
+  _ida.Future<bool> inviteCampaignVolunteer(
+    int campaignId,
+    int volunteerProfileId,
+  ) => caller.callServerEndpoint<bool>(
+    'fieldnote',
+    'inviteCampaignVolunteer',
+    {
+      'campaignId': campaignId,
+      'volunteerProfileId': volunteerProfileId,
+    },
   );
 
   /// Delivers a private in-app invitation to everyone in a visible map area.

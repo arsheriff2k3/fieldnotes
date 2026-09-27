@@ -229,6 +229,89 @@ abstract final class FieldnoteSpacing {
   }
 }
 
+class FieldnoteSectionTab {
+  const FieldnoteSectionTab(this.label, this.icon);
+
+  final String label;
+  final IconData icon;
+}
+
+/// Compact, swipeable section tabs shared by sponsor and volunteer screens.
+class FieldnoteSectionTabs extends StatelessWidget {
+  const FieldnoteSectionTabs({
+    super.key,
+    required this.tabs,
+    this.compact = false,
+  });
+
+  final List<FieldnoteSectionTab> tabs;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: FieldnoteSpacing.pageGutter(context),
+      ),
+      child: Material(
+        color: FieldnoteColors.mist,
+        borderRadius: BorderRadius.circular(compact ? 14 : 18),
+        clipBehavior: Clip.antiAlias,
+        child: TabBar(
+          isScrollable: false,
+          indicatorSize: TabBarIndicatorSize.tab,
+          indicatorPadding: const EdgeInsets.all(3),
+          indicator: BoxDecoration(
+            color: FieldnoteColors.forest,
+            borderRadius: BorderRadius.circular(compact ? 11 : 15),
+          ),
+          dividerColor: Colors.transparent,
+          labelColor: Colors.white,
+          unselectedLabelColor: FieldnoteColors.ink,
+          labelStyle: const TextStyle(
+            fontSize: 12,
+            height: 1,
+            fontWeight: FontWeight.w700,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontSize: 12,
+            height: 1,
+            fontWeight: FontWeight.w700,
+          ),
+          tabs: [
+            for (final tab in tabs)
+              if (compact)
+                Tab(
+                  height: 46,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(tab.icon, size: 17),
+                      const SizedBox(width: 5),
+                      Flexible(
+                        child: Text(
+                          tab.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Tab(
+                  height: 54,
+                  iconMargin: const EdgeInsets.only(bottom: 3),
+                  icon: Icon(tab.icon, size: 18),
+                  text: tab.label,
+                ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class FieldnotePageList extends StatelessWidget {
   const FieldnotePageList({
     super.key,

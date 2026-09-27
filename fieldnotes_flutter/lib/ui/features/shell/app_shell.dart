@@ -220,6 +220,8 @@ class _AppShellState extends State<AppShell> {
                       onSelected: _viewModel.selectSection,
                     )
                   : NavigationBar(
+                      height: 72,
+                      animationDuration: const Duration(milliseconds: 180),
                       selectedIndex: _viewModel.selectedIndex,
                       onDestinationSelected: _viewModel.selectSection,
                       destinations: destinations
@@ -306,7 +308,7 @@ class _SponsorBottomBarState extends State<_SponsorBottomBar>
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 106,
+      height: 92,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -340,7 +342,7 @@ class _SponsorBottomBarState extends State<_SponsorBottomBar>
                   children: [
                     _item(0, Icons.explore_outlined, Icons.explore, 'Discover'),
                     _item(2, Icons.insights_outlined, Icons.insights, 'Impact'),
-                    const SizedBox(width: 78),
+                    const SizedBox(width: 70),
                     _item(3, Icons.shield_outlined, Icons.shield, 'Trust'),
                     _item(4, Icons.person_outline, Icons.person, 'Profile'),
                   ],
@@ -364,28 +366,34 @@ class _SponsorBottomBarState extends State<_SponsorBottomBar>
           selected: selected,
           label: label,
           child: Padding(
-            padding: const EdgeInsets.only(top: 8, bottom: 5),
+            padding: const EdgeInsets.only(top: 5, bottom: 3),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  selected ? selectedIcon : icon,
-                  size: 22,
-                  color: selected
-                      ? FieldnoteColors.forest
-                      : FieldnoteColors.ink.withValues(alpha: .68),
+                AnimatedScale(
+                  scale: selected ? 1.08 : 1,
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOutCubic,
+                  child: Icon(
+                    selected ? selectedIcon : icon,
+                    size: 21,
+                    color: selected
+                        ? FieldnoteColors.forest
+                        : FieldnoteColors.ink.withValues(alpha: .68),
+                  ),
                 ),
                 const SizedBox(height: 1),
-                Text(
-                  label,
-                  maxLines: 1,
+                AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOutCubic,
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                     color: selected
                         ? FieldnoteColors.forest
                         : FieldnoteColors.ink.withValues(alpha: .68),
                   ),
+                  child: Text(label, maxLines: 1),
                 ),
               ],
             ),
@@ -485,8 +493,8 @@ class _SponsorVoiceButtonState extends State<_SponsorVoiceButton>
           builder: (context, _) => Transform.scale(
             scale: active ? 1 + (_pulse.value * .08) : 1,
             child: Container(
-              width: 68,
-              height: 68,
+              width: 62,
+              height: 62,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: active ? FieldnoteColors.clay : idleColor,
@@ -503,7 +511,7 @@ class _SponsorVoiceButtonState extends State<_SponsorVoiceButton>
                   ),
                 ],
               ),
-              child: Icon(icon, color: Colors.white, size: 30),
+              child: Icon(icon, color: Colors.white, size: 27),
             ),
           ),
         ),

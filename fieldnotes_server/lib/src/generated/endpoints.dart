@@ -1147,6 +1147,50 @@ class Endpoints extends _is.EndpointDispatch {
                     params['campaignId'],
                   ),
         ),
+        'getCampaignVolunteerMap': _is.MethodConnector(
+          name: 'getCampaignVolunteerMap',
+          params: {
+            'campaignId': _is.ParameterDescription(
+              name: 'campaignId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .getCampaignVolunteerMap(
+                    session,
+                    params['campaignId'],
+                  ),
+        ),
+        'inviteCampaignVolunteer': _is.MethodConnector(
+          name: 'inviteCampaignVolunteer',
+          params: {
+            'campaignId': _is.ParameterDescription(
+              name: 'campaignId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'volunteerProfileId': _is.ParameterDescription(
+              name: 'volunteerProfileId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .inviteCampaignVolunteer(
+                    session,
+                    params['campaignId'],
+                    params['volunteerProfileId'],
+                  ),
+        ),
         'inviteCampaignVolunteersInArea': _is.MethodConnector(
           name: 'inviteCampaignVolunteersInArea',
           params: {

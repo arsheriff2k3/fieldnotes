@@ -1269,6 +1269,115 @@ void main() {
     });
 
     test(
+      'creator map shows one volunteer, invitation, and joined state',
+      () async {
+        await endpoints.fieldnote.completeSponsorProfile(
+          sponsor,
+          'Asha Sponsor',
+          'Individual',
+          null,
+          'Pune',
+          null,
+          ['environment'],
+          contactPhone: '+919876543210',
+        );
+        await endpoints.fieldnote.acceptLegalConsent(sponsor, true, true, true);
+        final volunteerProfile = await endpoints.fieldnote
+            .completeVolunteerProfile(
+              volunteer,
+              'Vik Volunteer',
+              'Pune',
+              ['environment'],
+              ['outdoors'],
+              true,
+              true,
+              [1, 2, 3, 4, 5, 6, 7],
+              0,
+              1439,
+              10,
+              18.5204,
+              73.8567,
+              'Pune area',
+            );
+        await endpoints.fieldnote.acceptLegalConsent(
+          volunteer,
+          true,
+          true,
+          true,
+        );
+        final campaign = await endpoints.fieldnote.createCampaignFromProposal(
+          sponsor,
+          _campaignProposal(),
+          18.5204,
+          73.8567,
+          'Pune work site',
+          200,
+        );
+
+        final before = await endpoints.fieldnote.getCampaignVolunteerMap(
+          sponsor,
+          campaign.id!,
+        );
+        expect(before.volunteers.single.profileId, volunteerProfile.id);
+        expect(before.volunteers.single.status, 'available');
+        expect(before.volunteers.single.latitude, 18.52);
+        expect(before.volunteers.single.longitude, 73.86);
+        expect(before.volunteers.single.areaLabel, 'Approximate area');
+        expect(
+          await endpoints.fieldnote.inviteCampaignVolunteer(
+            sponsor,
+            campaign.id!,
+            volunteerProfile.id!,
+          ),
+          isTrue,
+        );
+        expect(
+          await endpoints.fieldnote.inviteCampaignVolunteer(
+            sponsor,
+            campaign.id!,
+            volunteerProfile.id!,
+          ),
+          isFalse,
+        );
+        final invited = await endpoints.fieldnote.getCampaignVolunteerMap(
+          sponsor,
+          campaign.id!,
+        );
+        expect(invited.volunteers.single.status, 'invited');
+
+        await endpoints.fieldnote.joinCampaign(volunteer, campaign.id!);
+        final joined = await endpoints.fieldnote.getCampaignVolunteerMap(
+          sponsor,
+          campaign.id!,
+        );
+        expect(joined.volunteers.single.status, 'joined');
+        await endpoints.fieldnote.updateAvailability(
+          volunteer,
+          false,
+          false,
+          [1, 2, 3, 4, 5, 6, 7],
+          0,
+          1439,
+          10,
+          18.5204,
+          73.8567,
+          'Pune area',
+        );
+        final hiddenArea = await endpoints.fieldnote.getCampaignVolunteerMap(
+          sponsor,
+          campaign.id!,
+        );
+        expect(hiddenArea.volunteers.single.status, 'joined');
+        expect(hiddenArea.volunteers.single.latitude, isNull);
+        expect(hiddenArea.volunteers.single.areaLabel, 'Area not shared');
+        await expectLater(
+          endpoints.fieldnote.getCampaignVolunteerMap(volunteer, campaign.id!),
+          throwsA(isA<FieldnoteException>()),
+        );
+      },
+    );
+
+    test(
       'availability produces explained matches and supports GPS check-in',
       () async {
         await endpoints.fieldnote.completeVolunteerProfile(

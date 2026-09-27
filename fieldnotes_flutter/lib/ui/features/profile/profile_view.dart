@@ -304,8 +304,10 @@ class _ProfileViewState extends State<ProfileView> {
           eyebrow: '$roleName account',
           title: _editing ? 'Edit your profile' : profile.displayName,
           description: _editing
-              ? 'Update your account details. Your role and privacy choices stay locked.'
-              : '${widget.viewModel.isSponsor ? profile.locationAddress ?? profile.city : profile.city} · ${_values(profile.interests).join(' · ')}',
+              ? 'Update the details people use to reach you.'
+              : widget.viewModel.isSponsor
+              ? 'Your contact and campaign identity.'
+              : 'Your account and availability details.',
           trailing: _editing
               ? OutlinedButton(
                   onPressed: _saving
@@ -322,7 +324,7 @@ class _ProfileViewState extends State<ProfileView> {
                   label: const Text('Edit profile'),
                 ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
         if (_editing) _editor() else _summary(profile),
       ],
     );
@@ -336,11 +338,6 @@ class _ProfileViewState extends State<ProfileView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _detail(
-                'Role',
-                widget.viewModel.isSponsor ? 'Sponsor' : 'Volunteer',
-              ),
-              _detail('Display name', profile.displayName),
               _detail(
                 'Phone number',
                 profile.contactPhone?.isNotEmpty == true
@@ -361,7 +358,7 @@ class _ProfileViewState extends State<ProfileView> {
                 const SizedBox(height: 12),
               ],
               _detail(
-                widget.viewModel.isSponsor ? 'Location' : 'City',
+                widget.viewModel.isSponsor ? 'Location' : 'Home area',
                 widget.viewModel.isSponsor
                     ? profile.locationAddress ?? profile.city
                     : profile.city,
@@ -385,6 +382,7 @@ class _ProfileViewState extends State<ProfileView> {
                 const Text(
                   'Your number is shared only with volunteers who join your campaign.',
                 ),
+                const SizedBox(height: 12),
                 _detail('Sponsor type', profile.sponsorType ?? 'Individual'),
                 _detail(
                   'Organization',
@@ -490,17 +488,9 @@ class _ProfileViewState extends State<ProfileView> {
               hintText: '+919876543210',
               prefixIcon: const Icon(Icons.call_outlined),
               helperText: widget.viewModel.isSponsor
-                  ? 'Shared only with volunteers who joined your campaign.'
+                  ? 'Visible only to joined volunteers.'
                   : 'Private to your account.',
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            initialValue: widget.viewModel.isSponsor ? 'Sponsor' : 'Volunteer',
-            readOnly: true,
-            decoration: const InputDecoration(
-              labelText: 'Account role (cannot be changed)',
-              prefixIcon: Icon(Icons.lock_outline),
+              helperMaxLines: 2,
             ),
           ),
           const SizedBox(height: 12),
@@ -576,7 +566,7 @@ class _ProfileViewState extends State<ProfileView> {
           controller: _city,
           onChanged: _cityChanged,
           decoration: InputDecoration(
-            labelText: isLocation ? 'Location' : 'City',
+            labelText: isLocation ? 'Location' : 'Home city',
             hintText: isLocation
                 ? 'Search for an address or place…'
                 : 'Start typing a city…',
@@ -639,8 +629,8 @@ class _ProfileViewState extends State<ProfileView> {
         Text(
           _citySearchAvailable
               ? isLocation
-                    ? 'Choose a complete location from Google Places · Powered by Google'
-                    : 'Choose a Google city suggestion when changing city · Powered by Google'
+                    ? 'Choose a suggestion or pin a place on the map.'
+                    : 'Choose a city suggestion · Powered by Google'
               : isLocation
               ? 'Location search is unavailable; enter the complete address manually.'
               : 'City search is unavailable; enter the city manually.',
@@ -773,7 +763,7 @@ class _ProfileViewState extends State<ProfileView> {
   );
 
   Widget _detail(String label, String value) => Padding(
-    padding: const EdgeInsets.only(bottom: 16),
+    padding: const EdgeInsets.only(bottom: 12),
     child: LayoutBuilder(
       builder: (context, constraints) {
         final labelWidget = Text(

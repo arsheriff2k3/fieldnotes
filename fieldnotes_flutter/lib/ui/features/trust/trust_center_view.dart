@@ -142,12 +142,11 @@ class TrustCenterView extends StatelessWidget {
       child: FieldnotePageList(
         children: [
           const SectionHeading(
-            eyebrow: 'Trust & safety',
-            title: 'Proof has a paper trail',
-            description:
-                'See how FieldNote protects payments, location evidence, AI content, and your privacy.',
+            eyebrow: 'Your account',
+            title: 'Trust & safety',
+            description: 'Review privacy controls and account activity.',
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 16),
           if (trust == null)
             const EmptyPanel(
               icon: Icons.shield_outlined,
@@ -195,12 +194,13 @@ class TrustCenterView extends StatelessWidget {
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                       ),
-                      const StatusPill(
-                        label: 'Consent recorded',
-                        color: FieldnoteColors.forest,
-                        icon: Icons.check_circle_outline,
-                      ),
                     ],
+                  ),
+                  const SizedBox(height: 8),
+                  const StatusPill(
+                    label: 'Consent recorded',
+                    color: FieldnoteColors.forest,
+                    icon: Icons.check_circle_outline,
                   ),
                   const SizedBox(height: 12),
                   Text(trust.retentionNotice),
@@ -288,7 +288,7 @@ class TrustCenterView extends StatelessWidget {
           ? null
           : Text(
               shownDetail,
-              maxLines: compact ? 2 : null,
+              maxLines: compact ? 1 : null,
               overflow: compact ? TextOverflow.ellipsis : null,
             ),
       trailing: Text(
@@ -358,11 +358,15 @@ class TrustCenterView extends StatelessWidget {
     'paymentOrderCreated' => 'Razorpay order created',
     'paymentSignatureVerified' => 'Payment signature checked',
     'paymentCheckoutFailed' => 'Checkout failed or cancelled',
+    'paymentVerifiedWithoutCredit' => 'Payment verification reviewed',
+    'paymentOrderCreate' => 'Checkout requested',
     'locationCheckIn' => 'Check-in integrity checked',
+    'evidenceLocationIntegrity' => 'Evidence location checked',
     'evidenceSubmitted' => 'Evidence verified',
     'contentModeration' => 'Content moderation decision',
     'legalConsentAccepted' => 'Consent accepted',
     'privacyDataExported' => 'Data exported',
+    'testPayoutSimulated' || 'testPayoutsSimulated' => 'Test payout recorded',
     'accountDeletionRequested' => 'Deletion requested',
     _ => value,
   };
@@ -385,11 +389,20 @@ class _ProtectionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: FieldnoteColors.forest, size: 30),
-          const SizedBox(height: 10),
-          Text(title, style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 7),
-          Text(detail),
+          Row(
+            children: [
+              Icon(icon, color: FieldnoteColors.forest, size: 23),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(detail, style: Theme.of(context).textTheme.bodySmall),
         ],
       ),
     );

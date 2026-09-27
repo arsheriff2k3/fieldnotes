@@ -228,9 +228,10 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
       'fundingShort' => 'Funding short',
       'volunteersShort' => 'Volunteers short',
       'bothShort' => 'Funding and volunteers short',
-      'postponed' => beforeCutoff && teamGap == 0
-          ? 'Postponed · awaiting cutoff'
-          : 'Postponed · awaiting reconfirmation',
+      'postponed' =>
+        beforeCutoff && teamGap == 0
+            ? 'Postponed · awaiting cutoff'
+            : 'Postponed · awaiting reconfirmation',
       'cancelled' => 'Cancelled',
       'expired' => 'Date expired',
       _ => 'Open · date tentative',
@@ -243,7 +244,7 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
       appBar: AppBar(title: const Text('Campaign readiness')),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 700),
@@ -252,7 +253,7 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
                 children: [
                   Text(
                     campaign.name,
-                    style: Theme.of(context).textTheme.headlineMedium,
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 8),
                   StatusPill(
@@ -264,7 +265,7 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
                         ? Icons.verified_outlined
                         : Icons.schedule,
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 14),
                   SurfaceCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -285,7 +286,7 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
                                 : 'The event stays tentative until ${DateFormat('EEE, d MMM · h:mm a').format(cutoff.toLocal())}. Refreshing now updates the counts.',
                           ),
                         ],
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 10),
                         Text(
                           'Funding: ₹${campaign.sponsoredAmount.toStringAsFixed(0)} of ₹${campaign.fundingGoal.toStringAsFixed(0)} · ₹${fundingGap.toStringAsFixed(0)} short',
                         ),
@@ -303,7 +304,7 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
                     ),
                   ),
                   if (!closed) ...[
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     SurfaceCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

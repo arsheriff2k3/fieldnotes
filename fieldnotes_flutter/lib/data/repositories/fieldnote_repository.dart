@@ -223,6 +223,12 @@ class FieldnoteRepository {
   Future<CampaignReach> campaignVolunteerReach(int campaignId) =>
       client.fieldnote.getCampaignVolunteerReach(campaignId);
 
+  Future<CampaignVolunteerMap> campaignVolunteerMap(int campaignId) =>
+      client.fieldnote.getCampaignVolunteerMap(campaignId);
+
+  Future<bool> inviteCampaignVolunteer(int campaignId, int profileId) =>
+      client.fieldnote.inviteCampaignVolunteer(campaignId, profileId);
+
   Future<int> inviteCampaignVolunteersInArea(
     int campaignId,
     double latitude,

@@ -53,6 +53,20 @@ void run(List<String> args) async {
 
   pod.webServer.addRoute(CampaignShareRoute(), '/c/:id');
 
+  // Serve the same locally built APK from the campaign link's host, so a new
+  // volunteer needs only the shared link. This route is for the demo server;
+  // release distribution can replace it with a store URL later.
+  final fieldnoteApk = File(fieldnoteApkFilePath);
+  if (fieldnoteApk.existsSync()) {
+    pod.webServer.addRoute(
+      StaticRoute.file(
+        fieldnoteApk,
+        cacheControlFactory: StaticRoute.noStore(),
+      ),
+      '/download/fieldnote.apk',
+    );
+  }
+
   // Checks if the flutter web app has been built and serves it if it has.
   final appDir = Directory(Uri(path: 'web/app').toFilePath());
   if (appDir.existsSync()) {
