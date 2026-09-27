@@ -335,6 +335,25 @@ class Endpoints extends _is.EndpointDispatch {
               ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
                   .exportMyData(session),
         ),
+        'recordAccountDataExport': _is.MethodConnector(
+          name: 'recordAccountDataExport',
+          params: {
+            'format': _is.ParameterDescription(
+              name: 'format',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .recordAccountDataExport(
+                    session,
+                    params['format'],
+                  ),
+        ),
         'requestAccountDeletion': _is.MethodConnector(
           name: 'requestAccountDeletion',
           params: {},
@@ -755,6 +774,25 @@ class Endpoints extends _is.EndpointDispatch {
                 Map<String, dynamic> params,
               ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
                   .listCampaigns(session),
+        ),
+        'getSharedCampaign': _is.MethodConnector(
+          name: 'getSharedCampaign',
+          params: {
+            'campaignId': _is.ParameterDescription(
+              name: 'campaignId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .getSharedCampaign(
+                    session,
+                    params['campaignId'],
+                  ),
         ),
         'listMyCreatedCampaigns': _is.MethodConnector(
           name: 'listMyCreatedCampaigns',

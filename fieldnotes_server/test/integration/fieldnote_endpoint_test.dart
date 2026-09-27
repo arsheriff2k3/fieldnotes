@@ -102,6 +102,30 @@ void main() {
       expect(volunteerExport['createdCampaigns'], isEmpty);
       expect(volunteerExport['availability'], isNotNull);
       expect(volunteerExport['securityActivity'], isNotEmpty);
+
+      final previewEvents = (await endpoints.fieldnote.getTrustCenter(
+        volunteer,
+      )).recentEvents;
+      expect(
+        previewEvents.where((event) => event.event == 'privacyDataExported'),
+        isEmpty,
+      );
+
+      await endpoints.fieldnote.recordAccountDataExport(volunteer, 'pdf');
+      await endpoints.fieldnote.recordAccountDataExport(volunteer, 'json');
+      final completedEvents =
+          (await endpoints.fieldnote.getTrustCenter(volunteer)).recentEvents
+              .where((event) => event.event == 'privacyDataExported')
+              .toList();
+      expect(completedEvents.length, 2);
+      expect(
+        completedEvents.map((event) => event.detail),
+        contains('The user saved or shared a PDF account data export.'),
+      );
+      expect(
+        completedEvents.map((event) => event.detail),
+        contains('The user saved or shared a JSON account data export.'),
+      );
     });
 
     test('one remaining place admits only one volunteer', () async {

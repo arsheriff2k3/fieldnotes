@@ -6,6 +6,7 @@ import '../../../data/repositories/fieldnote_repository.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/widgets.dart';
 import '../onboarding/onboarding_view.dart';
+import '../volunteer/shared_campaign_view.dart';
 import '../profile/profile_view.dart';
 import '../sponsor/sponsor_views.dart';
 import '../trust/trust_center_view.dart';
@@ -13,7 +14,9 @@ import '../volunteer/volunteer_views.dart';
 import 'fieldnote_view_model.dart';
 
 class AppShell extends StatefulWidget {
-  const AppShell({super.key});
+  const AppShell({super.key, required this.campaignLink});
+
+  final ValueNotifier<int?> campaignLink;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -22,16 +25,75 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   late final FieldnoteViewModel _viewModel;
   late final SponsorVoiceActionController _sponsorVoiceController;
+  bool _openingCampaignLink = false;
 
   @override
   void initState() {
     super.initState();
     _sponsorVoiceController = SponsorVoiceActionController();
     _viewModel = FieldnoteViewModel(FieldnoteRepository())..initialize();
+    widget.campaignLink.addListener(_openCampaignLinkIfReady);
+    _viewModel.addListener(_openCampaignLinkIfReady);
+  }
+
+  @override
+  void didUpdateWidget(AppShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.campaignLink != widget.campaignLink) {
+      oldWidget.campaignLink.removeListener(_openCampaignLinkIfReady);
+      widget.campaignLink.addListener(_openCampaignLinkIfReady);
+    }
+  }
+
+  void _openCampaignLinkIfReady() {
+    final id = widget.campaignLink.value;
+    if (!mounted ||
+        _openingCampaignLink ||
+        id == null ||
+        _viewModel.loading ||
+        _viewModel.profile == null ||
+        _viewModel.needsConsentForCurrentPolicy) {
+      return;
+    }
+    _openingCampaignLink = true;
+    widget.campaignLink.value = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        final campaign = await _viewModel.repository.sharedCampaign(id);
+        if (!mounted) return;
+        if (campaign == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('This campaign is no longer open.')),
+          );
+          return;
+        }
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            builder: (_) => SharedCampaignView(
+              campaign: campaign,
+              viewModel: _viewModel,
+            ),
+          ),
+        );
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not open the campaign link. Try again.'),
+            ),
+          );
+        }
+      } finally {
+        _openingCampaignLink = false;
+        if (mounted) _openCampaignLinkIfReady();
+      }
+    });
   }
 
   @override
   void dispose() {
+    widget.campaignLink.removeListener(_openCampaignLinkIfReady);
+    _viewModel.removeListener(_openCampaignLinkIfReady);
     _sponsorVoiceController.dispose();
     _viewModel.dispose();
     super.dispose();

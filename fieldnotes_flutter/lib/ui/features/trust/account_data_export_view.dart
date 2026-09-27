@@ -58,6 +58,7 @@ class _AccountDataExportViewState extends State<AccountDataExportView> {
         bytes,
         'fieldnote-my-data-${DateFormat('yyyy-MM-dd').format(DateTime.now())}.pdf',
         'application/pdf',
+        'pdf',
       );
     } catch (_) {
       if (mounted) _showError('Could not create the PDF. Try again.');
@@ -69,20 +70,29 @@ class _AccountDataExportViewState extends State<AccountDataExportView> {
   Future<void> _shareJson() async {
     final data = _export;
     if (data == null || _busy) return;
+    setState(() => _busy = true);
     try {
       await _shareFile(
         Uint8List.fromList(utf8.encode(data.raw)),
         'fieldnote-my-data-${DateFormat('yyyy-MM-dd').format(DateTime.now())}.json',
         'application/json',
+        'json',
       );
     } catch (_) {
       if (mounted) _showError('Could not share the JSON file. Try again.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
   }
 
-  Future<void> _shareFile(Uint8List bytes, String name, String mimeType) async {
+  Future<void> _shareFile(
+    Uint8List bytes,
+    String name,
+    String mimeType,
+    String format,
+  ) async {
     final box = context.findRenderObject() as RenderBox?;
-    await SharePlus.instance.share(
+    final result = await SharePlus.instance.share(
       ShareParams(
         files: [XFile.fromData(bytes, name: name, mimeType: mimeType)],
         fileNameOverrides: [name],
@@ -91,6 +101,9 @@ class _AccountDataExportViewState extends State<AccountDataExportView> {
             : box.localToGlobal(Offset.zero) & box.size,
       ),
     );
+    if (result.status == ShareResultStatus.success) {
+      await widget.viewModel.recordAccountDataExport(format);
+    }
   }
 
   void _showError(String message) {
@@ -417,7 +430,7 @@ class _AccountExport {
     'locationCheckIn' => 'Location check',
     'evidenceSubmitted' => 'Evidence submitted',
     'legalConsentAccepted' => 'Privacy choices accepted',
-    'privacyDataExported' => 'Data export requested',
+    'privacyDataExported' => 'Data exported',
     'accountDeletionRequested' => 'Account deletion requested',
     _ => value,
   };
