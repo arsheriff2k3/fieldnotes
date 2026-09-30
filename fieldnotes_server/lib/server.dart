@@ -5,6 +5,7 @@ import 'package:serverpod_auth_idp_server/providers/email.dart';
 import 'package:serverpod_cloud_storage/serverpod_cloud_storage.dart';
 
 import 'src/cache_busting.dart';
+import 'src/auth/verification_email_sender.dart';
 import 'src/generated/serverpod.dart';
 import 'src/web/routes/app_config_route.dart';
 import 'src/web/routes/campaign_share_route.dart';
@@ -24,14 +25,40 @@ void run(List<String> args) async {
       JwtConfigFromPasswords(),
     ],
     identityProviderBuilders: [
-      // Configure the email identity provider for email/password authentication.
-      // The default setup works with Serverpod Cloud without configuration. In
-      // development the verification codes are logged to the console, and in
-      // staging and production they are sent through the Serverpod Cloud email
-      // service. If you want to use a custom provider for sending emails, use
-      // `EmailIdpConfigFromPasswords`.
-      ServerpodCloudEmailIdpConfig(
-        appDisplayName: 'fieldnotes',
+      // Signup and password-reset codes go to the address supplied by the
+      // user. Normal email/password sign-in does not issue a code.
+      EmailIdpConfigFromPasswords(
+        sendRegistrationVerificationCode:
+            (
+              session, {
+              required email,
+              required accountRequestId,
+              required verificationCode,
+              required transaction,
+            }) => VerificationEmailSender.sendRegistration(
+              session,
+              email: email,
+              code: verificationCode,
+            ),
+        sendPasswordResetVerificationCode:
+            (
+              session, {
+              required email,
+              required passwordResetRequestId,
+              required verificationCode,
+              required transaction,
+            }) async {
+              try {
+                await VerificationEmailSender.sendPasswordReset(
+                  session,
+                  email: email,
+                  code: verificationCode,
+                );
+              } catch (_) {
+                // Password-reset requests must not reveal whether an account
+                // exists. The sender logs the delivery failure on the server.
+              }
+            },
       ),
     ],
   );

@@ -24,6 +24,10 @@ development:
   # Google Maps Platform web services: Places, Geocoding, and Routes. This key
   # must NOT be the same restricted key the Flutter app renders tiles with.
   googleMapsApiKey: 'YOUR_GOOGLE_MAPS_SERVER_KEY'
+
+  # Email delivery for signup verification and password reset.
+  smtpUsername: 'YOUR_SENDING_GMAIL_ADDRESS'
+  smtpAppPassword: 'YOUR_GOOGLE_APP_PASSWORD'
 ```
 
 Do not replace the existing database, email pepper, JWT, refresh-token, or service-secret entries.
@@ -37,6 +41,8 @@ export SERVERPOD_PASSWORD_geminiTranscriptionModel='gemini-3.5-transcribe'
 export SERVERPOD_PASSWORD_razorpayKeyId='rzp_test_...'
 export SERVERPOD_PASSWORD_razorpayKeySecret='...'
 export SERVERPOD_PASSWORD_googleMapsApiKey='...'
+export SERVERPOD_PASSWORD_smtpUsername='sender@gmail.com'
+export SERVERPOD_PASSWORD_smtpAppPassword='...'
 ```
 
 Set these in the same terminal that runs `serverpod start`. Do not add them to a committed shell script.
@@ -50,13 +56,26 @@ cd /Users/ryan/Desktop/Project/serverpod/fieldnotes
 cp .env.example .env
 ```
 
-Edit `.env`, replace the three secret placeholders, and start locally with:
+Edit `.env`, replace the credential placeholders, and start locally with:
 
 ```bash
 ./start-local.sh
 ```
 
 The real `.env` is ignored by Git. Keep the `SERVERPOD_PASSWORD_` prefixes unchanged; Serverpod strips that prefix when exposing the values through its password API.
+
+### Signup and password-reset email
+
+FieldNote sends Serverpod's existing signup and password-reset codes from the
+Gmail address in `smtpUsername`. Put a Google App Password in
+`smtpAppPassword`; the normal Google account password will not work. Google
+requires 2-Step Verification to create an App Password. Configure both values
+in the server's private `development` passwords or in `.env`, then restart the
+user-owned `serverpod start` process so it reads them. The app does not need a
+new APK. If email delivery fails, signup reports an error and the server logs
+the SMTP failure without printing the verification code. Password-reset
+requests retain their account-enumeration protection and log delivery failures
+only on the server. Normal email/password sign-in does not send a code.
 
 ### Gemini
 
