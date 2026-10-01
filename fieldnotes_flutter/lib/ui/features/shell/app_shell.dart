@@ -3,12 +3,15 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../data/repositories/fieldnote_repository.dart';
+import '../../../data/services/campaign_link_service.dart';
+import '../../core/error_messages.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/widgets.dart';
 import '../onboarding/onboarding_view.dart';
 import '../volunteer/shared_campaign_view.dart';
 import '../profile/profile_view.dart';
 import '../sponsor/sponsor_views.dart';
+import '../trust/account_deletion.dart';
 import '../trust/trust_center_view.dart';
 import '../volunteer/volunteer_views.dart';
 import 'fieldnote_view_model.dart';
@@ -16,7 +19,7 @@ import 'fieldnote_view_model.dart';
 class AppShell extends StatefulWidget {
   const AppShell({super.key, required this.campaignLink});
 
-  final ValueNotifier<int?> campaignLink;
+  final ValueNotifier<CampaignLinkTarget?> campaignLink;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -26,6 +29,8 @@ class _AppShellState extends State<AppShell> {
   late final FieldnoteViewModel _viewModel;
   late final SponsorVoiceActionController _sponsorVoiceController;
   bool _openingCampaignLink = false;
+  bool _errorScheduled = false;
+  bool _deletionSignOutStarted = false;
 
   @override
   void initState() {
@@ -34,6 +39,44 @@ class _AppShellState extends State<AppShell> {
     _viewModel = FieldnoteViewModel(FieldnoteRepository())..initialize();
     widget.campaignLink.addListener(_openCampaignLinkIfReady);
     _viewModel.addListener(_openCampaignLinkIfReady);
+    _viewModel.addListener(_showLastErrorIfAny);
+    _viewModel.addListener(_signOutWhenDeleted);
+  }
+
+  /// S-7: surfaces non-fatal errors as a dismissible notice once a profile is
+  /// loaded, then clears them so each is shown once.
+  void _showLastErrorIfAny() {
+    if (_errorScheduled ||
+        _viewModel.lastError == null ||
+        _viewModel.loading ||
+        _viewModel.profile == null) {
+      return;
+    }
+    _errorScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _errorScheduled = false;
+      final message = _viewModel.lastError;
+      if (!mounted || message == null || _viewModel.profile == null) return;
+      _viewModel.clearLastError();
+      final offline = message == offlineMessage;
+      showFieldnoteNotice(
+        context,
+        title: offline ? "You're offline" : 'Something went wrong',
+        message: message,
+        kind: FieldnoteNoticeKind.error,
+      );
+    });
+  }
+
+  /// Signs out once the server reports the account deletion completed.
+  void _signOutWhenDeleted() {
+    if (_deletionSignOutStarted ||
+        _viewModel.deletionStatus?.status != 'completed') {
+      return;
+    }
+    _deletionSignOutStarted = true;
+    accountDeletionNotice.value = true;
+    _viewModel.signOut();
   }
 
   @override
@@ -46,10 +89,10 @@ class _AppShellState extends State<AppShell> {
   }
 
   void _openCampaignLinkIfReady() {
-    final id = widget.campaignLink.value;
+    final target = widget.campaignLink.value;
     if (!mounted ||
         _openingCampaignLink ||
-        id == null ||
+        target == null ||
         _viewModel.loading ||
         _viewModel.profile == null ||
         _viewModel.needsConsentForCurrentPolicy) {
@@ -59,30 +102,8 @@ class _AppShellState extends State<AppShell> {
     widget.campaignLink.value = null;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       try {
-        final campaign = await _viewModel.repository.sharedCampaign(id);
         if (!mounted) return;
-        if (campaign == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('This campaign is no longer open.')),
-          );
-          return;
-        }
-        await Navigator.of(context).push<void>(
-          MaterialPageRoute(
-            builder: (_) => SharedCampaignView(
-              campaign: campaign,
-              viewModel: _viewModel,
-            ),
-          ),
-        );
-      } catch (_) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Could not open the campaign link. Try again.'),
-            ),
-          );
-        }
+        await openSharedCampaignLink(context, _viewModel, target);
       } finally {
         _openingCampaignLink = false;
         if (mounted) _openCampaignLinkIfReady();
@@ -94,6 +115,8 @@ class _AppShellState extends State<AppShell> {
   void dispose() {
     widget.campaignLink.removeListener(_openCampaignLinkIfReady);
     _viewModel.removeListener(_openCampaignLinkIfReady);
+    _viewModel.removeListener(_showLastErrorIfAny);
+    _viewModel.removeListener(_signOutWhenDeleted);
     _sponsorVoiceController.dispose();
     _viewModel.dispose();
     super.dispose();
@@ -713,7 +736,9 @@ class _ErrorView extends StatelessWidget {
             children: [
               EmptyPanel(
                 icon: Icons.cloud_off_outlined,
-                title: 'Local server unavailable',
+                title: message == offlineMessage
+                    ? "Can't reach FieldNote"
+                    : 'FieldNote could not load',
                 message: message,
               ),
               const SizedBox(height: 12),

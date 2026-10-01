@@ -47,6 +47,8 @@ abstract class Campaign
     bool? aiGenerated,
     this.coverImagePath,
     this.publishedAt,
+    this.completedAt,
+    this.shareSlug,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : fundingGoal = fundingGoal ?? 0.0,
@@ -99,6 +101,8 @@ abstract class Campaign
     bool? aiGenerated,
     String? coverImagePath,
     DateTime? publishedAt,
+    DateTime? completedAt,
+    String? shareSlug,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) = _CampaignImpl;
@@ -172,6 +176,12 @@ abstract class Campaign
           : _isc.DateTimeJsonExtension.fromJson(
               jsonSerialization['publishedAt'],
             ),
+      completedAt: jsonSerialization['completedAt'] == null
+          ? null
+          : _isc.DateTimeJsonExtension.fromJson(
+              jsonSerialization['completedAt'],
+            ),
+      shareSlug: jsonSerialization['shareSlug'] as String?,
       createdAt: jsonSerialization['createdAt'] == null
           ? null
           : _isc.DateTimeJsonExtension.fromJson(jsonSerialization['createdAt']),
@@ -246,6 +256,10 @@ abstract class Campaign
 
   DateTime? publishedAt;
 
+  DateTime? completedAt;
+
+  String? shareSlug;
+
   DateTime createdAt;
 
   DateTime updatedAt;
@@ -285,6 +299,8 @@ abstract class Campaign
     bool? aiGenerated,
     String? coverImagePath,
     DateTime? publishedAt,
+    DateTime? completedAt,
+    String? shareSlug,
     DateTime? createdAt,
     DateTime? updatedAt,
   });
@@ -324,6 +340,8 @@ abstract class Campaign
       'aiGenerated': aiGenerated,
       if (coverImagePath != null) 'coverImagePath': coverImagePath,
       if (publishedAt != null) 'publishedAt': publishedAt?.toJson(),
+      if (completedAt != null) 'completedAt': completedAt?.toJson(),
+      if (shareSlug != null) 'shareSlug': shareSlug,
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
     };
@@ -365,6 +383,8 @@ abstract class Campaign
       'aiGenerated': aiGenerated,
       if (coverImagePath != null) 'coverImagePath': coverImagePath,
       if (publishedAt != null) 'publishedAt': publishedAt?.toJson(),
+      if (completedAt != null) 'completedAt': completedAt?.toJson(),
+      if (shareSlug != null) 'shareSlug': shareSlug,
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
     };
@@ -411,6 +431,8 @@ class _CampaignImpl extends Campaign {
     bool? aiGenerated,
     String? coverImagePath,
     DateTime? publishedAt,
+    DateTime? completedAt,
+    String? shareSlug,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : super._(
@@ -445,6 +467,8 @@ class _CampaignImpl extends Campaign {
          aiGenerated: aiGenerated,
          coverImagePath: coverImagePath,
          publishedAt: publishedAt,
+         completedAt: completedAt,
+         shareSlug: shareSlug,
          createdAt: createdAt,
          updatedAt: updatedAt,
        );
@@ -485,6 +509,8 @@ class _CampaignImpl extends Campaign {
     bool? aiGenerated,
     Object? coverImagePath = _Undefined,
     Object? publishedAt = _Undefined,
+    Object? completedAt = _Undefined,
+    Object? shareSlug = _Undefined,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -526,6 +552,8 @@ class _CampaignImpl extends Campaign {
           ? coverImagePath
           : this.coverImagePath,
       publishedAt: publishedAt is DateTime? ? publishedAt : this.publishedAt,
+      completedAt: completedAt is DateTime? ? completedAt : this.completedAt,
+      shareSlug: shareSlug is String? ? shareSlug : this.shareSlug,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

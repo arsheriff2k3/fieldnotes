@@ -10,3 +10,6 @@ fields:
   travelMinutes: int?
   travelDistanceKm: double?
   travelMode: String?
+  ### Every place is taken. Only returned for a campaign the volunteer holds a
+  ### place in; other full campaigns are not matched.
+  isFull: bool, default=false

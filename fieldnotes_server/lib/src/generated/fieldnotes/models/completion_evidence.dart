@@ -11,6 +11,7 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:serverpod/serverpod.dart' as _is;
+import '../../fieldnotes/models/review_state.dart' as _i926tkng;
 
 abstract class CompletionEvidence
     implements _is.TableRow<int?>, _is.ProtocolSerialization {
@@ -29,12 +30,19 @@ abstract class CompletionEvidence
     bool? locationIsDemo,
     String? moderationStatus,
     DateTime? submittedAt,
+    bool? aiGenerated,
+    _i926tkng.ReviewState? reviewState,
+    this.reviewNote,
+    this.reviewedByAuthUserId,
+    this.reviewedAt,
   }) : locationIntegrityStatus = locationIntegrityStatus ?? 'verified',
        locationIntegrityReasons =
            locationIntegrityReasons ?? 'Location checks passed',
        locationIsDemo = locationIsDemo ?? false,
        moderationStatus = moderationStatus ?? 'passed',
-       submittedAt = submittedAt ?? DateTime.now();
+       submittedAt = submittedAt ?? DateTime.now(),
+       aiGenerated = aiGenerated ?? true,
+       reviewState = reviewState ?? _i926tkng.ReviewState.awaitingReview;
 
   factory CompletionEvidence({
     int? id,
@@ -51,6 +59,11 @@ abstract class CompletionEvidence
     bool? locationIsDemo,
     String? moderationStatus,
     DateTime? submittedAt,
+    bool? aiGenerated,
+    _i926tkng.ReviewState? reviewState,
+    String? reviewNote,
+    _is.UuidValue? reviewedByAuthUserId,
+    DateTime? reviewedAt,
   }) = _CompletionEvidenceImpl;
 
   factory CompletionEvidence.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -78,6 +91,23 @@ abstract class CompletionEvidence
           : _is.DateTimeJsonExtension.fromJson(
               jsonSerialization['submittedAt'],
             ),
+      aiGenerated: jsonSerialization['aiGenerated'] == null
+          ? null
+          : _is.BoolJsonExtension.fromJson(jsonSerialization['aiGenerated']),
+      reviewState: jsonSerialization['reviewState'] == null
+          ? null
+          : _i926tkng.ReviewState.fromJson(
+              (jsonSerialization['reviewState'] as String),
+            ),
+      reviewNote: jsonSerialization['reviewNote'] as String?,
+      reviewedByAuthUserId: jsonSerialization['reviewedByAuthUserId'] == null
+          ? null
+          : _is.UuidValueJsonExtension.fromJson(
+              jsonSerialization['reviewedByAuthUserId'],
+            ),
+      reviewedAt: jsonSerialization['reviewedAt'] == null
+          ? null
+          : _is.DateTimeJsonExtension.fromJson(jsonSerialization['reviewedAt']),
     );
   }
 
@@ -114,6 +144,16 @@ abstract class CompletionEvidence
 
   DateTime submittedAt;
 
+  bool aiGenerated;
+
+  _i926tkng.ReviewState reviewState;
+
+  String? reviewNote;
+
+  _is.UuidValue? reviewedByAuthUserId;
+
+  DateTime? reviewedAt;
+
   @override
   _is.Table<int?> get table => t;
 
@@ -135,6 +175,11 @@ abstract class CompletionEvidence
     bool? locationIsDemo,
     String? moderationStatus,
     DateTime? submittedAt,
+    bool? aiGenerated,
+    _i926tkng.ReviewState? reviewState,
+    String? reviewNote,
+    _is.UuidValue? reviewedByAuthUserId,
+    DateTime? reviewedAt,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -154,6 +199,12 @@ abstract class CompletionEvidence
       'locationIsDemo': locationIsDemo,
       'moderationStatus': moderationStatus,
       'submittedAt': submittedAt.toJson(),
+      'aiGenerated': aiGenerated,
+      'reviewState': reviewState.toJson(),
+      if (reviewNote != null) 'reviewNote': reviewNote,
+      if (reviewedByAuthUserId != null)
+        'reviewedByAuthUserId': reviewedByAuthUserId?.toJson(),
+      if (reviewedAt != null) 'reviewedAt': reviewedAt?.toJson(),
     };
   }
 
@@ -175,6 +226,12 @@ abstract class CompletionEvidence
       'locationIsDemo': locationIsDemo,
       'moderationStatus': moderationStatus,
       'submittedAt': submittedAt.toJson(),
+      'aiGenerated': aiGenerated,
+      'reviewState': reviewState.toJson(),
+      if (reviewNote != null) 'reviewNote': reviewNote,
+      if (reviewedByAuthUserId != null)
+        'reviewedByAuthUserId': reviewedByAuthUserId?.toJson(),
+      if (reviewedAt != null) 'reviewedAt': reviewedAt?.toJson(),
     };
   }
 
@@ -224,6 +281,11 @@ class _CompletionEvidenceImpl extends CompletionEvidence {
     bool? locationIsDemo,
     String? moderationStatus,
     DateTime? submittedAt,
+    bool? aiGenerated,
+    _i926tkng.ReviewState? reviewState,
+    String? reviewNote,
+    _is.UuidValue? reviewedByAuthUserId,
+    DateTime? reviewedAt,
   }) : super._(
          id: id,
          participationId: participationId,
@@ -239,6 +301,11 @@ class _CompletionEvidenceImpl extends CompletionEvidence {
          locationIsDemo: locationIsDemo,
          moderationStatus: moderationStatus,
          submittedAt: submittedAt,
+         aiGenerated: aiGenerated,
+         reviewState: reviewState,
+         reviewNote: reviewNote,
+         reviewedByAuthUserId: reviewedByAuthUserId,
+         reviewedAt: reviewedAt,
        );
 
   /// Returns a shallow copy of this [CompletionEvidence]
@@ -260,6 +327,11 @@ class _CompletionEvidenceImpl extends CompletionEvidence {
     bool? locationIsDemo,
     String? moderationStatus,
     DateTime? submittedAt,
+    bool? aiGenerated,
+    _i926tkng.ReviewState? reviewState,
+    Object? reviewNote = _Undefined,
+    Object? reviewedByAuthUserId = _Undefined,
+    Object? reviewedAt = _Undefined,
   }) {
     return CompletionEvidence(
       id: id is int? ? id : this.id,
@@ -281,6 +353,13 @@ class _CompletionEvidenceImpl extends CompletionEvidence {
       locationIsDemo: locationIsDemo ?? this.locationIsDemo,
       moderationStatus: moderationStatus ?? this.moderationStatus,
       submittedAt: submittedAt ?? this.submittedAt,
+      aiGenerated: aiGenerated ?? this.aiGenerated,
+      reviewState: reviewState ?? this.reviewState,
+      reviewNote: reviewNote is String? ? reviewNote : this.reviewNote,
+      reviewedByAuthUserId: reviewedByAuthUserId is _is.UuidValue?
+          ? reviewedByAuthUserId
+          : this.reviewedByAuthUserId,
+      reviewedAt: reviewedAt is DateTime? ? reviewedAt : this.reviewedAt,
     );
   }
 }
@@ -361,6 +440,36 @@ class CompletionEvidenceUpdateTable
         table.submittedAt,
         value,
       );
+
+  _is.ColumnValue<bool, bool> aiGenerated(bool value) => _is.ColumnValue(
+    table.aiGenerated,
+    value,
+  );
+
+  _is.ColumnValue<_i926tkng.ReviewState, _i926tkng.ReviewState> reviewState(
+    _i926tkng.ReviewState value,
+  ) => _is.ColumnValue(
+    table.reviewState,
+    value,
+  );
+
+  _is.ColumnValue<String, String> reviewNote(String? value) => _is.ColumnValue(
+    table.reviewNote,
+    value,
+  );
+
+  _is.ColumnValue<_is.UuidValue, _is.UuidValue> reviewedByAuthUserId(
+    _is.UuidValue? value,
+  ) => _is.ColumnValue(
+    table.reviewedByAuthUserId,
+    value,
+  );
+
+  _is.ColumnValue<DateTime, DateTime> reviewedAt(DateTime? value) =>
+      _is.ColumnValue(
+        table.reviewedAt,
+        value,
+      );
 }
 
 class CompletionEvidenceTable extends _is.Table<int?> {
@@ -424,6 +533,29 @@ class CompletionEvidenceTable extends _is.Table<int?> {
       this,
       hasDefault: true,
     );
+    aiGenerated = _is.ColumnBool(
+      'aiGenerated',
+      this,
+      hasDefault: true,
+    );
+    reviewState = _is.ColumnEnum(
+      'reviewState',
+      this,
+      _is.EnumSerialization.byName,
+      hasDefault: true,
+    );
+    reviewNote = _is.ColumnString(
+      'reviewNote',
+      this,
+    );
+    reviewedByAuthUserId = _is.ColumnUuid(
+      'reviewedByAuthUserId',
+      this,
+    );
+    reviewedAt = _is.ColumnDateTime(
+      'reviewedAt',
+      this,
+    );
   }
 
   late final CompletionEvidenceUpdateTable updateTable;
@@ -454,6 +586,16 @@ class CompletionEvidenceTable extends _is.Table<int?> {
 
   late final _is.ColumnDateTime submittedAt;
 
+  late final _is.ColumnBool aiGenerated;
+
+  late final _is.ColumnEnum<_i926tkng.ReviewState> reviewState;
+
+  late final _is.ColumnString reviewNote;
+
+  late final _is.ColumnUuid reviewedByAuthUserId;
+
+  late final _is.ColumnDateTime reviewedAt;
+
   @override
   List<_is.Column> get columns => [
     id,
@@ -470,6 +612,11 @@ class CompletionEvidenceTable extends _is.Table<int?> {
     locationIsDemo,
     moderationStatus,
     submittedAt,
+    aiGenerated,
+    reviewState,
+    reviewNote,
+    reviewedByAuthUserId,
+    reviewedAt,
   ];
 }
 

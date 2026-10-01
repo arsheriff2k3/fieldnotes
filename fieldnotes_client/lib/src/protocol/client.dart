@@ -12,6 +12,8 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _ida;
 import 'dart:typed_data' as _idt;
+import 'package:fieldnotes_client/src/protocol/fieldnotes/models/account_deletion_request.dart'
+    as _i9nqp2is;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/audit_event.dart'
     as _ixscx4wv;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign.dart'
@@ -42,6 +44,12 @@ import 'package:fieldnotes_client/src/protocol/fieldnotes/models/impact_summary.
     as _i70v1zz5;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/legal_consent.dart'
     as _iu4zzdwl;
+import 'package:fieldnotes_client/src/protocol/fieldnotes/models/legal_consent_history.dart'
+    as _izm45l3m;
+import 'package:fieldnotes_client/src/protocol/fieldnotes/models/legal_policies.dart'
+    as _i18276rh;
+import 'package:fieldnotes_client/src/protocol/fieldnotes/models/participation_history_entry.dart'
+    as _iw31a86q;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/place_suggestion.dart'
     as _igynj288;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/razorpay_checkout_order.dart'
@@ -50,8 +58,12 @@ import 'package:fieldnotes_client/src/protocol/fieldnotes/models/resolved_place.
     as _iigiw870;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/sponsorship.dart'
     as _iffokzpe;
+import 'package:fieldnotes_client/src/protocol/fieldnotes/models/sponsorship_history_entry.dart'
+    as _if4bbz4p;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/test_payout.dart'
     as _irfbdx5f;
+import 'package:fieldnotes_client/src/protocol/fieldnotes/models/test_refund.dart'
+    as _ikuklve6;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/travel_route.dart'
     as _il9u2d3q;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/trust_center_summary.dart'
@@ -60,8 +72,6 @@ import 'package:fieldnotes_client/src/protocol/fieldnotes/models/user_profile.da
     as _isdhijrt;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/volunteer_availability.dart'
     as _i0dt06ps;
-import 'package:fieldnotes_client/src/protocol/greetings/greeting.dart'
-    as _ip7pdgaq;
 import 'package:http/http.dart' as _i85jenna;
 import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
     as _iacc;
@@ -316,18 +326,59 @@ class EndpointFieldnote extends _isc.EndpointRef {
         {},
       );
 
+  /// Records the checkbox values the user actually ticked. All three are
+  /// required; a false value is rejected and nothing is stored. When the
+  /// client passes the policy versions it displayed, stale versions are
+  /// rejected so the user re-reads the current documents.
   _ida.Future<_iu4zzdwl.LegalConsent> acceptLegalConsent(
     bool locationConsent,
     bool aiProcessingConsent,
-    bool evidenceSharingConsent,
-  ) => caller.callServerEndpoint<_iu4zzdwl.LegalConsent>(
+    bool evidenceSharingConsent, {
+    String? acceptedPrivacyPolicyVersion,
+    String? acceptedTermsVersion,
+  }) => caller.callServerEndpoint<_iu4zzdwl.LegalConsent>(
     'fieldnote',
     'acceptLegalConsent',
     {
       'locationConsent': locationConsent,
       'aiProcessingConsent': aiProcessingConsent,
       'evidenceSharingConsent': evidenceSharingConsent,
+      'acceptedPrivacyPolicyVersion': acceptedPrivacyPolicyVersion,
+      'acceptedTermsVersion': acceptedTermsVersion,
     },
+  );
+
+  /// T-2: withdraws location, AI processing and evidence sharing consent.
+  /// Every role-gated feature then answers `consent_required` until the user
+  /// accepts again. Withdrawal does not delete data; use
+  /// [requestAccountDeletion] for that.
+  _ida.Future<_iu4zzdwl.LegalConsent?> withdrawConsent() =>
+      caller.callServerEndpoint<_iu4zzdwl.LegalConsent?>(
+        'fieldnote',
+        'withdrawConsent',
+        {},
+      );
+
+  /// Append-only consent history, newest first.
+  _ida.Future<List<_izm45l3m.LegalConsentHistory>> listMyConsentHistory({
+    int? limit,
+    int? offset,
+  }) => caller.callServerEndpoint<List<_izm45l3m.LegalConsentHistory>>(
+    'fieldnote',
+    'listMyConsentHistory',
+    {
+      'limit': limit,
+      'offset': offset,
+    },
+  );
+
+  /// A-9: turns transactional email on or off for the caller.
+  _ida.Future<_isdhijrt.FieldnoteUserProfile> setEmailNotifications(
+    bool enabled,
+  ) => caller.callServerEndpoint<_isdhijrt.FieldnoteUserProfile>(
+    'fieldnote',
+    'setEmailNotifications',
+    {'enabled': enabled},
   );
 
   _ida.Future<_im0kjztm.TrustCenterSummary> getTrustCenter() =>
@@ -350,10 +401,26 @@ class EndpointFieldnote extends _isc.EndpointRef {
         {'format': format},
       );
 
+  /// P0-6: queues real account deletion. Idempotent: repeated calls return
+  /// the same pending request. Throws a `deletion_blocked_*` code while an
+  /// obligation must settle first (see [AccountDeletionService]). The
+  /// `fieldnote-outbox` future call executes the request within about a
+  /// minute; afterwards the account, its sessions and its refresh tokens no
+  /// longer exist. Poll [getAccountDeletionStatus] until then.
   _ida.Future<_ixscx4wv.AuditEvent> requestAccountDeletion() =>
       caller.callServerEndpoint<_ixscx4wv.AuditEvent>(
         'fieldnote',
         'requestAccountDeletion',
+        {},
+      );
+
+  /// The caller's deletion request, or null when none was made. Once the
+  /// request completes the caller's sign-in no longer exists, so a completed
+  /// status is only visible to a session that was still open.
+  _ida.Future<_i9nqp2is.AccountDeletionRequest?> getAccountDeletionStatus() =>
+      caller.callServerEndpoint<_i9nqp2is.AccountDeletionRequest?>(
+        'fieldnote',
+        'getAccountDeletionStatus',
         {},
       );
 
@@ -396,8 +463,10 @@ class EndpointFieldnote extends _isc.EndpointRef {
     double maximumTravelKm,
     double? latitude,
     double? longitude,
-    String locationLabel,
-  ) => caller.callServerEndpoint<_isdhijrt.FieldnoteUserProfile>(
+    String locationLabel, {
+    String? timezone,
+    int? utcOffsetMinutes,
+  }) => caller.callServerEndpoint<_isdhijrt.FieldnoteUserProfile>(
     'fieldnote',
     'completeVolunteerProfile',
     {
@@ -414,6 +483,8 @@ class EndpointFieldnote extends _isc.EndpointRef {
       'latitude': latitude,
       'longitude': longitude,
       'locationLabel': locationLabel,
+      'timezone': timezone,
+      'utcOffsetMinutes': utcOffsetMinutes,
     },
   );
 
@@ -447,6 +518,8 @@ class EndpointFieldnote extends _isc.EndpointRef {
     },
   );
 
+  /// The saved availability. `availableToday` reads false once the local
+  /// date it was set for has passed.
   _ida.Future<_i0dt06ps.VolunteerAvailability?> getMyAvailability() =>
       caller.callServerEndpoint<_i0dt06ps.VolunteerAvailability?>(
         'fieldnote',
@@ -463,8 +536,10 @@ class EndpointFieldnote extends _isc.EndpointRef {
     double maximumTravelKm,
     double? latitude,
     double? longitude,
-    String locationLabel,
-  ) => caller.callServerEndpoint<_i0dt06ps.VolunteerAvailability>(
+    String locationLabel, {
+    String? timezone,
+    int? utcOffsetMinutes,
+  }) => caller.callServerEndpoint<_i0dt06ps.VolunteerAvailability>(
     'fieldnote',
     'updateAvailability',
     {
@@ -477,6 +552,8 @@ class EndpointFieldnote extends _isc.EndpointRef {
       'latitude': latitude,
       'longitude': longitude,
       'locationLabel': locationLabel,
+      'timezone': timezone,
+      'utcOffsetMinutes': utcOffsetMinutes,
     },
   );
 
@@ -497,12 +574,20 @@ class EndpointFieldnote extends _isc.EndpointRef {
     },
   );
 
-  _ida.Future<_i9wpoa9q.CampaignProposal> proposeCampaign(String prompt) =>
-      caller.callServerEndpoint<_i9wpoa9q.CampaignProposal>(
-        'fieldnote',
-        'proposeCampaign',
-        {'prompt': prompt},
-      );
+  /// Drafts a campaign from a brief. [utcOffsetMinutes] is the sponsor
+  /// device's offset (`DateTime.now().timeZoneOffset.inMinutes`) so relative
+  /// dates such as "this Saturday 8am" resolve in the sponsor's time zone.
+  _ida.Future<_i9wpoa9q.CampaignProposal> proposeCampaign(
+    String prompt, {
+    int? utcOffsetMinutes,
+  }) => caller.callServerEndpoint<_i9wpoa9q.CampaignProposal>(
+    'fieldnote',
+    'proposeCampaign',
+    {
+      'prompt': prompt,
+      'utcOffsetMinutes': utcOffsetMinutes,
+    },
+  );
 
   /// Publishes a proposal at a map pin.
   ///
@@ -527,11 +612,36 @@ class EndpointFieldnote extends _isc.EndpointRef {
     },
   );
 
-  _ida.Future<List<_i6ar8a32.Campaign>> listCampaigns() =>
-      caller.callServerEndpoint<List<_i6ar8a32.Campaign>>(
+  /// Open campaigns (active, not cancelled or expired, not started), soonest
+  /// first. Without [limit] up to [_openCampaignScanLimit] are returned.
+  _ida.Future<List<_i6ar8a32.Campaign>> listCampaigns({
+    int? limit,
+    int? offset,
+  }) => caller.callServerEndpoint<List<_i6ar8a32.Campaign>>(
+    'fieldnote',
+    'listCampaigns',
+    {
+      'limit': limit,
+      'offset': offset,
+    },
+  );
+
+  /// Resolves a `/c/<slug>` share link after sign-in. Null when the slug is
+  /// unknown or the campaign is no longer open, unless the caller already
+  /// holds a place in it.
+  _ida.Future<_i6ar8a32.Campaign?> getSharedCampaignBySlug(String shareSlug) =>
+      caller.callServerEndpoint<_i6ar8a32.Campaign?>(
         'fieldnote',
-        'listCampaigns',
-        {},
+        'getSharedCampaignBySlug',
+        {'shareSlug': shareSlug},
+      );
+
+  /// The public `https://<link-host>/c/<slug>` link for an open campaign.
+  _ida.Future<String> getCampaignShareLink(int campaignId) =>
+      caller.callServerEndpoint<String>(
+        'fieldnote',
+        'getCampaignShareLink',
+        {'campaignId': campaignId},
       );
 
   /// Resolves a shared campaign after sign-in. The volunteer still joins via
@@ -543,13 +653,20 @@ class EndpointFieldnote extends _isc.EndpointRef {
         {'campaignId': campaignId},
       );
 
-  _ida.Future<List<_i6ar8a32.Campaign>> listMyCreatedCampaigns() =>
-      caller.callServerEndpoint<List<_i6ar8a32.Campaign>>(
-        'fieldnote',
-        'listMyCreatedCampaigns',
-        {},
-      );
+  _ida.Future<List<_i6ar8a32.Campaign>> listMyCreatedCampaigns({
+    int? limit,
+    int? offset,
+  }) => caller.callServerEndpoint<List<_i6ar8a32.Campaign>>(
+    'fieldnote',
+    'listMyCreatedCampaigns',
+    {
+      'limit': limit,
+      'offset': offset,
+    },
+  );
 
+  /// Re-evaluates readiness. Only the creator, verified funders and
+  /// volunteers holding a place may trigger it.
   _ida.Future<_i6ar8a32.Campaign> refreshCampaignReadiness(int campaignId) =>
       caller.callServerEndpoint<_i6ar8a32.Campaign>(
         'fieldnote',
@@ -585,6 +702,9 @@ class EndpointFieldnote extends _isc.EndpointRef {
     },
   );
 
+  /// Cancels a campaign before it starts, refunds every credited payment and
+  /// releases every volunteer place. Rejected once the event has started or
+  /// once any creator payout has been recorded (S-5, S10).
   _ida.Future<_i6ar8a32.Campaign> cancelCampaign(int campaignId) =>
       caller.callServerEndpoint<_i6ar8a32.Campaign>(
         'fieldnote',
@@ -600,12 +720,17 @@ class EndpointFieldnote extends _isc.EndpointRef {
     {'participationId': participationId},
   );
 
-  _ida.Future<List<_i6ar8a32.Campaign>> listMyJoinedCampaigns() =>
-      caller.callServerEndpoint<List<_i6ar8a32.Campaign>>(
-        'fieldnote',
-        'listMyJoinedCampaigns',
-        {},
-      );
+  _ida.Future<List<_i6ar8a32.Campaign>> listMyJoinedCampaigns({
+    int? limit,
+    int? offset,
+  }) => caller.callServerEndpoint<List<_i6ar8a32.Campaign>>(
+    'fieldnote',
+    'listMyJoinedCampaigns',
+    {
+      'limit': limit,
+      'offset': offset,
+    },
+  );
 
   /// Whether Google Places autocomplete is available during account setup.
   /// This deliberately requires authentication but not an existing profile,
@@ -769,12 +894,17 @@ class EndpointFieldnote extends _isc.EndpointRef {
     },
   );
 
-  _ida.Future<List<_ilmm7kn9.CampaignInvitation>> listMyCampaignInvitations() =>
-      caller.callServerEndpoint<List<_ilmm7kn9.CampaignInvitation>>(
-        'fieldnote',
-        'listMyCampaignInvitations',
-        {},
-      );
+  _ida.Future<List<_ilmm7kn9.CampaignInvitation>> listMyCampaignInvitations({
+    int? limit,
+    int? offset,
+  }) => caller.callServerEndpoint<List<_ilmm7kn9.CampaignInvitation>>(
+    'fieldnote',
+    'listMyCampaignInvitations',
+    {
+      'limit': limit,
+      'offset': offset,
+    },
+  );
 
   /// Every check-in and evidence point for one campaign, for the sponsor live
   /// map. Restricted to the sponsor who created the campaign.
@@ -785,6 +915,11 @@ class EndpointFieldnote extends _isc.EndpointRef {
         {'campaignId': campaignId},
       );
 
+  /// Creates a Razorpay order for part of a campaign's remaining balance.
+  ///
+  /// The balance check runs under the campaign row lock and counts unpaid
+  /// orders from the last [PaymentReconciliationService.orderTtl] as reserved,
+  /// so parallel checkouts cannot oversubscribe the goal (S6).
   _ida.Future<_ieclxo3s.RazorpayCheckoutOrder> createRazorpayOrder(
     int campaignId,
     double amount,
@@ -827,21 +962,32 @@ class EndpointFieldnote extends _isc.EndpointRef {
     },
   );
 
-  _ida.Future<List<_iffokzpe.Sponsorship>> listMySponsorships() =>
-      caller.callServerEndpoint<List<_iffokzpe.Sponsorship>>(
-        'fieldnote',
-        'listMySponsorships',
-        {},
-      );
+  _ida.Future<List<_iffokzpe.Sponsorship>> listMySponsorships({
+    int? limit,
+    int? offset,
+  }) => caller.callServerEndpoint<List<_iffokzpe.Sponsorship>>(
+    'fieldnote',
+    'listMySponsorships',
+    {
+      'limit': limit,
+      'offset': offset,
+    },
+  );
 
   /// Creator-only demonstration ledger. These rows never initiate a bank
   /// transfer or call Razorpay Route.
   _ida.Future<List<_irfbdx5f.TestPayout>> listCampaignTestPayouts(
-    int campaignId,
-  ) => caller.callServerEndpoint<List<_irfbdx5f.TestPayout>>(
+    int campaignId, {
+    int? limit,
+    int? offset,
+  }) => caller.callServerEndpoint<List<_irfbdx5f.TestPayout>>(
     'fieldnote',
     'listCampaignTestPayouts',
-    {'campaignId': campaignId},
+    {
+      'campaignId': campaignId,
+      'limit': limit,
+      'offset': offset,
+    },
   );
 
   /// Records one simulated credit for each newly verified test checkout.
@@ -868,6 +1014,16 @@ class EndpointFieldnote extends _isc.EndpointRef {
         {'campaignId': campaignId},
       );
 
+  /// V-1: gives up a place before check-in. The place is freed, readiness is
+  /// recomputed and the creator's live view is told.
+  _ida.Future<_i43ypuev.CampaignParticipation> leaveCampaign(
+    int participationId,
+  ) => caller.callServerEndpoint<_i43ypuev.CampaignParticipation>(
+    'fieldnote',
+    'leaveCampaign',
+    {'participationId': participationId},
+  );
+
   /// A contact number is private until a volunteer joins this campaign.
   _ida.Future<String?> getCampaignContactPhone(int campaignId) =>
       caller.callServerEndpoint<String?>(
@@ -876,12 +1032,17 @@ class EndpointFieldnote extends _isc.EndpointRef {
         {'campaignId': campaignId},
       );
 
-  _ida.Future<List<_i43ypuev.CampaignParticipation>> listMyParticipations() =>
-      caller.callServerEndpoint<List<_i43ypuev.CampaignParticipation>>(
-        'fieldnote',
-        'listMyParticipations',
-        {},
-      );
+  _ida.Future<List<_i43ypuev.CampaignParticipation>> listMyParticipations({
+    int? limit,
+    int? offset,
+  }) => caller.callServerEndpoint<List<_i43ypuev.CampaignParticipation>>(
+    'fieldnote',
+    'listMyParticipations',
+    {
+      'limit': limit,
+      'offset': offset,
+    },
+  );
 
   _ida.Future<_i43ypuev.CampaignParticipation> checkIn(
     int participationId,
@@ -921,6 +1082,15 @@ class EndpointFieldnote extends _isc.EndpointRef {
     },
   );
 
+  /// Whether a hosted AI provider is configured. When false,
+  /// [analyzeCompletion] returns a deterministic summary of the note and the
+  /// client should present it as a volunteer-written summary.
+  _ida.Future<bool> isAiAvailable() => caller.callServerEndpoint<bool>(
+    'fieldnote',
+    'isAiAvailable',
+    {},
+  );
+
   _ida.Future<String> getEvidenceUploadDescription(
     int participationId,
     String extension,
@@ -933,6 +1103,13 @@ class EndpointFieldnote extends _isc.EndpointRef {
     },
   );
 
+  /// Submits location-verified evidence for a checked-in participation.
+  ///
+  /// [uploadPath] optionally pins the path returned by
+  /// [getEvidenceUploadDescription]; it must be the latest path issued to this
+  /// participation. Set [manualSummary] when the volunteer wrote or edited the
+  /// summary without an AI proposal (P0-8); the evidence is then recorded with
+  /// `aiGenerated = false`.
   _ida.Future<_i82sjar3.CompletionEvidence> completeParticipation(
     int participationId,
     String photoExtension,
@@ -944,8 +1121,10 @@ class EndpointFieldnote extends _isc.EndpointRef {
     double accuracyMeters,
     bool deviceReportedMock,
     bool explicitDemo,
-    DateTime capturedAt,
-  ) => caller.callServerEndpoint<_i82sjar3.CompletionEvidence>(
+    DateTime capturedAt, {
+    String? uploadPath,
+    bool? manualSummary,
+  }) => caller.callServerEndpoint<_i82sjar3.CompletionEvidence>(
     'fieldnote',
     'completeParticipation',
     {
@@ -960,6 +1139,24 @@ class EndpointFieldnote extends _isc.EndpointRef {
       'deviceReportedMock': deviceReportedMock,
       'explicitDemo': explicitDemo,
       'capturedAt': capturedAt,
+      'uploadPath': uploadPath,
+      'manualSummary': manualSummary,
+    },
+  );
+
+  /// S-6: the campaign creator approves or rejects one piece of evidence.
+  /// Rejected evidence is excluded from verified impact totals.
+  _ida.Future<_i82sjar3.CompletionEvidence> reviewEvidence(
+    int evidenceId,
+    bool approve,
+    String? note,
+  ) => caller.callServerEndpoint<_i82sjar3.CompletionEvidence>(
+    'fieldnote',
+    'reviewEvidence',
+    {
+      'evidenceId': evidenceId,
+      'approve': approve,
+      'note': note,
     },
   );
 
@@ -977,6 +1174,62 @@ class EndpointFieldnote extends _isc.EndpointRef {
         {'campaignId': campaignId},
       );
 
+  /// S-3: every campaign the sponsor created or funded, in any status,
+  /// newest first.
+  _ida.Future<List<_i6ar8a32.Campaign>> listMyCampaigns({
+    int? limit,
+    int? offset,
+  }) => caller.callServerEndpoint<List<_i6ar8a32.Campaign>>(
+    'fieldnote',
+    'listMyCampaigns',
+    {
+      'limit': limit,
+      'offset': offset,
+    },
+  );
+
+  /// S-2: the sponsor's payment attempts in every state with their refund.
+  _ida.Future<List<_if4bbz4p.SponsorshipHistoryEntry>> listMyPaymentHistory({
+    int? limit,
+    int? offset,
+  }) => caller.callServerEndpoint<List<_if4bbz4p.SponsorshipHistoryEntry>>(
+    'fieldnote',
+    'listMyPaymentHistory',
+    {
+      'limit': limit,
+      'offset': offset,
+    },
+  );
+
+  /// V-10: the volunteer's participations with campaign and evidence.
+  _ida.Future<List<_iw31a86q.ParticipationHistoryEntry>>
+  listMyParticipationHistory({
+    int? limit,
+    int? offset,
+  }) => caller.callServerEndpoint<List<_iw31a86q.ParticipationHistoryEntry>>(
+    'fieldnote',
+    'listMyParticipationHistory',
+    {
+      'limit': limit,
+      'offset': offset,
+    },
+  );
+
+  /// Refund rows for one campaign, for its creator.
+  _ida.Future<List<_ikuklve6.TestRefund>> listCampaignRefunds(
+    int campaignId, {
+    int? limit,
+    int? offset,
+  }) => caller.callServerEndpoint<List<_ikuklve6.TestRefund>>(
+    'fieldnote',
+    'listCampaignRefunds',
+    {
+      'campaignId': campaignId,
+      'limit': limit,
+      'offset': offset,
+    },
+  );
+
   _ida.Future<_is6qjlzb.CampaignPost> createCampaignPost(
     int campaignId,
     String title,
@@ -991,13 +1244,25 @@ class EndpointFieldnote extends _isc.EndpointRef {
     },
   );
 
-  _ida.Future<List<_is6qjlzb.CampaignPost>> listCampaignPosts(int campaignId) =>
-      caller.callServerEndpoint<List<_is6qjlzb.CampaignPost>>(
-        'fieldnote',
-        'listCampaignPosts',
-        {'campaignId': campaignId},
-      );
+  /// Official updates. Readable by the campaign team (creator, verified
+  /// funders, volunteers holding a place) and, while the campaign is open,
+  /// by anyone signed in who can already see it publicly.
+  _ida.Future<List<_is6qjlzb.CampaignPost>> listCampaignPosts(
+    int campaignId, {
+    int? limit,
+    int? offset,
+  }) => caller.callServerEndpoint<List<_is6qjlzb.CampaignPost>>(
+    'fieldnote',
+    'listCampaignPosts',
+    {
+      'campaignId': campaignId,
+      'limit': limit,
+      'offset': offset,
+    },
+  );
 
+  /// Live updates for the campaign team only (creator, verified funders,
+  /// volunteers holding a place). Messages never carry volunteer names.
   _ida.Stream<_ivzrz8af.CampaignLiveUpdate> watchCampaign(int campaignId) =>
       caller.callStreamingServerEndpoint<
         _ida.Stream<_ivzrz8af.CampaignLiveUpdate>,
@@ -1010,21 +1275,25 @@ class EndpointFieldnote extends _isc.EndpointRef {
       );
 }
 
-/// This is an example endpoint that returns a greeting message through
-/// its [hello] method.
+/// Public, read-only legal metadata. Login is not required so the signup
+/// screen can link the current documents before an account exists.
 /// {@category Endpoint}
-class EndpointGreeting extends _isc.EndpointRef {
-  EndpointGreeting(_isc.EndpointCaller caller) : super(caller);
+class EndpointLegal extends _isc.EndpointRef {
+  EndpointLegal(_isc.EndpointCaller caller) : super(caller);
 
   @override
-  String get name => 'greeting';
+  String get name => 'legal';
 
-  /// Returns a personalized greeting message: "Hello {name}".
-  _ida.Future<_ip7pdgaq.Greeting> hello(String name) =>
-      caller.callServerEndpoint<_ip7pdgaq.Greeting>(
-        'greeting',
-        'hello',
-        {'name': name},
+  /// Current policy versions, their public URLs and the consents that
+  /// `acceptLegalConsent` requires. URLs are built from the web server's
+  /// public host (`SERVERPOD_WEB_SERVER_PUBLIC_HOST`) or
+  /// `FIELDNOTE_LINK_BASE_URL`, and point at the short-cache `/legal/*`
+  /// routes so policy updates reach clients within minutes.
+  _ida.Future<_i18276rh.LegalPolicies> getLegalPolicies() =>
+      caller.callServerEndpoint<_i18276rh.LegalPolicies>(
+        'legal',
+        'getLegalPolicies',
+        {},
       );
 }
 
@@ -1069,7 +1338,7 @@ class Client extends _isc.ServerpodClientShared {
     emailIdp = EndpointEmailIdp(this);
     jwtRefresh = EndpointJwtRefresh(this);
     fieldnote = EndpointFieldnote(this);
-    greeting = EndpointGreeting(this);
+    legal = EndpointLegal(this);
     modules = Modules(this);
   }
 
@@ -1079,7 +1348,7 @@ class Client extends _isc.ServerpodClientShared {
 
   late final EndpointFieldnote fieldnote;
 
-  late final EndpointGreeting greeting;
+  late final EndpointLegal legal;
 
   late final Modules modules;
 
@@ -1088,7 +1357,7 @@ class Client extends _isc.ServerpodClientShared {
     'emailIdp': emailIdp,
     'jwtRefresh': jwtRefresh,
     'fieldnote': fieldnote,
-    'greeting': greeting,
+    'legal': legal,
   };
 
   @override

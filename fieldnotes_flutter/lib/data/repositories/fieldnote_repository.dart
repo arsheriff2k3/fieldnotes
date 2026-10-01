@@ -1,10 +1,37 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:fieldnotes_client/fieldnotes_client.dart';
 
+import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
+
 import '../../client.dart';
 
+/// The device's current UTC offset, sent so the server can do weekday and
+/// time-window maths in the volunteer's own time.
+int deviceUtcOffsetMinutes() => DateTime.now().timeZoneOffset.inMinutes;
+
+/// Best-effort zone name. Dart has no IANA zone lookup without a package, and
+/// `timeZoneName` is an abbreviation such as `IST` (or `GMT+05:30`, or a
+/// Windows name with spaces). It is only sent when it passes the server's
+/// format check so a non-IANA name can never fail the request; the offset is
+/// what the server actually relies on.
+String? deviceTimeZoneName() {
+  final name = DateTime.now().timeZoneName.trim();
+  if (name.isEmpty || name.length > 64) return null;
+  if (!RegExp(r'^[A-Za-z][A-Za-z0-9_+\-/]*$').hasMatch(name)) return null;
+  return name;
+}
+
 class FieldnoteRepository {
+  bool get isSignedIn => client.auth.isAuthenticated;
+
+  /// Revokes the session on the server; the local session is cleared even
+  /// when that call fails (the result is then false).
+  Future<bool> signOut({bool allDevices = false}) => allDevices
+      ? client.auth.signOutAllDevices()
+      : client.auth.signOutDevice();
+
   Future<FieldnoteUserProfile?> profile() => client.fieldnote.getMyProfile();
 
   Future<FieldnoteUserProfile> completeSponsorProfile({
@@ -57,6 +84,8 @@ class FieldnoteRepository {
     latitude,
     longitude,
     locationLabel,
+    timezone: deviceTimeZoneName(),
+    utcOffsetMinutes: deviceUtcOffsetMinutes(),
   );
 
   Future<VolunteerAvailability?> availability() =>
@@ -106,19 +135,67 @@ class FieldnoteRepository {
     latitude,
     longitude,
     locationLabel,
+    timezone: deviceTimeZoneName(),
+    utcOffsetMinutes: deviceUtcOffsetMinutes(),
   );
 
-  Future<List<Campaign>> campaigns() => client.fieldnote.listCampaigns();
+  Future<FieldnoteUserProfile> setEmailNotifications(bool enabled) =>
+      client.fieldnote.setEmailNotifications(enabled);
+
+  Future<List<Campaign>> campaigns({int? limit, int? offset}) =>
+      client.fieldnote.listCampaigns(limit: limit, offset: offset);
   Future<Campaign?> sharedCampaign(int campaignId) =>
       client.fieldnote.getSharedCampaign(campaignId);
+  Future<Campaign?> sharedCampaignBySlug(String slug) =>
+      client.fieldnote.getSharedCampaignBySlug(slug);
+
+  /// The server-issued public `https://<host>/c/<slug>` link.
+  Future<String> campaignShareLink(int campaignId) =>
+      client.fieldnote.getCampaignShareLink(campaignId);
   Future<String?> campaignContactPhone(int campaignId) =>
       client.fieldnote.getCampaignContactPhone(campaignId);
-  Future<List<Campaign>> myCreatedCampaigns() =>
-      client.fieldnote.listMyCreatedCampaigns();
-  Future<List<Campaign>> myJoinedCampaigns() =>
-      client.fieldnote.listMyJoinedCampaigns();
-  Future<List<CampaignPost>> campaignPosts(int campaignId) =>
-      client.fieldnote.listCampaignPosts(campaignId);
+  Future<List<Campaign>> myCreatedCampaigns({int? limit, int? offset}) =>
+      client.fieldnote.listMyCreatedCampaigns(limit: limit, offset: offset);
+  Future<List<Campaign>> myJoinedCampaigns({int? limit, int? offset}) =>
+      client.fieldnote.listMyJoinedCampaigns(limit: limit, offset: offset);
+
+  /// Campaigns the sponsor created or funded, in any status (S-3).
+  Future<List<Campaign>> myCampaigns({int? limit, int? offset}) =>
+      client.fieldnote.listMyCampaigns(limit: limit, offset: offset);
+  Future<List<SponsorshipHistoryEntry>> myPaymentHistory({
+    int? limit,
+    int? offset,
+  }) => client.fieldnote.listMyPaymentHistory(limit: limit, offset: offset);
+  Future<List<ParticipationHistoryEntry>> myParticipationHistory({
+    int? limit,
+    int? offset,
+  }) => client.fieldnote.listMyParticipationHistory(
+    limit: limit,
+    offset: offset,
+  );
+  Future<List<TestRefund>> campaignRefunds(
+    int campaignId, {
+    int? limit,
+    int? offset,
+  }) => client.fieldnote.listCampaignRefunds(
+    campaignId,
+    limit: limit,
+    offset: offset,
+  );
+  Future<List<CampaignPost>> campaignPosts(
+    int campaignId, {
+    int? limit,
+    int? offset,
+  }) => client.fieldnote.listCampaignPosts(
+    campaignId,
+    limit: limit,
+    offset: offset,
+  );
+  Future<CampaignPost> createCampaignPost(
+    int campaignId,
+    String title,
+    String body,
+  ) => client.fieldnote.createCampaignPost(campaignId, title, body);
   Future<Campaign> refreshCampaignReadiness(int campaignId) =>
       client.fieldnote.refreshCampaignReadiness(campaignId);
   Future<Campaign> reviseCampaignScope(
@@ -138,16 +215,25 @@ class FieldnoteRepository {
       client.fieldnote.cancelCampaign(campaignId);
   Future<CampaignParticipation> reconfirmParticipation(int participationId) =>
       client.fieldnote.reconfirmCampaignParticipation(participationId);
-  Future<List<Sponsorship>> mySponsorships() =>
-      client.fieldnote.listMySponsorships();
-  Future<List<TestPayout>> campaignTestPayouts(int campaignId) =>
-      client.fieldnote.listCampaignTestPayouts(campaignId);
+  Future<List<Sponsorship>> mySponsorships({int? limit, int? offset}) =>
+      client.fieldnote.listMySponsorships(limit: limit, offset: offset);
+  Future<List<TestPayout>> campaignTestPayouts(
+    int campaignId, {
+    int? limit,
+    int? offset,
+  }) => client.fieldnote.listCampaignTestPayouts(
+    campaignId,
+    limit: limit,
+    offset: offset,
+  );
   Future<List<TestPayout>> simulateCampaignTestPayout(int campaignId) =>
       client.fieldnote.simulateCampaignTestPayout(campaignId);
   Future<List<CampaignMatch>> matches() =>
       client.fieldnote.getCampaignMatches();
-  Future<List<CampaignParticipation>> participations() =>
-      client.fieldnote.listMyParticipations();
+  Future<List<CampaignParticipation>> participations({
+    int? limit,
+    int? offset,
+  }) => client.fieldnote.listMyParticipations(limit: limit, offset: offset);
 
   Future<String> transcribeDictation(
     ByteData audio,
@@ -155,8 +241,8 @@ class FieldnoteRepository {
     String mimeType,
   ) => client.fieldnote.transcribeDictation(audio, fileName, mimeType);
 
-  Future<CampaignProposal> proposeCampaign(String prompt) =>
-      client.fieldnote.proposeCampaign(prompt);
+  Future<CampaignProposal> proposeCampaign(String prompt) => client.fieldnote
+      .proposeCampaign(prompt, utcOffsetMinutes: deviceUtcOffsetMinutes());
 
   Future<Campaign> createCampaign(
     CampaignProposal proposal,
@@ -239,8 +325,13 @@ class FieldnoteRepository {
     longitude,
   );
 
-  Future<List<CampaignInvitation>> myCampaignInvitations() =>
-      client.fieldnote.listMyCampaignInvitations();
+  Future<List<CampaignInvitation>> myCampaignInvitations({
+    int? limit,
+    int? offset,
+  }) => client.fieldnote.listMyCampaignInvitations(
+    limit: limit,
+    offset: offset,
+  );
 
   Future<CampaignMapOverview> campaignMap(int campaignId) =>
       client.fieldnote.getCampaignMap(campaignId);
@@ -270,8 +361,31 @@ class FieldnoteRepository {
 
   Future<LegalConsent?> legalConsent() => client.fieldnote.getMyLegalConsent();
 
-  Future<LegalConsent> acceptLegalConsent() =>
-      client.fieldnote.acceptLegalConsent(true, true, true);
+  /// Public policy versions and URLs; works before sign-in.
+  Future<LegalPolicies> legalPolicies() => client.legal.getLegalPolicies();
+
+  /// Pass the versions the user actually saw so the server can reject a
+  /// stale acceptance (`consent_version_mismatch`).
+  Future<LegalConsent> acceptLegalConsent({
+    bool locationConsent = true,
+    bool aiProcessingConsent = true,
+    bool evidenceSharingConsent = true,
+    String? acceptedPrivacyPolicyVersion,
+    String? acceptedTermsVersion,
+  }) => client.fieldnote.acceptLegalConsent(
+    locationConsent,
+    aiProcessingConsent,
+    evidenceSharingConsent,
+    acceptedPrivacyPolicyVersion: acceptedPrivacyPolicyVersion,
+    acceptedTermsVersion: acceptedTermsVersion,
+  );
+
+  Future<LegalConsent?> withdrawConsent() => client.fieldnote.withdrawConsent();
+
+  Future<List<LegalConsentHistory>> myConsentHistory({
+    int? limit,
+    int? offset,
+  }) => client.fieldnote.listMyConsentHistory(limit: limit, offset: offset);
 
   Future<TrustCenterSummary> trustCenter() => client.fieldnote.getTrustCenter();
 
@@ -283,8 +397,14 @@ class FieldnoteRepository {
   Future<AuditEvent> requestAccountDeletion() =>
       client.fieldnote.requestAccountDeletion();
 
+  Future<AccountDeletionRequest?> accountDeletionStatus() =>
+      client.fieldnote.getAccountDeletionStatus();
+
   Future<CampaignParticipation> join(int campaignId) =>
       client.fieldnote.joinCampaign(campaignId);
+
+  Future<CampaignParticipation> leaveCampaign(int participationId) =>
+      client.fieldnote.leaveCampaign(participationId);
 
   Future<CampaignParticipation> checkIn(
     int participationId,
@@ -316,6 +436,13 @@ class FieldnoteRepository {
     photographMimeType,
   );
 
+  /// False when no AI key is configured: `analyzeCompletion` then returns a
+  /// deterministic summary of the note, which the volunteer confirms.
+  Future<bool> isAiAvailable() => client.fieldnote.isAiAvailable();
+
+  /// Uploads the photograph to the unique path the server issues for this
+  /// attempt, then completes against that same path. Set [manualSummary] when
+  /// the volunteer wrote or kept the non-AI summary.
   Future<CompletionEvidence> completeWithEvidence({
     required int participationId,
     required Uint8List photograph,
@@ -329,15 +456,22 @@ class FieldnoteRepository {
     required bool deviceReportedMock,
     required bool explicitDemo,
     required DateTime capturedAt,
+    bool? manualSummary,
   }) async {
     final description = await client.fieldnote.getEvidenceUploadDescription(
       participationId,
       extension,
     );
+    final uploadPath = _uploadPathFrom(description);
     final uploaded = await FileUploader(
       description,
     ).uploadByteData(ByteData.sublistView(photograph));
-    if (!uploaded) throw StateError('Evidence photograph upload failed.');
+    if (!uploaded) {
+      throw FieldnoteException(
+        message: 'The photograph could not be uploaded. Try again.',
+        code: 'upload_failed',
+      );
+    }
     return client.fieldnote.completeParticipation(
       participationId,
       extension,
@@ -350,8 +484,16 @@ class FieldnoteRepository {
       deviceReportedMock,
       explicitDemo,
       capturedAt,
+      uploadPath: uploadPath,
+      manualSummary: manualSummary,
     );
   }
+
+  Future<CompletionEvidence> reviewEvidence(
+    int evidenceId, {
+    required bool approve,
+    String? note,
+  }) => client.fieldnote.reviewEvidence(evidenceId, approve, note);
 
   Future<ImpactSummary> impact(int campaignId) =>
       client.fieldnote.getImpact(campaignId);
@@ -359,4 +501,29 @@ class FieldnoteRepository {
       client.fieldnote.getEvidenceDownloadUrl(evidenceId);
   Stream<CampaignLiveUpdate> watchCampaign(int campaignId) =>
       client.fieldnote.watchCampaign(campaignId);
+
+  /// Extracts the storage path the server pinned for this upload from a
+  /// Serverpod upload description (database storage puts it in the URL's
+  /// `path` query parameter, S3-compatible storage in the `key` field).
+  /// Returns null when it cannot be found; the server then falls back to the
+  /// latest path it issued to the participation.
+  static String? _uploadPathFrom(String description) {
+    try {
+      final data = jsonDecode(description);
+      if (data is! Map) return null;
+      final url = data['url'];
+      if (url is String) {
+        final path = Uri.tryParse(url)?.queryParameters['path'];
+        if (path != null && path.isNotEmpty) return path;
+      }
+      final fields = data['request-fields'];
+      if (fields is Map) {
+        final key = fields['key'];
+        if (key is String && key.isNotEmpty) return key;
+      }
+    } on FormatException {
+      return null;
+    }
+    return null;
+  }
 }

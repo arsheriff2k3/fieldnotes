@@ -9,6 +9,8 @@ import 'src/auth/verification_email_sender.dart';
 import 'src/generated/serverpod.dart';
 import 'src/web/routes/app_config_route.dart';
 import 'src/web/routes/campaign_share_route.dart';
+import 'src/web/routes/razorpay_webhook_route.dart';
+import 'src/web/routes/well_known_routes.dart';
 
 /// The starting point of the Serverpod server.
 void run(List<String> args) async {
@@ -78,13 +80,45 @@ void run(List<String> args) async {
     '/assets/assets/config.json',
   );
 
-  pod.webServer.addRoute(CampaignShareRoute(), '/c/:id');
+  final isDevelopment = pod.runMode == ServerpodRunMode.development;
 
-  // Serve the same locally built APK from the campaign link's host, so a new
-  // volunteer needs only the shared link. This route is for the demo server;
-  // release distribution can replace it with a store URL later.
+  // `/c/<shareSlug>` (and legacy `/c/<id>`); 404 for non-open campaigns.
+  pod.webServer.addRoute(
+    CampaignShareRoute(allowApkDownload: isDevelopment),
+    '/c/:id',
+  );
+
+  // Razorpay payment and refund events (signature-verified, de-duplicated).
+  pod.webServer.addRoute(RazorpayWebhookRoute(), '/webhooks/razorpay');
+
+  // Legal documents with a short cache so policy updates reach clients in
+  // minutes. `/web/legal/*.html` stays available but is cached for a year.
+  for (final document in const ['privacy', 'terms']) {
+    pod.webServer.addRoute(
+      StaticRoute.file(
+        File(Uri(path: 'web/static/legal/$document.html').toFilePath()),
+        cacheControlFactory: StaticRoute.public(
+          maxAge: const Duration(minutes: 5),
+        ),
+      ),
+      '/legal/$document',
+    );
+  }
+
+  // App Links / Universal Links verification (404 until configured by env).
+  pod.webServer.addRoute(
+    WellKnownRoute(WellKnownDocuments.assetLinks),
+    '/.well-known/assetlinks.json',
+  );
+  pod.webServer.addRoute(
+    WellKnownRoute(WellKnownDocuments.appleAppSiteAssociation),
+    '/.well-known/apple-app-site-association',
+  );
+
+  // Development only: serve the locally built APK from the campaign link's
+  // host. Release builds link to the store listing instead (R-4).
   final fieldnoteApk = File(fieldnoteApkFilePath);
-  if (fieldnoteApk.existsSync()) {
+  if (isDevelopment && fieldnoteApk.existsSync()) {
     pod.webServer.addRoute(
       StaticRoute.file(
         fieldnoteApk,
@@ -146,6 +180,9 @@ void run(List<String> args) async {
 
   // Start the server.
   await pod.start();
+  // The sweep owns readiness cutoffs, expiry refunds, campaign completion,
+  // payment reconciliation and the refund worker. It is re-registered on
+  // every boot so exactly one recurring schedule exists.
   await pod.futureCalls.cancel('campaign-readiness-sweep');
   await pod.futureCalls
       .callRecurring(identifier: 'campaign-readiness-sweep')
@@ -156,4 +193,11 @@ void run(List<String> args) async {
       .callWithDelay(const Duration(seconds: 1))
       .campaignReadiness
       .sweep();
+  // Account deletions, transactional email and rate-limit cleanup.
+  await pod.futureCalls.cancel('fieldnote-outbox');
+  await pod.futureCalls
+      .callRecurring(identifier: 'fieldnote-outbox')
+      .every(const Duration(minutes: 1))
+      .fieldnoteOutbox
+      .run();
 }

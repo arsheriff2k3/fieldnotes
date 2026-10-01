@@ -255,10 +255,14 @@ class EvidenceProvenanceSheet extends StatelessWidget {
     super.key,
     required this.evidence,
     required this.campaign,
+    this.reviewPanel,
   });
 
   final CompletionEvidence evidence;
   final Campaign campaign;
+
+  /// Sponsor approve/reject controls, shown for the campaign creator.
+  final Widget? reviewPanel;
 
   @override
   Widget build(BuildContext context) {
@@ -405,6 +409,10 @@ class EvidenceProvenanceSheet extends StatelessWidget {
               icon: const Icon(Icons.map_outlined),
               label: const Text('View evidence point'),
             ),
+            if (reviewPanel != null) ...[
+              const Divider(height: 32),
+              reviewPanel!,
+            ],
           ],
         ),
       ),

@@ -11,11 +11,14 @@ import 'package:speech_to_text/speech_to_text.dart';
 import '../../../data/services/device_location_service.dart';
 import '../../core/in_app_maps.dart';
 import '../../core/fieldnote_map.dart';
+import '../../core/error_messages.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/widgets.dart';
 import '../shell/fieldnote_view_model.dart';
 import '../sponsor/sponsor_views.dart';
 import 'volunteer_area_map_screen.dart';
+import 'volunteer_history_view.dart';
+import 'volunteer_status.dart';
 
 class VolunteerMatchesView extends StatefulWidget {
   const VolunteerMatchesView({super.key, required this.viewModel});
@@ -29,15 +32,40 @@ class VolunteerMatchesView extends StatefulWidget {
 class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
   FieldnoteViewModel get viewModel => widget.viewModel;
 
+  /// Campaign ids with a join request in flight.
+  final Set<int> _joining = {};
+
+  bool _holdsPlace(int campaignId) =>
+      holdsPlace(viewModel.participationFor(campaignId));
+
+  bool _isFull(int campaignId) => viewModel.matches.any(
+    (match) => match.campaign.id == campaignId && match.isFull,
+  );
+
+  /// Label and action for a campaign card: My work, Full, Joining, or Join.
+  ({String label, VoidCallback? onAction}) _joinAction(
+    BuildContext context,
+    Campaign campaign,
+  ) {
+    final id = campaign.id!;
+    if (_holdsPlace(id)) {
+      return (
+        label: 'View my work',
+        onAction: () => viewModel.selectSection(1),
+      );
+    }
+    if (_isFull(id)) return (label: 'Full', onAction: null);
+    if (_joining.contains(id)) return (label: 'Joining…', onAction: null);
+    return (label: 'Join campaign', onAction: () => _join(context, campaign));
+  }
+
   @override
   Widget build(BuildContext context) {
     final availability = viewModel.availability;
     final invitedCampaigns = viewModel.invitations
         .map((invitation) => viewModel.campaignById(invitation.campaignId))
         .whereType<Campaign>()
-        .where(
-          (campaign) => viewModel.participationFor(campaign.id!) == null,
-        )
+        .where((campaign) => !_holdsPlace(campaign.id!))
         .toList();
     final orderedMatches = [...viewModel.matches]
       ..sort((a, b) {
@@ -108,25 +136,21 @@ class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
               for (final match in matches)
                 Builder(
                   builder: (context) {
-                    final joined = viewModel.participationFor(
-                      match.campaign.id!,
-                    );
+                    final action = _joinAction(context, match.campaign);
                     return CampaignCard(
                       campaign: match.campaign,
                       showFunding: false,
                       score: match.score,
                       reasons: [
+                        if (match.isFull && !_holdsPlace(match.campaign.id!))
+                          'Every place is taken',
                         if (viewModel.invitedTo(match.campaign.id!))
                           'The campaign creator invited you to join',
                         ...match.reasons,
                         distanceLabel(match),
                       ],
-                      actionLabel: joined == null
-                          ? 'Join campaign'
-                          : 'View my work',
-                      onAction: joined == null
-                          ? () => _join(context, match.campaign)
-                          : () => viewModel.selectSection(1),
+                      actionLabel: action.label,
+                      onAction: action.onAction,
                     );
                   },
                 ),
@@ -210,12 +234,19 @@ class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
           ResponsiveCardGrid(
             children: [
               for (final campaign in campaigns)
-                CampaignCard(
-                  campaign: campaign,
-                  showFunding: false,
-                  reasons: const ['The campaign creator invited you to join'],
-                  actionLabel: 'Join campaign',
-                  onAction: () => _join(context, campaign),
+                Builder(
+                  builder: (context) {
+                    final action = _joinAction(context, campaign);
+                    return CampaignCard(
+                      campaign: campaign,
+                      showFunding: false,
+                      reasons: const [
+                        'The campaign creator invited you to join',
+                      ],
+                      actionLabel: action.label,
+                      onAction: action.onAction,
+                    );
+                  },
                 ),
             ],
           ),
@@ -305,24 +336,28 @@ class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: FilledButton.icon(
-                        onPressed:
-                            viewModel.participationFor(match.campaign.id!) ==
-                                null
-                            ? () {
-                                Navigator.pop(sheetContext);
-                                _join(this.context, match.campaign);
-                              }
-                            : () {
-                                Navigator.pop(sheetContext);
-                                viewModel.selectSection(1);
-                              },
-                        icon: const Icon(Icons.how_to_reg_outlined),
-                        label: Text(
-                          viewModel.participationFor(match.campaign.id!) == null
-                              ? 'Join'
-                              : 'My work',
-                        ),
+                      child: Builder(
+                        builder: (_) {
+                          final action = _joinAction(
+                            this.context,
+                            match.campaign,
+                          );
+                          final onAction = action.onAction;
+                          return FilledButton.icon(
+                            onPressed: onAction == null
+                                ? null
+                                : () {
+                                    Navigator.pop(sheetContext);
+                                    onAction();
+                                  },
+                            icon: const Icon(Icons.how_to_reg_outlined),
+                            label: Text(switch (action.label) {
+                              'Join campaign' => 'Join',
+                              'View my work' => 'My work',
+                              final other => other,
+                            }),
+                          );
+                        },
                       ),
                     ),
                   ],
@@ -336,15 +371,23 @@ class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
   }
 
   Future<void> _join(BuildContext context, Campaign campaign) async {
+    final id = campaign.id!;
+    if (_joining.contains(id)) return;
+    setState(() => _joining.add(id));
+    final messenger = ScaffoldMessenger.of(context);
     try {
       await viewModel.join(campaign);
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(content: Text('You joined ${campaign.name}.')),
       );
     } catch (error) {
-      if (!context.mounted) return;
-      _showError(context, error, 'Could not join the campaign.');
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(_errorText(error, 'Could not join the campaign.')),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _joining.remove(id));
     }
   }
 }
@@ -463,20 +506,84 @@ class VolunteerWorkView extends StatelessWidget {
 
   final FieldnoteViewModel viewModel;
 
+  void _openHistory(BuildContext context) {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => VolunteerHistoryScreen(viewModel: viewModel),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final historyById = {
+      for (final entry in viewModel.participationHistory)
+        if (entry.participation.id != null) entry.participation.id!: entry,
+    };
+    // Participations from the history whose row is missing from the
+    // participations list are still shown.
+    final participations = [
+      ...viewModel.participations,
+      for (final entry in viewModel.participationHistory)
+        if (!viewModel.participations.any(
+          (item) => item.id == entry.participation.id,
+        ))
+          entry.participation,
+    ];
+    final active = <Widget>[];
+    final past = <Widget>[];
+    for (final participation in participations) {
+      final campaign =
+          viewModel.campaignById(participation.campaignId) ??
+          historyById[participation.id]?.campaign;
+      final display = participationDisplay(participation, campaign);
+      final Widget card;
+      if (campaign == null) {
+        card = _MinimalParticipationCard(
+          participation: participation,
+          display: display,
+        );
+      } else if (display.isActive) {
+        card = _MissionCard(
+          key: ValueKey('mission-${participation.id}'),
+          campaign: campaign,
+          participation: participation,
+          viewModel: viewModel,
+        );
+      } else {
+        card = _ClosedMissionCard(
+          campaign: campaign,
+          participation: participation,
+          display: display,
+          evidence: historyById[participation.id]?.evidence,
+          onOpenHistory: () => _openHistory(context),
+        );
+      }
+      (display.isActive ? active : past).add(
+        Padding(padding: const EdgeInsets.only(bottom: 16), child: card),
+      );
+    }
     return RefreshIndicator(
-      onRefresh: viewModel.refresh,
+      onRefresh: () async {
+        await viewModel.refresh();
+        await viewModel.loadParticipationHistory();
+      },
       child: FieldnotePageList(
         children: [
-          const SectionHeading(
+          SectionHeading(
             eyebrow: 'Your campaigns',
             title: 'My work',
             description:
                 'See your joined campaigns, directions, and next steps.',
+            trailing: OutlinedButton.icon(
+              key: const Key('open-volunteer-history'),
+              onPressed: () => _openHistory(context),
+              icon: const Icon(Icons.history),
+              label: const Text('My impact & history'),
+            ),
           ),
           const SizedBox(height: 16),
-          if (viewModel.participations.isEmpty)
+          if (active.isEmpty)
             SurfaceCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -484,7 +591,9 @@ class VolunteerWorkView extends StatelessWidget {
                   const Icon(Icons.hiking_outlined, size: 30),
                   const SizedBox(height: 12),
                   Text(
-                    'No joined campaigns yet',
+                    past.isEmpty
+                        ? 'No joined campaigns yet'
+                        : 'No upcoming campaigns',
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 6),
@@ -499,18 +608,124 @@ class VolunteerWorkView extends StatelessWidget {
               ),
             )
           else
-            ...viewModel.participations.map((participation) {
-              final campaign = viewModel.campaignById(participation.campaignId);
-              if (campaign == null) return const SizedBox.shrink();
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: _MissionCard(
-                  campaign: campaign,
-                  participation: participation,
-                  viewModel: viewModel,
+            ...active,
+          if (past.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Past and closed',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 12),
+            ...past,
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// A participation whose campaign is in no loaded list.
+class _MinimalParticipationCard extends StatelessWidget {
+  const _MinimalParticipationCard({
+    required this.participation,
+    required this.display,
+  });
+
+  final CampaignParticipation participation;
+  final ParticipationDisplay display;
+
+  @override
+  Widget build(BuildContext context) {
+    return SurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          StatusPill(
+            label: display.label,
+            color: display.color,
+            icon: display.icon,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Campaign #${participation.campaignId}',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Joined ${DateFormat('EEE, d MMM').format(participation.joinedAt.toLocal())}. '
+            'Pull down to refresh the campaign details.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Compact card for a participation the volunteer can no longer act on.
+class _ClosedMissionCard extends StatelessWidget {
+  const _ClosedMissionCard({
+    required this.campaign,
+    required this.participation,
+    required this.display,
+    required this.evidence,
+    required this.onOpenHistory,
+  });
+
+  final Campaign campaign;
+  final CampaignParticipation participation;
+  final ParticipationDisplay display;
+  final CompletionEvidence? evidence;
+  final VoidCallback onOpenHistory;
+
+  @override
+  Widget build(BuildContext context) {
+    return SurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Flexible(
+                child: StatusPill(
+                  label: display.label,
+                  color: display.color,
+                  icon: display.icon,
                 ),
-              );
-            }),
+              ),
+              const SizedBox(width: 8),
+              const Spacer(),
+              Text(
+                DateFormat('EEE, d MMM').format(campaign.startsAt.toLocal()),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(campaign.name, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 4),
+          Text(
+            campaign.locationName,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          if (display.detail != null) ...[
+            const SizedBox(height: 8),
+            Text(display.detail!),
+          ],
+          if (evidence != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              reviewStateLabel(evidence!.reviewState),
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+          ],
+          if (participation.status == ParticipationStatus.completed) ...[
+            const SizedBox(height: 10),
+            TextButton.icon(
+              onPressed: onOpenHistory,
+              icon: const Icon(Icons.photo_outlined),
+              label: const Text('View my evidence'),
+            ),
+          ],
         ],
       ),
     );
@@ -519,6 +734,7 @@ class VolunteerWorkView extends StatelessWidget {
 
 class _MissionCard extends StatefulWidget {
   const _MissionCard({
+    super.key,
     required this.campaign,
     required this.participation,
     required this.viewModel,
@@ -536,19 +752,49 @@ class _MissionCardState extends State<_MissionCard> {
   final _locationService = DeviceLocationService();
   StreamSubscription<DeviceLocation>? _locationTracking;
   DeviceLocation? _liveLocation;
-  String? _locationError;
+
+  /// The fix the server accepted for check-in, reused for evidence while it
+  /// is still fresh (V-8).
+  DeviceLocation? _checkInFix;
+  Object? _locationError;
   bool _tracking = false;
   bool _working = false;
+  bool _leaving = false;
   String? _contactPhone;
   bool _loadingContact = true;
   bool _contactLoadFailed = false;
   late Future<List<CampaignPost>> _posts;
+
+  /// Rebuilds the card when the check-in window opens or closes (V-7).
+  Timer? _windowTimer;
 
   @override
   void initState() {
     super.initState();
     _loadContact();
     _posts = widget.viewModel.repository.campaignPosts(widget.campaign.id!);
+    _scheduleWindowTimer();
+  }
+
+  void _scheduleWindowTimer() {
+    _windowTimer?.cancel();
+    final now = DateTime.now().toUtc();
+    final next = [
+      checkInOpensAt(widget.campaign),
+      campaignEnd(widget.campaign),
+    ].where((at) => at.isAfter(now)).firstOrNull;
+    if (next == null) return;
+    // Timers are capped so a far-future campaign never schedules a huge
+    // delay; the card simply re-checks.
+    final delay = next.difference(now) + const Duration(seconds: 1);
+    _windowTimer = Timer(
+      delay > const Duration(hours: 6) ? const Duration(hours: 6) : delay,
+      () {
+        if (!mounted) return;
+        setState(() {});
+        _scheduleWindowTimer();
+      },
+    );
   }
 
   @override
@@ -557,6 +803,10 @@ class _MissionCardState extends State<_MissionCard> {
     if (oldWidget.campaign.revision != widget.campaign.revision ||
         oldWidget.campaign.readinessState != widget.campaign.readinessState) {
       _posts = widget.viewModel.repository.campaignPosts(widget.campaign.id!);
+    }
+    if (oldWidget.campaign.startsAt != widget.campaign.startsAt ||
+        oldWidget.campaign.endsAt != widget.campaign.endsAt) {
+      _scheduleWindowTimer();
     }
     if (oldWidget.campaign.id != widget.campaign.id) {
       _contactPhone = null;
@@ -630,6 +880,7 @@ class _MissionCardState extends State<_MissionCard> {
 
   @override
   void dispose() {
+    _windowTimer?.cancel();
     _locationTracking?.cancel();
     super.dispose();
   }
@@ -654,7 +905,7 @@ class _MissionCardState extends State<_MissionCard> {
         if (!mounted) return;
         setState(() {
           _tracking = false;
-          _locationError = error.toString().replaceFirst('Bad state: ', '');
+          _locationError = error;
         });
       },
       onDone: () {
@@ -672,14 +923,23 @@ class _MissionCardState extends State<_MissionCard> {
   Future<void> _checkIn() async {
     setState(() => _working = true);
     try {
+      final now = DateTime.now().toUtc();
       final recentLive = _liveLocation;
       final canUseTrackedLocation =
           recentLive != null &&
-          DateTime.now().toUtc().difference(recentLive.capturedAt).abs() <
-              const Duration(seconds: 30);
+          now.difference(recentLive.capturedAt).abs() <
+              const Duration(seconds: 30) &&
+          recentLive.accuracyMeters <= maxAcceptedAccuracyMeters;
       final location = canUseTrackedLocation
           ? recentLive
           : await _locationService.current();
+      if (location.accuracyMeters > maxAcceptedAccuracyMeters) {
+        if (mounted) {
+          setState(() => _liveLocation = location);
+          _showMessage(context, accuracyMessage(location.accuracyMeters));
+        }
+        return;
+      }
       await widget.viewModel.checkIn(
         widget.participation,
         location.latitude,
@@ -689,13 +949,10 @@ class _MissionCardState extends State<_MissionCard> {
         location.isDemo,
         location.capturedAt,
       );
+      _checkInFix = location;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'On-site GPS check-in confirmed.',
-          ),
-        ),
+        const SnackBar(content: Text('On-site GPS check-in confirmed.')),
       );
     } catch (error) {
       if (!mounted) return;
@@ -703,6 +960,65 @@ class _MissionCardState extends State<_MissionCard> {
     } finally {
       if (mounted) setState(() => _working = false);
     }
+  }
+
+  Future<void> _leave() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Leave this campaign?'),
+        content: Text(
+          'Your place in ${widget.campaign.name} will be freed for another '
+          'volunteer. You can join again later if places are still open.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Stay'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: FieldnoteColors.danger,
+            ),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Leave campaign'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _leaving = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await _stopTracking();
+      await widget.viewModel.leaveCampaign(widget.participation);
+      messenger.showSnackBar(
+        SnackBar(content: Text('You left ${widget.campaign.name}.')),
+      );
+    } catch (error) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(_errorText(error, 'Could not leave the campaign.')),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _leaving = false);
+    }
+  }
+
+  /// The freshest accurate fix this card holds, for evidence submission.
+  DeviceLocation? _bestRecentFix() {
+    final now = DateTime.now().toUtc();
+    final candidates =
+        [
+              _liveLocation,
+              _checkInFix,
+            ]
+            .where((fix) => isReusableFix(fix, now))
+            .cast<DeviceLocation>()
+            .toList()
+          ..sort((a, b) => b.capturedAt.compareTo(a.capturedAt));
+    return candidates.firstOrNull;
   }
 
   Future<void> _reconfirm() async {
@@ -723,34 +1039,33 @@ class _MissionCardState extends State<_MissionCard> {
 
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now().toUtc();
+    final display = participationDisplay(
+      widget.participation,
+      widget.campaign,
+      now: now,
+    );
     final status = widget.participation.status;
     final checkedIn = status == ParticipationStatus.checkedIn;
-    final completed = status == ParticipationStatus.completed;
     final needsReconfirmation =
-        widget.participation.confirmedRevision != widget.campaign.revision &&
-        !completed;
+        widget.participation.confirmedRevision != widget.campaign.revision;
     final eventConfirmed = widget.campaign.readinessState == 'confirmed';
+    final window = checkInWindow(widget.campaign, now);
+    final busy = _working || _leaving;
     return SurfaceCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              StatusPill(
-                label: completed
-                    ? 'Impact submitted'
-                    : checkedIn
-                    ? 'GPS checked in'
-                    : 'Joined',
-                color: completed || checkedIn
-                    ? FieldnoteColors.forest
-                    : FieldnoteColors.clay,
-                icon: completed
-                    ? Icons.verified
-                    : checkedIn
-                    ? Icons.gps_fixed
-                    : Icons.how_to_reg,
+              Flexible(
+                child: StatusPill(
+                  label: display.label,
+                  color: display.color,
+                  icon: display.icon,
+                ),
               ),
+              const SizedBox(width: 8),
               const Spacer(),
               Text(
                 DateFormat(
@@ -770,22 +1085,37 @@ class _MissionCardState extends State<_MissionCard> {
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 10),
-          StatusPill(
-            label: switch (widget.campaign.readinessState) {
-              'confirmed' => 'Event confirmed',
-              'postponed' => 'Postponed · new proposed date',
-              'cancelled' => 'Event cancelled',
-              'expired' => 'Proposed date expired',
-              'fundingShort' ||
-              'volunteersShort' ||
-              'bothShort' => 'Awaiting sponsor decision',
-              _ => 'Date tentative',
-            },
-            color: eventConfirmed
-                ? FieldnoteColors.forest
-                : FieldnoteColors.clay,
-            icon: eventConfirmed ? Icons.verified_outlined : Icons.schedule,
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              StatusPill(
+                label: switch (widget.campaign.readinessState) {
+                  'confirmed' => 'Event confirmed',
+                  'postponed' => 'Postponed · new proposed date',
+                  'fundingShort' ||
+                  'volunteersShort' ||
+                  'bothShort' => 'Awaiting sponsor decision',
+                  _ => 'Date tentative',
+                },
+                color: eventConfirmed
+                    ? FieldnoteColors.forest
+                    : FieldnoteColors.clay,
+                icon: eventConfirmed ? Icons.verified_outlined : Icons.schedule,
+              ),
+              StatusPill(
+                label:
+                    '${DateFormat('HH:mm').format(widget.campaign.startsAt.toLocal())}'
+                    '–${DateFormat('HH:mm').format(campaignEnd(widget.campaign).toLocal())}',
+                color: FieldnoteColors.moss,
+                icon: Icons.access_time,
+              ),
+            ],
           ),
+          if (display.detail != null) ...[
+            const SizedBox(height: 8),
+            Text(display.detail!),
+          ],
           FutureBuilder<List<CampaignPost>>(
             future: _posts,
             builder: (context, snapshot) {
@@ -797,18 +1127,14 @@ class _MissionCardState extends State<_MissionCard> {
               );
             },
           ),
-          if (needsReconfirmation &&
-              !const {
-                'cancelled',
-                'expired',
-              }.contains(widget.campaign.readinessState)) ...[
+          if (needsReconfirmation && !checkedIn) ...[
             const SizedBox(height: 8),
             const Text(
               'The sponsor changed the date or work scope. Review the details, then reconfirm your place.',
             ),
             const SizedBox(height: 8),
             OutlinedButton.icon(
-              onPressed: _working ? null : _reconfirm,
+              onPressed: busy ? null : _reconfirm,
               icon: const Icon(Icons.how_to_reg_outlined),
               label: const Text('Reconfirm my place'),
             ),
@@ -866,51 +1192,87 @@ class _MissionCardState extends State<_MissionCard> {
           const SizedBox(height: 14),
           _locationPanel(context),
           const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            child: completed
-                ? OutlinedButton.icon(
-                    onPressed: null,
-                    icon: Icon(Icons.celebration_outlined),
-                    label: Text('Mission complete'),
-                  )
-                : checkedIn
-                ? FilledButton.icon(
-                    onPressed: _working
-                        ? null
-                        : () => showModalBottomSheet<void>(
-                            context: context,
-                            isScrollControlled: true,
-                            useSafeArea: true,
-                            builder: (_) => CompletionEvidenceSheet(
-                              campaign: widget.campaign,
-                              participation: widget.participation,
-                              viewModel: widget.viewModel,
-                            ),
-                          ),
-                    icon: const Icon(Icons.add_a_photo_outlined),
-                    label: const Text('Submit photo + AI field note'),
-                  )
-                : FilledButton.icon(
-                    onPressed:
-                        _working || !eventConfirmed || needsReconfirmation
-                        ? null
-                        : _checkIn,
-                    icon: _working
-                        ? const SizedBox.square(
-                            dimension: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.my_location),
-                    label: Text(
-                      !eventConfirmed
-                          ? 'Await event confirmation'
-                          : needsReconfirmation
-                          ? 'Reconfirm your place first'
-                          : 'GPS check in on site',
-                    ),
-                  ),
-          ),
+          if (display.canComplete)
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: busy
+                    ? null
+                    : () => showModalBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        useSafeArea: true,
+                        builder: (_) => CompletionEvidenceSheet(
+                          campaign: widget.campaign,
+                          participation: widget.participation,
+                          viewModel: widget.viewModel,
+                          recentFix: _bestRecentFix,
+                        ),
+                      ),
+                icon: const Icon(Icons.add_a_photo_outlined),
+                label: const Text('Submit photo + field note'),
+              ),
+            )
+          else if (display.canCheckIn) ...[
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                key: const Key('check-in-button'),
+                onPressed:
+                    busy ||
+                        !eventConfirmed ||
+                        needsReconfirmation ||
+                        window != CheckInWindow.open
+                    ? null
+                    : _checkIn,
+                icon: _working
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.my_location),
+                label: Text(
+                  !eventConfirmed
+                      ? 'Await event confirmation'
+                      : needsReconfirmation
+                      ? 'Reconfirm your place first'
+                      : window == CheckInWindow.notYetOpen
+                      ? checkInOpensLabel(widget.campaign, now)
+                      : window == CheckInWindow.closed
+                      ? 'Check-in has closed'
+                      : 'GPS check in on site',
+                ),
+              ),
+            ),
+            if (eventConfirmed && window == CheckInWindow.notYetOpen) ...[
+              const SizedBox(height: 6),
+              Text(
+                'Check-in is open from 30 minutes before the start until the '
+                'end of the event.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ],
+          if (display.canLeave) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                key: const Key('leave-campaign-button'),
+                style: TextButton.styleFrom(
+                  foregroundColor: FieldnoteColors.danger,
+                ),
+                onPressed: busy ? null : _leave,
+                icon: _leaving
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.logout),
+                label: Text(_leaving ? 'Leaving…' : 'Leave campaign'),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -925,9 +1287,15 @@ class _MissionCardState extends State<_MissionCard> {
             widget.campaign.latitude,
             widget.campaign.longitude,
           );
+    // The server rejects fixes weaker than 150 m, so a poor fix is never
+    // reported as inside the geofence.
+    final accuracyTooLow =
+        location != null && location.accuracyMeters > maxAcceptedAccuracyMeters;
     final inside =
         distance != null &&
+        !accuracyTooLow &&
         distance <= widget.campaign.geofenceMeters + location!.accuracyMeters;
+    final locationError = _locationError;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
@@ -973,11 +1341,20 @@ class _MissionCardState extends State<_MissionCard> {
             const Text(
               'Start tracking to request Precise Location and show live coordinates, accuracy, mock-location status, and geofence distance.',
             ),
-          if (_locationError != null)
+          if (locationError != null) ...[
             Text(
-              _locationError!,
+              _errorText(locationError, 'Live location is unavailable.'),
               style: const TextStyle(color: FieldnoteColors.clay),
             ),
+            ?_settingsButton(locationError),
+          ],
+          if (accuracyTooLow) ...[
+            Text(
+              accuracyMessage(location.accuracyMeters),
+              style: const TextStyle(color: FieldnoteColors.clay),
+            ),
+            const SizedBox(height: 8),
+          ],
           if (location != null) ...[
             SelectableText(
               '${location.latitude.toStringAsFixed(6)}, ${location.longitude.toStringAsFixed(6)}',
@@ -1001,9 +1378,15 @@ class _MissionCardState extends State<_MissionCard> {
                       : 'No mock flag',
                 ),
                 _LocationFact(
-                  icon: inside ? Icons.check_circle : Icons.cancel_outlined,
+                  icon: inside
+                      ? Icons.check_circle
+                      : accuracyTooLow
+                      ? Icons.gps_not_fixed
+                      : Icons.cancel_outlined,
                   label: distance == null
                       ? 'Calculating distance'
+                      : accuracyTooLow
+                      ? '${distance.round()} m · accuracy too low'
                       : '${distance.round()} m · ${inside ? 'inside' : 'outside'} geofence',
                 ),
                 _LocationFact(
@@ -1212,16 +1595,23 @@ class CompletionEvidenceSheet extends StatefulWidget {
     required this.campaign,
     required this.participation,
     required this.viewModel,
+    this.recentFix,
   });
 
   final Campaign campaign;
   final CampaignParticipation participation;
   final FieldnoteViewModel viewModel;
 
+  /// Returns a fresh, accurate fix the caller already holds (live tracking or
+  /// the check-in fix), so submission does not need a second GPS read (V-8).
+  final DeviceLocation? Function()? recentFix;
+
   @override
   State<CompletionEvidenceSheet> createState() =>
       _CompletionEvidenceSheetState();
 }
+
+enum _SubmitPhase { idle, locating, uploading }
 
 class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
   final _note = TextEditingController();
@@ -1232,35 +1622,94 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
   Uint8List? _photo;
   String _extension = 'jpg';
   CompletionProposal? _proposal;
-  bool _working = false;
+
+  /// The volunteer writes the summary themselves (P0-8): AI is unavailable,
+  /// the server returned its non-AI fallback, analysis failed, or the
+  /// volunteer chose to.
+  bool _manual = false;
+  bool _analyzing = false;
+  _SubmitPhase _phase = _SubmitPhase.idle;
   bool _listening = false;
+  bool _speechReady = false;
+  String _noteBeforeDictation = '';
+  String? _accuracyProblem;
+
+  bool get _working => _analyzing || _phase != _SubmitPhase.idle;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.viewModel.aiAvailable == false) _manual = true;
+    if (widget.viewModel.aiAvailable == null) {
+      unawaited(
+        widget.viewModel.loadAiAvailability().then((_) {
+          if (mounted && widget.viewModel.aiAvailable == false) {
+            setState(() => _manual = true);
+          }
+        }),
+      );
+    }
+  }
 
   @override
   void dispose() {
-    _speech.stop();
+    _speech.cancel();
     _note.dispose();
     _summary.dispose();
     super.dispose();
   }
 
   Future<void> _pick(ImageSource source) async {
-    final selected = await _picker.pickImage(
-      source: source,
-      imageQuality: 78,
-      maxWidth: 1600,
-    );
-    if (selected == null) return;
-    final bytes = await selected.readAsBytes();
-    final suffix = selected.name.split('.').last.toLowerCase();
-    if (mounted) {
-      setState(() {
-        _photo = bytes;
-        _extension = {'jpg', 'jpeg', 'png', 'webp'}.contains(suffix)
-            ? suffix
-            : 'jpg';
-      });
+    try {
+      final selected = await _picker.pickImage(
+        source: source,
+        imageQuality: 78,
+        maxWidth: 1600,
+      );
+      if (selected == null) return;
+      final bytes = await selected.readAsBytes();
+      final suffix = selected.name.split('.').last.toLowerCase();
+      if (mounted) {
+        setState(() {
+          _photo = bytes;
+          _extension = {'jpg', 'jpeg', 'png', 'webp'}.contains(suffix)
+              ? suffix
+              : 'jpg';
+        });
+      }
+    } on Object catch (error) {
+      if (mounted) {
+        _showError(
+          context,
+          error,
+          source == ImageSource.camera
+              ? 'The camera is unavailable. Allow camera access or choose from the gallery.'
+              : 'Could not open the photo library.',
+        );
+      }
     }
   }
+
+  void _speechError(String message, {bool permission = false}) {
+    if (!mounted) return;
+    setState(() => _listening = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        action: permission
+            ? SnackBarAction(
+                label: 'Open settings',
+                onPressed: () =>
+                    unawaited(_openSafely(_location.openAppSettings)),
+              )
+            : null,
+      ),
+    );
+  }
+
+  static const _micPermissionMessage =
+      'Microphone access is off. Allow microphone and speech recognition for '
+      'FieldNote in Settings, or type your note.';
 
   Future<void> _toggleSpeech() async {
     if (_listening) {
@@ -1268,65 +1717,123 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
       if (mounted) setState(() => _listening = false);
       return;
     }
-    final ready = await _speech.initialize();
-    if (!ready) {
-      if (mounted) {
-        _showError(
-          context,
-          StateError('Speech unavailable'),
-          'Speech recognition is unavailable on this device.',
+    if (!_speechReady) {
+      try {
+        _speechReady = await _speech.initialize(
+          onError: (error) {
+            final permission = error.errorMsg.contains('permission');
+            _speechError(
+              permission
+                  ? _micPermissionMessage
+                  : error.errorMsg == 'error_no_match' ||
+                        error.errorMsg == 'error_speech_timeout'
+                  ? 'No speech was heard. Try again or type your note.'
+                  : 'Dictation stopped. Try again or type your note.',
+              permission: permission,
+            );
+          },
+          onStatus: (status) {
+            if (!mounted) return;
+            if (status == SpeechToText.doneStatus ||
+                status == SpeechToText.notListeningStatus) {
+              setState(() => _listening = false);
+            }
+          },
         );
+      } on Object {
+        _speechReady = false;
       }
-      return;
+      if (!_speechReady) {
+        var permitted = true;
+        try {
+          permitted = await _speech.hasPermission;
+        } on Object {
+          permitted = true;
+        }
+        _speechError(
+          permitted
+              ? 'Speech recognition is unavailable on this device. Type your note instead.'
+              : _micPermissionMessage,
+          permission: !permitted,
+        );
+        return;
+      }
     }
+    _noteBeforeDictation = _note.text.trim();
     setState(() => _listening = true);
-    await _speech.listen(
-      onResult: (result) {
-        _note.text = result.recognizedWords;
-        _note.selection = TextSelection.collapsed(offset: _note.text.length);
-        if (result.finalResult && mounted) setState(() => _listening = false);
-      },
+    try {
+      await _speech.listen(
+        onResult: (result) {
+          final words = result.recognizedWords;
+          _note.text = _noteBeforeDictation.isEmpty
+              ? words
+              : '$_noteBeforeDictation $words';
+          _note.selection = TextSelection.collapsed(offset: _note.text.length);
+          if (result.finalResult && mounted) setState(() => _listening = false);
+        },
+      );
+    } on Object {
+      _speechError('Dictation could not start. Type your note instead.');
+    }
+  }
+
+  bool _requirePhoto() {
+    if (_photo != null) return true;
+    _showMessage(
+      context,
+      'Take or choose an evidence photograph first.',
     );
+    return false;
   }
 
   Future<void> _analyze() async {
-    if (_photo == null) {
-      _showError(
+    if (!_requirePhoto()) return;
+    if (_note.text.trim().length < minSummaryLength) {
+      _showMessage(
         context,
-        StateError('Missing photograph'),
-        'Take or choose an evidence photograph so AI can analyze it with your note.',
+        'Add or dictate a field note of at least $minSummaryLength characters.',
       );
       return;
     }
-    if (_note.text.trim().length < 5) {
-      _showError(
-        context,
-        StateError('Short note'),
-        'Add or dictate a short field note first.',
-      );
-      return;
-    }
-    setState(() => _working = true);
+    setState(() => _analyzing = true);
     try {
       final value = await widget.viewModel.repository.analyzeCompletion(
         widget.participation.id!,
-        _note.text,
+        _note.text.trim(),
         _photo,
         _mimeType(_extension),
       );
       if (mounted) {
         setState(() {
           _proposal = value;
+          _manual = isFallbackProposal(value);
           _summary.text = value.summary;
         });
       }
     } catch (error) {
       if (mounted) {
-        _showError(context, error, 'AI could not analyze this field note.');
+        // Never block submission on AI: fall back to a summary the volunteer
+        // writes from their own note.
+        setState(() {
+          _manual = true;
+          if (_summary.text.trim().isEmpty) _summary.text = _note.text.trim();
+        });
+        _showError(
+          context,
+          error,
+          'AI could not analyze this note. Write the summary yourself below.',
+        );
       }
     } finally {
-      if (mounted) setState(() => _working = false);
+      if (mounted) setState(() => _analyzing = false);
     }
+  }
+
+  void _writeMyself() {
+    setState(() {
+      _manual = true;
+      if (_summary.text.trim().isEmpty) _summary.text = _note.text.trim();
+    });
   }
 
   static String _mimeType(String extension) => switch (extension) {
@@ -1335,47 +1842,88 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
     _ => 'image/jpeg',
   };
 
+  bool get _deadlinePassed =>
+      isCampaignClosed(widget.campaign) ||
+      DateTime.now().toUtc().isAfter(completionDeadline(widget.campaign));
+
+  Future<DeviceLocation?> _submissionFix() async {
+    final recent = widget.recentFix?.call();
+    if (isReusableFix(recent, DateTime.now().toUtc())) return recent;
+    final gps = await _location.current();
+    final problem = locationProblem(gps, DateTime.now().toUtc());
+    if (problem != null) {
+      if (mounted) setState(() => _accuracyProblem = problem);
+      return null;
+    }
+    return gps;
+  }
+
   Future<void> _submit() async {
-    if (_photo == null || _proposal == null || _summary.text.trim().isEmpty) {
-      _showError(
+    if (!_requirePhoto()) return;
+    final summary = _summary.text.trim();
+    if (summary.length < minSummaryLength ||
+        summary.length > maxSummaryLength) {
+      _showMessage(
         context,
-        StateError('Missing evidence'),
-        'Add a photo and confirm the AI summary first.',
+        'Write a summary of the completed work '
+        '($minSummaryLength–$maxSummaryLength characters).',
       );
       return;
     }
-    setState(() => _working = true);
+    if (_note.text.trim().length > maxSummaryLength) {
+      _showMessage(
+        context,
+        'Keep the field note under $maxSummaryLength characters.',
+      );
+      return;
+    }
+    setState(() {
+      _phase = _SubmitPhase.locating;
+      _accuracyProblem = null;
+    });
     try {
-      final gps = await _location.current();
+      final gps = await _submissionFix();
+      if (gps == null || !mounted) return;
+      setState(() => _phase = _SubmitPhase.uploading);
+      final manual = _manual || _proposal == null;
+      final proposal = _proposal;
       await widget.viewModel.repository.completeWithEvidence(
         participationId: widget.participation.id!,
         photograph: _photo!,
         extension: _extension,
-        originalNote: _note.text,
-        confirmedSummary: _summary.text,
-        structuredResults: _proposal!.structuredResults,
+        originalNote: _note.text.trim(),
+        confirmedSummary: summary,
+        structuredResults: manual || proposal == null
+            ? manualResultsFrom(summary)
+            : proposal.structuredResults,
         latitude: gps.latitude,
         longitude: gps.longitude,
         accuracyMeters: gps.accuracyMeters,
         deviceReportedMock: gps.isMocked,
         explicitDemo: gps.isDemo,
         capturedAt: gps.capturedAt,
+        manualSummary: manual,
       );
       await widget.viewModel.participationCompleted();
+      unawaited(widget.viewModel.loadParticipationHistory());
       if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('Impact evidence sent to the sponsor.')),
       );
     } catch (error) {
       if (mounted) _showError(context, error, 'Could not submit evidence.');
     } finally {
-      if (mounted) setState(() => _working = false);
+      if (mounted) setState(() => _phase = _SubmitPhase.idle);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final aiOff = widget.viewModel.aiAvailable == false;
+    final proposal = _proposal;
+    final showSummary = _manual || proposal != null;
     return DraggableScrollableSheet(
       expand: false,
       initialChildSize: .9,
@@ -1396,15 +1944,23 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
             ),
           ),
           const SizedBox(height: 20),
-          const SectionHeading(
-            eyebrow: 'AI evidence assistant',
+          SectionHeading(
+            eyebrow: aiOff ? 'Evidence' : 'AI evidence assistant',
             title: 'Show what changed',
-            description:
-                'Capture one photo, describe the result, then confirm the structured summary.',
+            description: aiOff
+                ? 'Capture one photo, describe the result, then confirm your summary.'
+                : 'Capture one photo, describe the result, then confirm the structured summary.',
           ),
+          if (_deadlinePassed) ...[
+            const SizedBox(height: 12),
+            const Text(
+              'The evidence window for this campaign has closed.',
+              style: TextStyle(color: FieldnoteColors.danger),
+            ),
+          ],
           const SizedBox(height: 20),
           GestureDetector(
-            onTap: () => _pick(ImageSource.camera),
+            onTap: _working ? null : () => _pick(ImageSource.camera),
             child: Container(
               height: 220,
               clipBehavior: Clip.antiAlias,
@@ -1430,7 +1986,7 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
           ),
           const SizedBox(height: 10),
           OutlinedButton.icon(
-            onPressed: () => _pick(ImageSource.gallery),
+            onPressed: _working ? null : () => _pick(ImageSource.gallery),
             icon: const Icon(Icons.photo_library_outlined),
             label: const Text('Choose from gallery'),
           ),
@@ -1439,6 +1995,7 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
             controller: _note,
             minLines: 3,
             maxLines: 6,
+            maxLength: maxSummaryLength,
             decoration: InputDecoration(
               labelText: 'What did your team complete?',
               hintText: 'We planted 12 saplings and cleared 8 bags of waste…',
@@ -1451,52 +2008,109 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
             ),
           ),
           const SizedBox(height: 12),
-          FilledButton.icon(
-            onPressed: _working ? null : _analyze,
-            icon: const Icon(Icons.auto_awesome),
-            label: Text(_working ? 'Analyzing…' : 'AI analyze field note'),
-          ),
-          if (_proposal != null) ...[
+          if (!aiOff)
+            FilledButton.icon(
+              onPressed: _working ? null : _analyze,
+              icon: _analyzing
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.auto_awesome),
+              label: Text(_analyzing ? 'Analyzing…' : 'AI analyze field note'),
+            ),
+          if (!showSummary) ...[
+            const SizedBox(height: 6),
+            TextButton(
+              key: const Key('write-summary-myself'),
+              onPressed: _working ? null : _writeMyself,
+              child: const Text('Write the summary myself'),
+            ),
+          ],
+          if (showSummary) ...[
             const SizedBox(height: 18),
             SurfaceCard(
-              color: FieldnoteColors.acid.withValues(alpha: .35),
+              color: _manual
+                  ? FieldnoteColors.mist
+                  : FieldnoteColors.acid.withValues(alpha: .35),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const StatusPill(
-                    label: 'AI draft · volunteer confirms',
+                  StatusPill(
+                    label: _manual
+                        ? 'Your summary · not AI generated'
+                        : 'AI draft · volunteer confirms',
                     color: FieldnoteColors.clay,
-                    icon: Icons.auto_awesome,
+                    icon: _manual ? Icons.edit_note : Icons.auto_awesome,
                   ),
+                  if (_manual) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      aiOff ||
+                              (proposal != null && isFallbackProposal(proposal))
+                          ? 'AI analysis is unavailable. Describe the completed work in your own words.'
+                          : 'Describe the completed work in your own words.',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   FieldnoteTextField(
+                    key: const Key('confirmed-summary-field'),
                     controller: _summary,
                     minLines: 2,
-                    maxLines: 4,
-                    decoration: const InputDecoration(
+                    maxLines: 6,
+                    maxLength: maxSummaryLength,
+                    decoration: InputDecoration(
                       labelText: 'Confirmed impact summary',
+                      helperText:
+                          'At least $minSummaryLength characters. The sponsor sees this.',
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  ..._proposal!.structuredResults.map(
-                    (result) => Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.insights, size: 17),
-                          const SizedBox(width: 7),
-                          Expanded(child: Text(result)),
-                        ],
+                  if (!_manual && proposal != null) ...[
+                    const SizedBox(height: 10),
+                    ...proposal.structuredResults.map(
+                      (result) => Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.insights, size: 17),
+                            const SizedBox(width: 7),
+                            Expanded(child: Text(result)),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
+                  ],
+                  if (_accuracyProblem != null) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      _accuracyProblem!,
+                      style: const TextStyle(color: FieldnoteColors.clay),
+                    ),
+                  ],
+                  if (_phase != _SubmitPhase.idle) ...[
+                    const SizedBox(height: 12),
+                    const LinearProgressIndicator(),
+                    const SizedBox(height: 6),
+                    Text(
+                      _phase == _SubmitPhase.locating
+                          ? 'Checking your GPS position…'
+                          : 'Uploading photo and submitting evidence…',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
-                      onPressed: _working ? null : _submit,
+                      key: const Key('submit-evidence-button'),
+                      onPressed: _working || _deadlinePassed ? null : _submit,
                       icon: const Icon(Icons.verified_outlined),
-                      label: const Text('Confirm and submit evidence'),
+                      label: Text(
+                        _phase == _SubmitPhase.uploading
+                            ? 'Submitting…'
+                            : 'Confirm and submit evidence',
+                      ),
                     ),
                   ),
                 ],
@@ -1526,6 +2140,8 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
   bool _available = true;
   bool _today = false;
   double _radius = 10;
+  int _startMinutes = 7 * 60;
+  int _endMinutes = 13 * 60;
   DeviceLocation? _location;
   bool _saving = false;
 
@@ -1549,7 +2165,9 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
     if (value != null) {
       _available = value.isAvailable;
       _today = value.availableToday;
-      _radius = value.maximumTravelKm;
+      _radius = value.maximumTravelKm.clamp(1, 100).toDouble();
+      _startMinutes = value.startMinutes;
+      _endMinutes = value.endMinutes;
       _days.addAll(
         value.weekdays.split(',').map(int.tryParse).whereType<int>(),
       );
@@ -1560,7 +2178,7 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
           latitude: value.latitude!,
           longitude: value.longitude!,
           accuracyMeters: 50,
-          isLive: true,
+          isLive: false,
           isMocked: false,
           capturedAt: DateTime.now().toUtc(),
           isDemo: false,
@@ -1656,7 +2274,7 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
           latitude: place.latitude,
           longitude: place.longitude,
           accuracyMeters: 50,
-          isLive: true,
+          isLive: false,
           isMocked: false,
           capturedAt: DateTime.now().toUtc(),
           isDemo: false,
@@ -1690,7 +2308,7 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
         latitude: point.latitude,
         longitude: point.longitude,
         accuracyMeters: 50,
-        isLive: true,
+        isLive: false,
         isMocked: false,
         capturedAt: DateTime.now().toUtc(),
         isDemo: false,
@@ -1745,7 +2363,34 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
     return _pinnedByHand ? 'Chosen map area' : 'Current GPS area';
   }
 
+  Future<void> _pickTime({required bool start}) async {
+    final current = start ? _startMinutes : _endMinutes;
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(
+        hour: (current ~/ 60).clamp(0, 23),
+        minute: current >= 1440 ? 59 : current % 60,
+      ),
+      helpText: start ? 'Available from' : 'Available until',
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      final minutes = picked.hour * 60 + picked.minute;
+      if (start) {
+        _startMinutes = minutes;
+      } else {
+        // 00:00 as an end time means the end of the day.
+        _endMinutes = minutes == 0 ? 1440 : minutes;
+      }
+    });
+  }
+
   Future<void> _save() async {
+    final windowProblem = availabilityWindowProblem(_startMinutes, _endMinutes);
+    if (windowProblem != null) {
+      _showMessage(context, windowProblem);
+      return;
+    }
     if (_searchAvailable &&
         _placeSearch.text.trim().isNotEmpty &&
         _placeSearch.text.trim() != _savedLabel) {
@@ -1762,8 +2407,8 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
         isAvailable: _available,
         availableToday: _today,
         weekdays: _days.toList(),
-        startMinutes: widget.viewModel.availability?.startMinutes ?? 7 * 60,
-        endMinutes: widget.viewModel.availability?.endMinutes ?? 13 * 60,
+        startMinutes: _startMinutes,
+        endMinutes: _endMinutes,
         maximumTravelKm: _radius,
         latitude: _location!.latitude,
         longitude: _location!.longitude,
@@ -1820,6 +2465,7 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
                 contentPadding: EdgeInsets.zero,
                 value: _today,
                 title: const Text('I can help today'),
+                subtitle: const Text('Turns off automatically at midnight.'),
                 onChanged: (value) => setState(() => _today = value),
               ),
               const Divider(height: 28),
@@ -1845,6 +2491,39 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
                     )
                     .toList(),
               ),
+              const SizedBox(height: 22),
+              Text(
+                'Time window',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 9),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  OutlinedButton.icon(
+                    key: const Key('availability-start-time'),
+                    onPressed: () => _pickTime(start: true),
+                    icon: const Icon(Icons.schedule),
+                    label: Text('From ${formatMinutes(_startMinutes)}'),
+                  ),
+                  OutlinedButton.icon(
+                    key: const Key('availability-end-time'),
+                    onPressed: () => _pickTime(start: false),
+                    icon: const Icon(Icons.schedule_outlined),
+                    label: Text('Until ${formatMinutes(_endMinutes)}'),
+                  ),
+                ],
+              ),
+              if (availabilityWindowProblem(_startMinutes, _endMinutes)
+                  case final problem?) ...[
+                const SizedBox(height: 6),
+                Text(
+                  problem,
+                  style: const TextStyle(color: FieldnoteColors.danger),
+                ),
+              ],
               const SizedBox(height: 22),
               Text(
                 'Where you can travel from',
@@ -1909,9 +2588,9 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
               ),
               Slider(
                 value: _radius,
-                min: 2,
-                max: 50,
-                divisions: 24,
+                min: 1,
+                max: 100,
+                divisions: 99,
                 label: '${_radius.round()} km',
                 onChanged: (value) => setState(() => _radius = value),
               ),
@@ -1948,11 +2627,9 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
                 label: Text(
                   _location == null
                       ? 'Use my current GPS area'
-                      : _pinnedByHand
-                      ? 'Reset to my current GPS area'
-                      : _location!.isLive
+                      : _location!.isLive && !_pinnedByHand
                       ? 'Live GPS area selected'
-                      : 'Location selected',
+                      : 'Use my current GPS area instead',
                 ),
               ),
               const SizedBox(height: 24),
@@ -2085,12 +2762,63 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
 }
 
 void _showError(BuildContext context, Object error, String fallback) {
+  final settings = _settingsActionFor(error);
   ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text(_errorText(error, fallback))),
+    SnackBar(
+      content: Text(_errorText(error, fallback)),
+      action: settings == null
+          ? null
+          : SnackBarAction(label: settings.label, onPressed: settings.open),
+    ),
   );
 }
 
-String _errorText(Object error, String fallback) {
-  if (error is FieldnoteException) return error.message;
-  return fallback;
+void _showMessage(BuildContext context, String message) {
+  ScaffoldMessenger.of(
+    context,
+  ).showSnackBar(SnackBar(content: Text(message)));
 }
+
+/// "Open settings" for location problems the user must fix in Settings
+/// (V-6): app permissions when blocked, Location when switched off.
+({String label, VoidCallback open})? _settingsActionFor(Object error) {
+  if (error is! LocationAccessException) return null;
+  final service = DeviceLocationService();
+  return switch (error.issue) {
+    LocationAccessIssue.serviceDisabled => (
+      label: 'Open settings',
+      open: () => unawaited(_openSafely(service.openLocationSettings)),
+    ),
+    LocationAccessIssue.permissionDeniedForever => (
+      label: 'Open settings',
+      open: () => unawaited(_openSafely(service.openAppSettings)),
+    ),
+    _ => null,
+  };
+}
+
+Future<void> _openSafely(Future<bool> Function() open) async {
+  try {
+    await open();
+  } on Object {
+    // Not every platform (web) can open system settings.
+  }
+}
+
+Widget? _settingsButton(Object error) {
+  final settings = _settingsActionFor(error);
+  if (settings == null) return null;
+  return TextButton.icon(
+    onPressed: settings.open,
+    icon: const Icon(Icons.settings_outlined),
+    label: Text(
+      error is LocationAccessException &&
+              error.issue == LocationAccessIssue.serviceDisabled
+          ? 'Open location settings'
+          : 'Open app settings',
+    ),
+  );
+}
+
+String _errorText(Object error, String fallback) =>
+    userMessageFor(error, fallback: fallback);

@@ -40,8 +40,12 @@ app.*.map.json
 **/.cxx/
 **/local.properties
 **/key.properties
+!**/key.properties.example
 **/*.keystore
 **/*.jks
+# iOS real app identity (bundle ID, link host); the committed
+# AppIdentity.xcconfig only holds placeholders.
+**/ios/Flutter/AppIdentity.local.xcconfig
 **/Pods/
 **/.symlinks/
 **/DerivedData/
@@ -72,6 +76,7 @@ fieldnotes_server/web/app/
 .env
 .env.*
 !.env.example
+!**/.env.maps.example
 fieldnotes_server/config/passwords.yaml
 fieldnotes_server/config/firebase_service_account_key.json
 

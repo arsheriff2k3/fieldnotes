@@ -8,3 +8,6 @@ fields:
   latitude: double?
   longitude: double?
   status: String
+  # A-2: set for an anonymous area bucket of at least three volunteers who
+  # have not joined. Buckets have profileId 0 and an empty displayName.
+  volunteerCount: int?

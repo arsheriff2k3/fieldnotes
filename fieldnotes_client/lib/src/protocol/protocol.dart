@@ -21,17 +21,26 @@ import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign_partic
     as _i43ypuev;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign_post.dart'
     as _is6qjlzb;
+import 'package:fieldnotes_client/src/protocol/fieldnotes/models/legal_consent_history.dart'
+    as _izm45l3m;
+import 'package:fieldnotes_client/src/protocol/fieldnotes/models/participation_history_entry.dart'
+    as _iw31a86q;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/place_suggestion.dart'
     as _igynj288;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/sponsorship.dart'
     as _iffokzpe;
+import 'package:fieldnotes_client/src/protocol/fieldnotes/models/sponsorship_history_entry.dart'
+    as _if4bbz4p;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/test_payout.dart'
     as _irfbdx5f;
+import 'package:fieldnotes_client/src/protocol/fieldnotes/models/test_refund.dart'
+    as _ikuklve6;
 import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
     as _iacc;
 import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
     as _iaic;
 import 'package:serverpod_client/serverpod_client.dart' as _isc;
+import 'fieldnotes/models/account_deletion_request.dart' as _irc6gkwg;
 import 'fieldnotes/models/account_role.dart' as _iwea5c8m;
 import 'fieldnotes/models/ai_confidence.dart' as _icuvt3ro;
 import 'fieldnotes/models/asset.dart' as _iyem7tcm;
@@ -56,6 +65,8 @@ import 'fieldnotes/models/fieldnote_exception.dart' as _ilzgaptr;
 import 'fieldnotes/models/follow_up_task.dart' as _if81yiw4;
 import 'fieldnotes/models/impact_summary.dart' as _i1e0rn9l;
 import 'fieldnotes/models/legal_consent.dart' as _i6gdlup3;
+import 'fieldnotes/models/legal_consent_history.dart' as _i36vuf99;
+import 'fieldnotes/models/legal_policies.dart' as _ibf5kqr1;
 import 'fieldnotes/models/member_role.dart' as _ihhblray;
 import 'fieldnotes/models/observation.dart' as _iw544tuw;
 import 'fieldnotes/models/observation_condition.dart' as _ildc7cij;
@@ -64,7 +75,9 @@ import 'fieldnotes/models/observation_media.dart' as _iv2wmuo1;
 import 'fieldnotes/models/observation_proposal.dart' as _i805ku85;
 import 'fieldnotes/models/organization.dart' as _if13xums;
 import 'fieldnotes/models/organization_member.dart' as _ifgsfd6p;
+import 'fieldnotes/models/participation_history_entry.dart' as _iu1h8z2d;
 import 'fieldnotes/models/participation_status.dart' as _imreqlyp;
+import 'fieldnotes/models/payment_webhook_event.dart' as _i6oivzdq;
 import 'fieldnotes/models/place_suggestion.dart' as _i3jo3ess;
 import 'fieldnotes/models/razorpay_checkout_order.dart' as _iuc10yd2;
 import 'fieldnotes/models/reach_cell.dart' as _il88if3j;
@@ -73,6 +86,7 @@ import 'fieldnotes/models/review_decision.dart' as _iotfc67y;
 import 'fieldnotes/models/review_outcome.dart' as _imia3a4e;
 import 'fieldnotes/models/review_state.dart' as _iulscgnl;
 import 'fieldnotes/models/sponsorship.dart' as _i1cgh9io;
+import 'fieldnotes/models/sponsorship_history_entry.dart' as _ihlsdeis;
 import 'fieldnotes/models/task_status.dart' as _ixrvqme0;
 import 'fieldnotes/models/test_payout.dart' as _ibdacauq;
 import 'fieldnotes/models/test_refund.dart' as _iviseq0a;
@@ -82,7 +96,7 @@ import 'fieldnotes/models/trust_center_summary.dart' as _ip0a93i5;
 import 'fieldnotes/models/user_profile.dart' as _iq3hh8xc;
 import 'fieldnotes/models/volunteer_availability.dart' as _ifa4ljot;
 import 'fieldnotes/models/workspace_summary.dart' as _im8apr1y;
-import 'greetings/greeting.dart' as _izw8z7ou;
+export 'fieldnotes/models/account_deletion_request.dart';
 export 'fieldnotes/models/account_role.dart';
 export 'fieldnotes/models/ai_confidence.dart';
 export 'fieldnotes/models/asset.dart';
@@ -107,6 +121,8 @@ export 'fieldnotes/models/fieldnote_exception.dart';
 export 'fieldnotes/models/follow_up_task.dart';
 export 'fieldnotes/models/impact_summary.dart';
 export 'fieldnotes/models/legal_consent.dart';
+export 'fieldnotes/models/legal_consent_history.dart';
+export 'fieldnotes/models/legal_policies.dart';
 export 'fieldnotes/models/member_role.dart';
 export 'fieldnotes/models/observation.dart';
 export 'fieldnotes/models/observation_condition.dart';
@@ -115,7 +131,9 @@ export 'fieldnotes/models/observation_media.dart';
 export 'fieldnotes/models/observation_proposal.dart';
 export 'fieldnotes/models/organization.dart';
 export 'fieldnotes/models/organization_member.dart';
+export 'fieldnotes/models/participation_history_entry.dart';
 export 'fieldnotes/models/participation_status.dart';
+export 'fieldnotes/models/payment_webhook_event.dart';
 export 'fieldnotes/models/place_suggestion.dart';
 export 'fieldnotes/models/razorpay_checkout_order.dart';
 export 'fieldnotes/models/reach_cell.dart';
@@ -124,6 +142,7 @@ export 'fieldnotes/models/review_decision.dart';
 export 'fieldnotes/models/review_outcome.dart';
 export 'fieldnotes/models/review_state.dart';
 export 'fieldnotes/models/sponsorship.dart';
+export 'fieldnotes/models/sponsorship_history_entry.dart';
 export 'fieldnotes/models/task_status.dart';
 export 'fieldnotes/models/test_payout.dart';
 export 'fieldnotes/models/test_refund.dart';
@@ -133,7 +152,6 @@ export 'fieldnotes/models/trust_center_summary.dart';
 export 'fieldnotes/models/user_profile.dart';
 export 'fieldnotes/models/volunteer_availability.dart';
 export 'fieldnotes/models/workspace_summary.dart';
-export 'greetings/greeting.dart';
 export 'client.dart';
 
 class Protocol extends _isc.SerializationManager {
@@ -170,6 +188,9 @@ class Protocol extends _isc.SerializationManager {
       }
     }
 
+    if (t == _irc6gkwg.AccountDeletionRequest) {
+      return _irc6gkwg.AccountDeletionRequest.fromJson(data) as T;
+    }
     if (t == _iwea5c8m.AccountRole) {
       return _iwea5c8m.AccountRole.fromJson(data) as T;
     }
@@ -242,6 +263,12 @@ class Protocol extends _isc.SerializationManager {
     if (t == _i6gdlup3.LegalConsent) {
       return _i6gdlup3.LegalConsent.fromJson(data) as T;
     }
+    if (t == _i36vuf99.LegalConsentHistory) {
+      return _i36vuf99.LegalConsentHistory.fromJson(data) as T;
+    }
+    if (t == _ibf5kqr1.LegalPolicies) {
+      return _ibf5kqr1.LegalPolicies.fromJson(data) as T;
+    }
     if (t == _ihhblray.MemberRole) {
       return _ihhblray.MemberRole.fromJson(data) as T;
     }
@@ -266,8 +293,14 @@ class Protocol extends _isc.SerializationManager {
     if (t == _ifgsfd6p.OrganizationMember) {
       return _ifgsfd6p.OrganizationMember.fromJson(data) as T;
     }
+    if (t == _iu1h8z2d.ParticipationHistoryEntry) {
+      return _iu1h8z2d.ParticipationHistoryEntry.fromJson(data) as T;
+    }
     if (t == _imreqlyp.ParticipationStatus) {
       return _imreqlyp.ParticipationStatus.fromJson(data) as T;
+    }
+    if (t == _i6oivzdq.PaymentWebhookEvent) {
+      return _i6oivzdq.PaymentWebhookEvent.fromJson(data) as T;
     }
     if (t == _i3jo3ess.PlaceSuggestion) {
       return _i3jo3ess.PlaceSuggestion.fromJson(data) as T;
@@ -292,6 +325,9 @@ class Protocol extends _isc.SerializationManager {
     }
     if (t == _i1cgh9io.Sponsorship) {
       return _i1cgh9io.Sponsorship.fromJson(data) as T;
+    }
+    if (t == _ihlsdeis.SponsorshipHistoryEntry) {
+      return _ihlsdeis.SponsorshipHistoryEntry.fromJson(data) as T;
     }
     if (t == _ixrvqme0.TaskStatus) {
       return _ixrvqme0.TaskStatus.fromJson(data) as T;
@@ -320,8 +356,11 @@ class Protocol extends _isc.SerializationManager {
     if (t == _im8apr1y.WorkspaceSummary) {
       return _im8apr1y.WorkspaceSummary.fromJson(data) as T;
     }
-    if (t == _izw8z7ou.Greeting) {
-      return _izw8z7ou.Greeting.fromJson(data) as T;
+    if (t == _isc.getType<_irc6gkwg.AccountDeletionRequest?>()) {
+      return (data != null
+              ? _irc6gkwg.AccountDeletionRequest.fromJson(data)
+              : null)
+          as T;
     }
     if (t == _isc.getType<_iwea5c8m.AccountRole?>()) {
       return (data != null ? _iwea5c8m.AccountRole.fromJson(data) : null) as T;
@@ -419,6 +458,16 @@ class Protocol extends _isc.SerializationManager {
     if (t == _isc.getType<_i6gdlup3.LegalConsent?>()) {
       return (data != null ? _i6gdlup3.LegalConsent.fromJson(data) : null) as T;
     }
+    if (t == _isc.getType<_i36vuf99.LegalConsentHistory?>()) {
+      return (data != null
+              ? _i36vuf99.LegalConsentHistory.fromJson(data)
+              : null)
+          as T;
+    }
+    if (t == _isc.getType<_ibf5kqr1.LegalPolicies?>()) {
+      return (data != null ? _ibf5kqr1.LegalPolicies.fromJson(data) : null)
+          as T;
+    }
     if (t == _isc.getType<_ihhblray.MemberRole?>()) {
       return (data != null ? _ihhblray.MemberRole.fromJson(data) : null) as T;
     }
@@ -452,9 +501,21 @@ class Protocol extends _isc.SerializationManager {
       return (data != null ? _ifgsfd6p.OrganizationMember.fromJson(data) : null)
           as T;
     }
+    if (t == _isc.getType<_iu1h8z2d.ParticipationHistoryEntry?>()) {
+      return (data != null
+              ? _iu1h8z2d.ParticipationHistoryEntry.fromJson(data)
+              : null)
+          as T;
+    }
     if (t == _isc.getType<_imreqlyp.ParticipationStatus?>()) {
       return (data != null
               ? _imreqlyp.ParticipationStatus.fromJson(data)
+              : null)
+          as T;
+    }
+    if (t == _isc.getType<_i6oivzdq.PaymentWebhookEvent?>()) {
+      return (data != null
+              ? _i6oivzdq.PaymentWebhookEvent.fromJson(data)
               : null)
           as T;
     }
@@ -488,6 +549,12 @@ class Protocol extends _isc.SerializationManager {
     }
     if (t == _isc.getType<_i1cgh9io.Sponsorship?>()) {
       return (data != null ? _i1cgh9io.Sponsorship.fromJson(data) : null) as T;
+    }
+    if (t == _isc.getType<_ihlsdeis.SponsorshipHistoryEntry?>()) {
+      return (data != null
+              ? _ihlsdeis.SponsorshipHistoryEntry.fromJson(data)
+              : null)
+          as T;
     }
     if (t == _isc.getType<_ixrvqme0.TaskStatus?>()) {
       return (data != null ? _ixrvqme0.TaskStatus.fromJson(data) : null) as T;
@@ -523,9 +590,6 @@ class Protocol extends _isc.SerializationManager {
     if (t == _isc.getType<_im8apr1y.WorkspaceSummary?>()) {
       return (data != null ? _im8apr1y.WorkspaceSummary.fromJson(data) : null)
           as T;
-    }
-    if (t == _isc.getType<_izw8z7ou.Greeting?>()) {
-      return (data != null ? _izw8z7ou.Greeting.fromJson(data) : null) as T;
     }
     if (t == List<_iaixb6xr.CampaignMapPin>) {
       return (data as List)
@@ -569,6 +633,12 @@ class Protocol extends _isc.SerializationManager {
     if (t == List<_imoyt016.Campaign>) {
       return (data as List)
               .map((e) => deserialize<_imoyt016.Campaign>(e))
+              .toList()
+          as T;
+    }
+    if (t == List<_izm45l3m.LegalConsentHistory>) {
+      return (data as List)
+              .map((e) => deserialize<_izm45l3m.LegalConsentHistory>(e))
               .toList()
           as T;
     }
@@ -620,6 +690,24 @@ class Protocol extends _isc.SerializationManager {
               .toList()
           as T;
     }
+    if (t == List<_if4bbz4p.SponsorshipHistoryEntry>) {
+      return (data as List)
+              .map((e) => deserialize<_if4bbz4p.SponsorshipHistoryEntry>(e))
+              .toList()
+          as T;
+    }
+    if (t == List<_iw31a86q.ParticipationHistoryEntry>) {
+      return (data as List)
+              .map((e) => deserialize<_iw31a86q.ParticipationHistoryEntry>(e))
+              .toList()
+          as T;
+    }
+    if (t == List<_ikuklve6.TestRefund>) {
+      return (data as List)
+              .map((e) => deserialize<_ikuklve6.TestRefund>(e))
+              .toList()
+          as T;
+    }
     if (t == List<_is6qjlzb.CampaignPost>) {
       return (data as List)
               .map((e) => deserialize<_is6qjlzb.CampaignPost>(e))
@@ -637,6 +725,7 @@ class Protocol extends _isc.SerializationManager {
 
   static String? getClassNameForType(Type type) {
     return switch (type) {
+      _irc6gkwg.AccountDeletionRequest => 'AccountDeletionRequest',
       _iwea5c8m.AccountRole => 'AccountRole',
       _icuvt3ro.AiConfidence => 'AiConfidence',
       _iyem7tcm.Asset => 'Asset',
@@ -661,6 +750,8 @@ class Protocol extends _isc.SerializationManager {
       _if81yiw4.FollowUpTask => 'FollowUpTask',
       _i1e0rn9l.ImpactSummary => 'ImpactSummary',
       _i6gdlup3.LegalConsent => 'LegalConsent',
+      _i36vuf99.LegalConsentHistory => 'LegalConsentHistory',
+      _ibf5kqr1.LegalPolicies => 'LegalPolicies',
       _ihhblray.MemberRole => 'MemberRole',
       _iw544tuw.Observation => 'Observation',
       _ildc7cij.ObservationCondition => 'ObservationCondition',
@@ -669,7 +760,9 @@ class Protocol extends _isc.SerializationManager {
       _i805ku85.ObservationProposal => 'ObservationProposal',
       _if13xums.Organization => 'Organization',
       _ifgsfd6p.OrganizationMember => 'OrganizationMember',
+      _iu1h8z2d.ParticipationHistoryEntry => 'ParticipationHistoryEntry',
       _imreqlyp.ParticipationStatus => 'ParticipationStatus',
+      _i6oivzdq.PaymentWebhookEvent => 'PaymentWebhookEvent',
       _i3jo3ess.PlaceSuggestion => 'PlaceSuggestion',
       _iuc10yd2.RazorpayCheckoutOrder => 'RazorpayCheckoutOrder',
       _il88if3j.ReachCell => 'ReachCell',
@@ -678,6 +771,7 @@ class Protocol extends _isc.SerializationManager {
       _imia3a4e.ReviewOutcome => 'ReviewOutcome',
       _iulscgnl.ReviewState => 'ReviewState',
       _i1cgh9io.Sponsorship => 'Sponsorship',
+      _ihlsdeis.SponsorshipHistoryEntry => 'SponsorshipHistoryEntry',
       _ixrvqme0.TaskStatus => 'TaskStatus',
       _ibdacauq.TestPayout => 'TestPayout',
       _iviseq0a.TestRefund => 'TestRefund',
@@ -687,7 +781,6 @@ class Protocol extends _isc.SerializationManager {
       _iq3hh8xc.FieldnoteUserProfile => 'FieldnoteUserProfile',
       _ifa4ljot.VolunteerAvailability => 'VolunteerAvailability',
       _im8apr1y.WorkspaceSummary => 'WorkspaceSummary',
-      _izw8z7ou.Greeting => 'Greeting',
       _ => null,
     };
   }
@@ -702,6 +795,8 @@ class Protocol extends _isc.SerializationManager {
     }
 
     switch (data) {
+      case _irc6gkwg.AccountDeletionRequest():
+        return 'AccountDeletionRequest';
       case _iwea5c8m.AccountRole():
         return 'AccountRole';
       case _icuvt3ro.AiConfidence():
@@ -750,6 +845,10 @@ class Protocol extends _isc.SerializationManager {
         return 'ImpactSummary';
       case _i6gdlup3.LegalConsent():
         return 'LegalConsent';
+      case _i36vuf99.LegalConsentHistory():
+        return 'LegalConsentHistory';
+      case _ibf5kqr1.LegalPolicies():
+        return 'LegalPolicies';
       case _ihhblray.MemberRole():
         return 'MemberRole';
       case _iw544tuw.Observation():
@@ -766,8 +865,12 @@ class Protocol extends _isc.SerializationManager {
         return 'Organization';
       case _ifgsfd6p.OrganizationMember():
         return 'OrganizationMember';
+      case _iu1h8z2d.ParticipationHistoryEntry():
+        return 'ParticipationHistoryEntry';
       case _imreqlyp.ParticipationStatus():
         return 'ParticipationStatus';
+      case _i6oivzdq.PaymentWebhookEvent():
+        return 'PaymentWebhookEvent';
       case _i3jo3ess.PlaceSuggestion():
         return 'PlaceSuggestion';
       case _iuc10yd2.RazorpayCheckoutOrder():
@@ -784,6 +887,8 @@ class Protocol extends _isc.SerializationManager {
         return 'ReviewState';
       case _i1cgh9io.Sponsorship():
         return 'Sponsorship';
+      case _ihlsdeis.SponsorshipHistoryEntry():
+        return 'SponsorshipHistoryEntry';
       case _ixrvqme0.TaskStatus():
         return 'TaskStatus';
       case _ibdacauq.TestPayout():
@@ -802,8 +907,6 @@ class Protocol extends _isc.SerializationManager {
         return 'VolunteerAvailability';
       case _im8apr1y.WorkspaceSummary():
         return 'WorkspaceSummary';
-      case _izw8z7ou.Greeting():
-        return 'Greeting';
     }
     className = _iaic.Protocol().getClassNameForObject(data);
     if (className != null) {
@@ -825,6 +928,9 @@ class Protocol extends _isc.SerializationManager {
     var dataClassName = data['className'];
     if (dataClassName is! String) {
       return super.deserializeByClassName(data);
+    }
+    if (dataClassName == 'AccountDeletionRequest') {
+      return deserialize<_irc6gkwg.AccountDeletionRequest>(data['data']);
     }
     if (dataClassName == 'AccountRole') {
       return deserialize<_iwea5c8m.AccountRole>(data['data']);
@@ -898,6 +1004,12 @@ class Protocol extends _isc.SerializationManager {
     if (dataClassName == 'LegalConsent') {
       return deserialize<_i6gdlup3.LegalConsent>(data['data']);
     }
+    if (dataClassName == 'LegalConsentHistory') {
+      return deserialize<_i36vuf99.LegalConsentHistory>(data['data']);
+    }
+    if (dataClassName == 'LegalPolicies') {
+      return deserialize<_ibf5kqr1.LegalPolicies>(data['data']);
+    }
     if (dataClassName == 'MemberRole') {
       return deserialize<_ihhblray.MemberRole>(data['data']);
     }
@@ -922,8 +1034,14 @@ class Protocol extends _isc.SerializationManager {
     if (dataClassName == 'OrganizationMember') {
       return deserialize<_ifgsfd6p.OrganizationMember>(data['data']);
     }
+    if (dataClassName == 'ParticipationHistoryEntry') {
+      return deserialize<_iu1h8z2d.ParticipationHistoryEntry>(data['data']);
+    }
     if (dataClassName == 'ParticipationStatus') {
       return deserialize<_imreqlyp.ParticipationStatus>(data['data']);
+    }
+    if (dataClassName == 'PaymentWebhookEvent') {
+      return deserialize<_i6oivzdq.PaymentWebhookEvent>(data['data']);
     }
     if (dataClassName == 'PlaceSuggestion') {
       return deserialize<_i3jo3ess.PlaceSuggestion>(data['data']);
@@ -948,6 +1066,9 @@ class Protocol extends _isc.SerializationManager {
     }
     if (dataClassName == 'Sponsorship') {
       return deserialize<_i1cgh9io.Sponsorship>(data['data']);
+    }
+    if (dataClassName == 'SponsorshipHistoryEntry') {
+      return deserialize<_ihlsdeis.SponsorshipHistoryEntry>(data['data']);
     }
     if (dataClassName == 'TaskStatus') {
       return deserialize<_ixrvqme0.TaskStatus>(data['data']);
@@ -975,9 +1096,6 @@ class Protocol extends _isc.SerializationManager {
     }
     if (dataClassName == 'WorkspaceSummary') {
       return deserialize<_im8apr1y.WorkspaceSummary>(data['data']);
-    }
-    if (dataClassName == 'Greeting') {
-      return deserialize<_izw8z7ou.Greeting>(data['data']);
     }
     if (dataClassName.startsWith('serverpod_auth_idp.')) {
       data['className'] = dataClassName.substring(19);

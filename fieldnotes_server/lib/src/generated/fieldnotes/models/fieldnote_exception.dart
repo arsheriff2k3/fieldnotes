@@ -20,17 +20,20 @@ abstract class FieldnoteException
   FieldnoteException._({
     required this.message,
     required this.code,
+    this.retryAfterSeconds,
   });
 
   factory FieldnoteException({
     required String message,
     required String code,
+    int? retryAfterSeconds,
   }) = _FieldnoteExceptionImpl;
 
   factory FieldnoteException.fromJson(Map<String, dynamic> jsonSerialization) {
     return FieldnoteException(
       message: jsonSerialization['message'] as String,
       code: jsonSerialization['code'] as String,
+      retryAfterSeconds: jsonSerialization['retryAfterSeconds'] as int?,
     );
   }
 
@@ -38,12 +41,16 @@ abstract class FieldnoteException
 
   String code;
 
+  /// Set with code `rate_limited`: seconds until the window resets.
+  int? retryAfterSeconds;
+
   /// Returns a shallow copy of this [FieldnoteException]
   /// with some or all fields replaced by the given arguments.
   @_is.useResult
   FieldnoteException copyWith({
     String? message,
     String? code,
+    int? retryAfterSeconds,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -51,6 +58,7 @@ abstract class FieldnoteException
       '__className__': 'FieldnoteException',
       'message': message,
       'code': code,
+      if (retryAfterSeconds != null) 'retryAfterSeconds': retryAfterSeconds,
     };
   }
 
@@ -60,22 +68,27 @@ abstract class FieldnoteException
       '__className__': 'FieldnoteException',
       'message': message,
       'code': code,
+      if (retryAfterSeconds != null) 'retryAfterSeconds': retryAfterSeconds,
     };
   }
 
   @override
   String toString() {
-    return 'FieldnoteException(message: $message, code: $code)';
+    return 'FieldnoteException(message: $message, code: $code, retryAfterSeconds: $retryAfterSeconds)';
   }
 }
+
+class _Undefined {}
 
 class _FieldnoteExceptionImpl extends FieldnoteException {
   _FieldnoteExceptionImpl({
     required String message,
     required String code,
+    int? retryAfterSeconds,
   }) : super._(
          message: message,
          code: code,
+         retryAfterSeconds: retryAfterSeconds,
        );
 
   /// Returns a shallow copy of this [FieldnoteException]
@@ -85,10 +98,14 @@ class _FieldnoteExceptionImpl extends FieldnoteException {
   FieldnoteException copyWith({
     String? message,
     String? code,
+    Object? retryAfterSeconds = _Undefined,
   }) {
     return FieldnoteException(
       message: message ?? this.message,
       code: code ?? this.code,
+      retryAfterSeconds: retryAfterSeconds is int?
+          ? retryAfterSeconds
+          : this.retryAfterSeconds,
     );
   }
 }

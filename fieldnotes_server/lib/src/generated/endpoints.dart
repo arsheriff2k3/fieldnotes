@@ -22,7 +22,7 @@ import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
 import '../auth/email_idp_endpoint.dart' as _iuc1hd5t;
 import '../auth/jwt_refresh_endpoint.dart' as _inwq3ztq;
 import '../fieldnotes/fieldnote_endpoint.dart' as _i4pdwwji;
-import '../greetings/greeting_endpoint.dart' as _il624ik7;
+import '../fieldnotes/legal_endpoint.dart' as _ix6kkpx9;
 export 'future_calls.dart' show ServerpodFutureCallsGetter;
 
 class Endpoints extends _is.EndpointDispatch {
@@ -47,10 +47,10 @@ class Endpoints extends _is.EndpointDispatch {
           'fieldnote',
           null,
         ),
-      'greeting': _il624ik7.GreetingEndpoint()
+      'legal': _ix6kkpx9.LegalEndpoint()
         ..initialize(
           server,
-          'greeting',
+          'legal',
           null,
         ),
     };
@@ -302,6 +302,16 @@ class Endpoints extends _is.EndpointDispatch {
               type: _is.getType<bool>(),
               nullable: false,
             ),
+            'acceptedPrivacyPolicyVersion': _is.ParameterDescription(
+              name: 'acceptedPrivacyPolicyVersion',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
+            'acceptedTermsVersion': _is.ParameterDescription(
+              name: 'acceptedTermsVersion',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
           },
           call:
               (
@@ -313,6 +323,63 @@ class Endpoints extends _is.EndpointDispatch {
                     params['locationConsent'],
                     params['aiProcessingConsent'],
                     params['evidenceSharingConsent'],
+                    acceptedPrivacyPolicyVersion:
+                        params['acceptedPrivacyPolicyVersion'],
+                    acceptedTermsVersion: params['acceptedTermsVersion'],
+                  ),
+        ),
+        'withdrawConsent': _is.MethodConnector(
+          name: 'withdrawConsent',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .withdrawConsent(session),
+        ),
+        'listMyConsentHistory': _is.MethodConnector(
+          name: 'listMyConsentHistory',
+          params: {
+            'limit': _is.ParameterDescription(
+              name: 'limit',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+            'offset': _is.ParameterDescription(
+              name: 'offset',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .listMyConsentHistory(
+                    session,
+                    limit: params['limit'],
+                    offset: params['offset'],
+                  ),
+        ),
+        'setEmailNotifications': _is.MethodConnector(
+          name: 'setEmailNotifications',
+          params: {
+            'enabled': _is.ParameterDescription(
+              name: 'enabled',
+              type: _is.getType<bool>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .setEmailNotifications(
+                    session,
+                    params['enabled'],
                   ),
         ),
         'getTrustCenter': _is.MethodConnector(
@@ -363,6 +430,16 @@ class Endpoints extends _is.EndpointDispatch {
                 Map<String, dynamic> params,
               ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
                   .requestAccountDeletion(session),
+        ),
+        'getAccountDeletionStatus': _is.MethodConnector(
+          name: 'getAccountDeletionStatus',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .getAccountDeletionStatus(session),
         ),
         'completeSponsorProfile': _is.MethodConnector(
           name: 'completeSponsorProfile',
@@ -499,6 +576,16 @@ class Endpoints extends _is.EndpointDispatch {
               type: _is.getType<String>(),
               nullable: false,
             ),
+            'timezone': _is.ParameterDescription(
+              name: 'timezone',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
+            'utcOffsetMinutes': _is.ParameterDescription(
+              name: 'utcOffsetMinutes',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
           },
           call:
               (
@@ -520,6 +607,8 @@ class Endpoints extends _is.EndpointDispatch {
                     params['latitude'],
                     params['longitude'],
                     params['locationLabel'],
+                    timezone: params['timezone'],
+                    utcOffsetMinutes: params['utcOffsetMinutes'],
                   ),
         ),
         'updateMyProfile': _is.MethodConnector(
@@ -653,6 +742,16 @@ class Endpoints extends _is.EndpointDispatch {
               type: _is.getType<String>(),
               nullable: false,
             ),
+            'timezone': _is.ParameterDescription(
+              name: 'timezone',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
+            'utcOffsetMinutes': _is.ParameterDescription(
+              name: 'utcOffsetMinutes',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
           },
           call:
               (
@@ -670,6 +769,8 @@ class Endpoints extends _is.EndpointDispatch {
                     params['latitude'],
                     params['longitude'],
                     params['locationLabel'],
+                    timezone: params['timezone'],
+                    utcOffsetMinutes: params['utcOffsetMinutes'],
                   ),
         ),
         'transcribeDictation': _is.MethodConnector(
@@ -711,6 +812,11 @@ class Endpoints extends _is.EndpointDispatch {
               type: _is.getType<String>(),
               nullable: false,
             ),
+            'utcOffsetMinutes': _is.ParameterDescription(
+              name: 'utcOffsetMinutes',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
           },
           call:
               (
@@ -720,6 +826,7 @@ class Endpoints extends _is.EndpointDispatch {
                   .proposeCampaign(
                     session,
                     params['prompt'],
+                    utcOffsetMinutes: params['utcOffsetMinutes'],
                   ),
         ),
         'createCampaignFromProposal': _is.MethodConnector(
@@ -767,13 +874,66 @@ class Endpoints extends _is.EndpointDispatch {
         ),
         'listCampaigns': _is.MethodConnector(
           name: 'listCampaigns',
-          params: {},
+          params: {
+            'limit': _is.ParameterDescription(
+              name: 'limit',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+            'offset': _is.ParameterDescription(
+              name: 'offset',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+          },
           call:
               (
                 _is.Session session,
                 Map<String, dynamic> params,
               ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
-                  .listCampaigns(session),
+                  .listCampaigns(
+                    session,
+                    limit: params['limit'],
+                    offset: params['offset'],
+                  ),
+        ),
+        'getSharedCampaignBySlug': _is.MethodConnector(
+          name: 'getSharedCampaignBySlug',
+          params: {
+            'shareSlug': _is.ParameterDescription(
+              name: 'shareSlug',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .getSharedCampaignBySlug(
+                    session,
+                    params['shareSlug'],
+                  ),
+        ),
+        'getCampaignShareLink': _is.MethodConnector(
+          name: 'getCampaignShareLink',
+          params: {
+            'campaignId': _is.ParameterDescription(
+              name: 'campaignId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .getCampaignShareLink(
+                    session,
+                    params['campaignId'],
+                  ),
         ),
         'getSharedCampaign': _is.MethodConnector(
           name: 'getSharedCampaign',
@@ -796,13 +956,28 @@ class Endpoints extends _is.EndpointDispatch {
         ),
         'listMyCreatedCampaigns': _is.MethodConnector(
           name: 'listMyCreatedCampaigns',
-          params: {},
+          params: {
+            'limit': _is.ParameterDescription(
+              name: 'limit',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+            'offset': _is.ParameterDescription(
+              name: 'offset',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+          },
           call:
               (
                 _is.Session session,
                 Map<String, dynamic> params,
               ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
-                  .listMyCreatedCampaigns(session),
+                  .listMyCreatedCampaigns(
+                    session,
+                    limit: params['limit'],
+                    offset: params['offset'],
+                  ),
         ),
         'refreshCampaignReadiness': _is.MethodConnector(
           name: 'refreshCampaignReadiness',
@@ -925,13 +1100,28 @@ class Endpoints extends _is.EndpointDispatch {
         ),
         'listMyJoinedCampaigns': _is.MethodConnector(
           name: 'listMyJoinedCampaigns',
-          params: {},
+          params: {
+            'limit': _is.ParameterDescription(
+              name: 'limit',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+            'offset': _is.ParameterDescription(
+              name: 'offset',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+          },
           call:
               (
                 _is.Session session,
                 Map<String, dynamic> params,
               ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
-                  .listMyJoinedCampaigns(session),
+                  .listMyJoinedCampaigns(
+                    session,
+                    limit: params['limit'],
+                    offset: params['offset'],
+                  ),
         ),
         'isCitySearchAvailable': _is.MethodConnector(
           name: 'isCitySearchAvailable',
@@ -1224,13 +1414,28 @@ class Endpoints extends _is.EndpointDispatch {
         ),
         'listMyCampaignInvitations': _is.MethodConnector(
           name: 'listMyCampaignInvitations',
-          params: {},
+          params: {
+            'limit': _is.ParameterDescription(
+              name: 'limit',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+            'offset': _is.ParameterDescription(
+              name: 'offset',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+          },
           call:
               (
                 _is.Session session,
                 Map<String, dynamic> params,
               ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
-                  .listMyCampaignInvitations(session),
+                  .listMyCampaignInvitations(
+                    session,
+                    limit: params['limit'],
+                    offset: params['offset'],
+                  ),
         ),
         'getCampaignMap': _is.MethodConnector(
           name: 'getCampaignMap',
@@ -1346,13 +1551,28 @@ class Endpoints extends _is.EndpointDispatch {
         ),
         'listMySponsorships': _is.MethodConnector(
           name: 'listMySponsorships',
-          params: {},
+          params: {
+            'limit': _is.ParameterDescription(
+              name: 'limit',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+            'offset': _is.ParameterDescription(
+              name: 'offset',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+          },
           call:
               (
                 _is.Session session,
                 Map<String, dynamic> params,
               ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
-                  .listMySponsorships(session),
+                  .listMySponsorships(
+                    session,
+                    limit: params['limit'],
+                    offset: params['offset'],
+                  ),
         ),
         'listCampaignTestPayouts': _is.MethodConnector(
           name: 'listCampaignTestPayouts',
@@ -1361,6 +1581,16 @@ class Endpoints extends _is.EndpointDispatch {
               name: 'campaignId',
               type: _is.getType<int>(),
               nullable: false,
+            ),
+            'limit': _is.ParameterDescription(
+              name: 'limit',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+            'offset': _is.ParameterDescription(
+              name: 'offset',
+              type: _is.getType<int?>(),
+              nullable: true,
             ),
           },
           call:
@@ -1371,6 +1601,8 @@ class Endpoints extends _is.EndpointDispatch {
                   .listCampaignTestPayouts(
                     session,
                     params['campaignId'],
+                    limit: params['limit'],
+                    offset: params['offset'],
                   ),
         ),
         'simulateCampaignTestPayout': _is.MethodConnector(
@@ -1421,6 +1653,25 @@ class Endpoints extends _is.EndpointDispatch {
                     params['campaignId'],
                   ),
         ),
+        'leaveCampaign': _is.MethodConnector(
+          name: 'leaveCampaign',
+          params: {
+            'participationId': _is.ParameterDescription(
+              name: 'participationId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .leaveCampaign(
+                    session,
+                    params['participationId'],
+                  ),
+        ),
         'getCampaignContactPhone': _is.MethodConnector(
           name: 'getCampaignContactPhone',
           params: {
@@ -1442,13 +1693,28 @@ class Endpoints extends _is.EndpointDispatch {
         ),
         'listMyParticipations': _is.MethodConnector(
           name: 'listMyParticipations',
-          params: {},
+          params: {
+            'limit': _is.ParameterDescription(
+              name: 'limit',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+            'offset': _is.ParameterDescription(
+              name: 'offset',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+          },
           call:
               (
                 _is.Session session,
                 Map<String, dynamic> params,
               ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
-                  .listMyParticipations(session),
+                  .listMyParticipations(
+                    session,
+                    limit: params['limit'],
+                    offset: params['offset'],
+                  ),
         ),
         'checkIn': _is.MethodConnector(
           name: 'checkIn',
@@ -1542,6 +1808,16 @@ class Endpoints extends _is.EndpointDispatch {
                     params['photographMimeType'],
                   ),
         ),
+        'isAiAvailable': _is.MethodConnector(
+          name: 'isAiAvailable',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .isAiAvailable(session),
+        ),
         'getEvidenceUploadDescription': _is.MethodConnector(
           name: 'getEvidenceUploadDescription',
           params: {
@@ -1625,6 +1901,16 @@ class Endpoints extends _is.EndpointDispatch {
               type: _is.getType<DateTime>(),
               nullable: false,
             ),
+            'uploadPath': _is.ParameterDescription(
+              name: 'uploadPath',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
+            'manualSummary': _is.ParameterDescription(
+              name: 'manualSummary',
+              type: _is.getType<bool?>(),
+              nullable: true,
+            ),
           },
           call:
               (
@@ -1644,6 +1930,39 @@ class Endpoints extends _is.EndpointDispatch {
                     params['deviceReportedMock'],
                     params['explicitDemo'],
                     params['capturedAt'],
+                    uploadPath: params['uploadPath'],
+                    manualSummary: params['manualSummary'],
+                  ),
+        ),
+        'reviewEvidence': _is.MethodConnector(
+          name: 'reviewEvidence',
+          params: {
+            'evidenceId': _is.ParameterDescription(
+              name: 'evidenceId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'approve': _is.ParameterDescription(
+              name: 'approve',
+              type: _is.getType<bool>(),
+              nullable: false,
+            ),
+            'note': _is.ParameterDescription(
+              name: 'note',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .reviewEvidence(
+                    session,
+                    params['evidenceId'],
+                    params['approve'],
+                    params['note'],
                   ),
         ),
         'getEvidenceDownloadUrl': _is.MethodConnector(
@@ -1682,6 +2001,112 @@ class Endpoints extends _is.EndpointDispatch {
                   .getImpact(
                     session,
                     params['campaignId'],
+                  ),
+        ),
+        'listMyCampaigns': _is.MethodConnector(
+          name: 'listMyCampaigns',
+          params: {
+            'limit': _is.ParameterDescription(
+              name: 'limit',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+            'offset': _is.ParameterDescription(
+              name: 'offset',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .listMyCampaigns(
+                    session,
+                    limit: params['limit'],
+                    offset: params['offset'],
+                  ),
+        ),
+        'listMyPaymentHistory': _is.MethodConnector(
+          name: 'listMyPaymentHistory',
+          params: {
+            'limit': _is.ParameterDescription(
+              name: 'limit',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+            'offset': _is.ParameterDescription(
+              name: 'offset',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .listMyPaymentHistory(
+                    session,
+                    limit: params['limit'],
+                    offset: params['offset'],
+                  ),
+        ),
+        'listMyParticipationHistory': _is.MethodConnector(
+          name: 'listMyParticipationHistory',
+          params: {
+            'limit': _is.ParameterDescription(
+              name: 'limit',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+            'offset': _is.ParameterDescription(
+              name: 'offset',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .listMyParticipationHistory(
+                    session,
+                    limit: params['limit'],
+                    offset: params['offset'],
+                  ),
+        ),
+        'listCampaignRefunds': _is.MethodConnector(
+          name: 'listCampaignRefunds',
+          params: {
+            'campaignId': _is.ParameterDescription(
+              name: 'campaignId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'limit': _is.ParameterDescription(
+              name: 'limit',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+            'offset': _is.ParameterDescription(
+              name: 'offset',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .listCampaignRefunds(
+                    session,
+                    params['campaignId'],
+                    limit: params['limit'],
+                    offset: params['offset'],
                   ),
         ),
         'createCampaignPost': _is.MethodConnector(
@@ -1723,6 +2148,16 @@ class Endpoints extends _is.EndpointDispatch {
               type: _is.getType<int>(),
               nullable: false,
             ),
+            'limit': _is.ParameterDescription(
+              name: 'limit',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+            'offset': _is.ParameterDescription(
+              name: 'offset',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
           },
           call:
               (
@@ -1732,6 +2167,8 @@ class Endpoints extends _is.EndpointDispatch {
                   .listCampaignPosts(
                     session,
                     params['campaignId'],
+                    limit: params['limit'],
+                    offset: params['offset'],
                   ),
         ),
         'watchCampaign': _is.MethodStreamConnector(
@@ -1758,28 +2195,19 @@ class Endpoints extends _is.EndpointDispatch {
         ),
       },
     );
-    connectors['greeting'] = _is.EndpointConnector(
-      name: 'greeting',
-      endpoint: endpoints['greeting']!,
+    connectors['legal'] = _is.EndpointConnector(
+      name: 'legal',
+      endpoint: endpoints['legal']!,
       methodConnectors: {
-        'hello': _is.MethodConnector(
-          name: 'hello',
-          params: {
-            'name': _is.ParameterDescription(
-              name: 'name',
-              type: _is.getType<String>(),
-              nullable: false,
-            ),
-          },
+        'getLegalPolicies': _is.MethodConnector(
+          name: 'getLegalPolicies',
+          params: {},
           call:
               (
                 _is.Session session,
                 Map<String, dynamic> params,
-              ) async =>
-                  (endpoints['greeting'] as _il624ik7.GreetingEndpoint).hello(
-                    session,
-                    params['name'],
-                  ),
+              ) async => (endpoints['legal'] as _ix6kkpx9.LegalEndpoint)
+                  .getLegalPolicies(session),
         ),
       },
     );

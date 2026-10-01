@@ -73,7 +73,7 @@ serverpod start
 
 The user runs `serverpod start`; automation must not start it. Development startup applies the pending migration and watches Serverpod/Flutter changes.
 
-Register two different email accounts. Use one as Sponsor and one as Volunteer. Development email verification codes appear in the Serverpod log.
+Register two different email accounts. Use one as Sponsor and one as Volunteer. Signup verification and password-reset codes are emailed over SMTP (`smtpUsername` / `smtpAppPassword` passwords), so use real inboxes you can read.
 
 ## Physical Android device
 

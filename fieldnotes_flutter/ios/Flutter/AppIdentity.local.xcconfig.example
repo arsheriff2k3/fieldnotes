@@ -1,0 +1,7 @@
+// Copy to ios/Flutter/AppIdentity.local.xcconfig (git-ignored), uncomment and
+// fill in. Overrides the placeholders in AppIdentity.xcconfig for every
+// configuration. Release builds fail until both values are real.
+
+// FIELDNOTE_BUNDLE_ID = <reverse-DNS bundle ID you own>
+// FIELDNOTE_LINK_HOST = <production web host, e.g. the host serving /c/<id>>
+// DEVELOPMENT_TEAM = <10-character Apple team ID>

@@ -1,0 +1,17 @@
+// FieldNote app identity (committed). Values here are PLACEHOLDERS that are
+// only acceptable for Debug/Profile builds. Real values go in the git-ignored
+// AppIdentity.local.xcconfig (copy AppIdentity.local.xcconfig.example).
+// The "Validate FieldNote App Identity" build phase fails Release builds that
+// still use these placeholders.
+
+// Bundle identifier. Must be a reverse-DNS ID you own; never com.example.*.
+FIELDNOTE_BUNDLE_ID = com.example.fieldnotesFlutter
+
+// Host serving https://<host>/c/<id> campaign links and
+// /.well-known/apple-app-site-association. Bare host, no scheme or path.
+FIELDNOTE_LINK_HOST = localhost
+
+// Optional: Apple Developer team for automatic signing.
+// DEVELOPMENT_TEAM =
+
+#include? "AppIdentity.local.xcconfig"

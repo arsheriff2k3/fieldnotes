@@ -1,14 +1,29 @@
+# A provider refund for one sponsorship. The class keeps its historical name
+# for client compatibility; rows are executed against Razorpay by the sweep.
+#
+# status: pending | processing | processed | failed
+# reason: campaign_cancelled | campaign_expired | uncredited
 class: TestRefund
 table: fieldnote_test_refund
 fields:
   campaignId: int, relation(parent=fieldnote_campaign)
   sponsorshipId: int, relation(parent=fieldnote_sponsorship)
   amount: double
-  status: String, default='refund_due_test'
+  status: String, default='pending'
+  reason: String, default='campaign_cancelled'
+  testMode: bool, default=true
+  attempts: int, default=0
+  providerRefundId: String?
+  lastError: String?
+  nextAttemptAt: DateTime?
+  processedAt: DateTime?
   createdAt: DateTime, default=now
+  updatedAt: DateTime, default=now
 indexes:
   fieldnote_test_refund_campaign_idx:
     fields: campaignId
   fieldnote_test_refund_sponsorship_idx:
     fields: sponsorshipId
     unique: true
+  fieldnote_test_refund_status_idx:
+    fields: status

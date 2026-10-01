@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 
 import '../../../data/services/device_location_service.dart';
 import '../../../data/services/pending_role_service.dart';
+import '../../core/error_messages.dart';
 import '../../core/fieldnote_map.dart';
+import '../../core/legal.dart';
 import '../../core/location_picker.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/widgets.dart';
@@ -50,14 +52,15 @@ class _OnboardingViewState extends State<OnboardingView> {
   bool _resolvingArea = false;
   LocationAccessException? _locationError;
   int _areaRequest = 0;
-  bool _locationConsent = false;
-  bool _aiConsent = false;
-  bool _evidenceConsent = false;
+  final Map<String, bool> _consents = {};
 
   @override
   void initState() {
     super.initState();
     _loadRole();
+    if (widget.viewModel.legalPolicies == null) {
+      unawaited(widget.viewModel.loadLegalPolicies());
+    }
   }
 
   Future<void> _loadRole() async {
@@ -292,8 +295,20 @@ class _OnboardingViewState extends State<OnboardingView> {
       _message('Select your location from the Google suggestions.');
       return;
     }
-    if (!_locationConsent || !_aiConsent || !_evidenceConsent) {
-      _message('Review and accept all three privacy choices.');
+    if (widget.viewModel.legalPolicies == null) {
+      await widget.viewModel.loadLegalPolicies();
+      if (!mounted) return;
+    }
+    final policies = widget.viewModel.legalPolicies;
+    if (policies == null) {
+      _message(
+        'Could not load the Privacy Policy and Terms. Check your connection '
+        'and try again.',
+      );
+      return;
+    }
+    if (!requiredConsentsGiven(_consents, policies)) {
+      _message('Review and accept every required privacy choice.');
       return;
     }
     setState(() => _saving = true);
@@ -336,14 +351,22 @@ class _OnboardingViewState extends State<OnboardingView> {
               : 'Location captured',
         );
       }
-      final consent = await widget.viewModel.repository.acceptLegalConsent();
+      final consent = await widget.viewModel.repository.acceptLegalConsent(
+        locationConsent: _consents[consentLocation] ?? false,
+        aiProcessingConsent: _consents[consentAiProcessing] ?? false,
+        evidenceSharingConsent: _consents[consentEvidenceSharing] ?? false,
+        acceptedPrivacyPolicyVersion: policies.privacyPolicyVersion,
+        acceptedTermsVersion: policies.termsVersion,
+      );
       await _roles.clear();
       await widget.viewModel.onboardingCompleted(profile, consent);
     } catch (error) {
+      if (error is FieldnoteException &&
+          error.code == 'consent_version_mismatch') {
+        unawaited(widget.viewModel.loadLegalPolicies());
+      }
       _message(
-        error is FieldnoteException
-            ? error.message
-            : 'Could not complete account setup.',
+        userMessageFor(error, fallback: 'Could not complete account setup.'),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -757,6 +780,7 @@ class _OnboardingViewState extends State<OnboardingView> {
   }
 
   Widget _consentFields() {
+    final policies = widget.viewModel.legalPolicies;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -772,33 +796,28 @@ class _OnboardingViewState extends State<OnboardingView> {
           ),
           const SizedBox(height: 6),
           const Text(
-            'You can review these records and request data export or deletion from Trust Center.',
+            'You can review these records, withdraw consent, export your data '
+            'or delete your account from Trust & safety.',
           ),
-          CheckboxListTile(
-            contentPadding: EdgeInsets.zero,
-            value: _locationConsent,
-            title: const Text('Use GPS for matching and evidence integrity'),
-            onChanged: (value) =>
-                setState(() => _locationConsent = value ?? false),
+          ConsentChecklist(
+            values: _consents,
+            policies: policies,
+            enabled: !_saving,
+            showDescriptions: false,
+            onChanged: (key, value) => setState(() => _consents[key] = value),
           ),
-          CheckboxListTile(
-            contentPadding: EdgeInsets.zero,
-            value: _aiConsent,
-            title: const Text('Use AI for campaign and evidence drafts'),
-            onChanged: (value) => setState(() => _aiConsent = value ?? false),
+          Text(
+            policies == null
+                ? 'By continuing you accept the current FieldNote Terms and '
+                      'Privacy Policy.'
+                : 'By continuing you accept the FieldNote Terms '
+                      'v${policies.termsVersion} and Privacy Policy '
+                      'v${policies.privacyPolicyVersion}.',
+            style: const TextStyle(fontSize: 12),
           ),
-          CheckboxListTile(
-            contentPadding: EdgeInsets.zero,
-            value: _evidenceConsent,
-            title: const Text(
-              'Share submitted evidence privately with campaign sponsors',
-            ),
-            onChanged: (value) =>
-                setState(() => _evidenceConsent = value ?? false),
-          ),
-          const Text(
-            'By continuing you accept the FieldNote Terms and Privacy Policy v2026-09-22.',
-            style: TextStyle(fontSize: 12),
+          LegalLinks(
+            policies: policies,
+            onRetry: widget.viewModel.loadLegalPolicies,
           ),
         ],
       ),

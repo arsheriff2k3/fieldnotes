@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<!--
+  DRAFT - REQUIRES LEGAL REVIEW BEFORE PUBLICATION.
+
+  This Privacy Policy was drafted from the FieldNote code base (data models,
+  trust-centre endpoints and integrations) and is not legal advice. A qualified
+  lawyer must review it for every jurisdiction you operate in (for India, at
+  least the Digital Personal Data Protection Act 2023 and IT Rules; GDPR/UK GDPR
+  if you serve the EU/UK) before it is linked from the apps or store listings.
+
+  Replace every placeholder: [LEGAL_ENTITY], [CONTACT_EMAIL], [POSTAL_ADDRESS],
+  [GRIEVANCE_OFFICER], [DELETION_DAYS], [MINIMUM_AGE], [EFFECTIVE_DATE].
+
+  The version below MUST equal FieldnoteEndpoint.privacyPolicyVersion in
+  fieldnotes_server/lib/src/fieldnotes/fieldnote_endpoint.dart. Bump both
+  together; users are asked to re-accept when the version changes.
+
+  Statements that depend on open production gaps (docs/PRODUCTION_GAPS.md):
+  - "Deleting your account" assumes P0-6 (real deletion job) is implemented.
+  - "Withdrawing consent" in-app assumes T-2; until then only by email.
+  - Sponsor reach/maps showing only aggregates assumes A-2 is fixed.
+  Do not publish until these are true or the text is changed.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="fieldnote-document-version" content="2026-09-22">
+  <title>FieldNote Privacy Policy</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; color: #1f2933; max-width: 760px; margin: 0 auto; padding: 24px 20px 64px; }
+    h1 { font-size: 1.9rem; margin-bottom: 0.2rem; }
+    h2 { font-size: 1.25rem; margin-top: 2rem; border-top: 1px solid #e4e7eb; padding-top: 1.2rem; }
+    h3 { font-size: 1.05rem; margin-top: 1.2rem; }
+    .meta { color: #52606d; font-size: 0.95rem; }
+    table { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
+    th, td { text-align: left; vertical-align: top; border: 1px solid #e4e7eb; padding: 8px; }
+    th { background: #f5f7fa; }
+    code { background: #f5f7fa; padding: 0 4px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <h1>FieldNote Privacy Policy</h1>
+  <p class="meta">Version <strong>2026-09-22</strong> &middot; Effective [EFFECTIVE_DATE]</p>
+
+  <p>FieldNote connects <strong>Sponsors</strong>, who fund and publish local community campaigns, with <strong>Volunteers</strong>, who join nearby campaigns, check in on site and submit evidence of the work done. This policy explains what personal data FieldNote collects, why, who it is shared with, how long it is kept and the choices you have.</p>
+  <p>FieldNote is operated by <strong>[LEGAL_ENTITY]</strong> ("we", "us"), [POSTAL_ADDRESS]. Contact us at <a href="mailto:[CONTACT_EMAIL]">[CONTACT_EMAIL]</a>.</p>
+
+  <h2>1. Data we collect</h2>
+
+  <h3>1.1 Account data</h3>
+  <ul>
+    <li>Your email address and a password, which is stored only as a salted hash by our authentication system.</li>
+    <li>One-time verification codes we email to you when you sign up or reset your password.</li>
+    <li>Your account role (Sponsor or Volunteer). The role is fixed after onboarding.</li>
+  </ul>
+
+  <h3>1.2 Profile data</h3>
+  <ul>
+    <li>All users: display name and city.</li>
+    <li>Sponsors: sponsor type, organisation name, an optional contact phone number, and an optional base location (address, map place identifier and coordinates).</li>
+    <li>Volunteers: interests and skills.</li>
+  </ul>
+
+  <h3>1.3 Volunteer availability and area</h3>
+  <p>When you publish availability we store whether you are available (including "available today"), your available weekdays and time window, the maximum distance you are willing to travel, a label for your area, and the GPS coordinates of the area you choose. We use this only to match you with suitable campaigns.</p>
+
+  <h3>1.4 Live location at check-in and completion</h3>
+  <p>Location is collected only while you use the app ("when in use"), never in the background. When you check in to a campaign or submit completion evidence, the app sends your current GPS coordinates and their accuracy. We check that the reading is fresh, plausible and within 200&nbsp;metres of the campaign, and we record the result of device "mock location" and movement-continuity checks. We store the coordinates, accuracy, check-in time and the outcome of these checks with your participation. Demonstration locations, when used, are labelled as such.</p>
+
+  <h3>1.5 Evidence: photos, notes and voice dictation</h3>
+  <ul>
+    <li><strong>Photographs</strong> you take as completion evidence are kept in private storage and are only accessible through short-lived links.</li>
+    <li><strong>Notes</strong> you type or dictate, and the summary and structured results you confirm.</li>
+    <li><strong>Voice dictation</strong>: audio you record for dictation is sent to our server and on to an AI provider for transcription. We do not keep the recording after it is transcribed; we keep only the text you confirm. Some devices may also use the operating system's own speech recognition service, which is governed by Apple's or Google's privacy terms.</li>
+  </ul>
+
+  <h3>1.6 Campaigns, participation and communication</h3>
+  <p>Campaign briefs and details created by Sponsors (including AI-assisted drafts), campaign locations, invitations sent and received, campaign updates posted by Sponsors, and your participation status (joined, confirmed, checked in, completed).</p>
+
+  <h3>1.7 Payments</h3>
+  <p>Sponsors pay through <strong>Razorpay</strong>. Card, UPI, bank and wallet details are entered directly with Razorpay and are never received or stored by FieldNote. We store the Razorpay order and payment identifiers, the amount, an optional message, the payment status, verification time, and records of any refunds or payouts.</p>
+
+  <h3>1.8 Consent, security and audit records</h3>
+  <p>We record which Privacy Policy and Terms versions you accepted, your location, AI-processing and evidence-sharing consents, and when. We also keep an activity log of security-relevant events on your account, such as consent changes, payment verification, location-integrity results, content-moderation outcomes, data exports and deletion requests. You can see recent entries in the app's Trust area.</p>
+
+  <h3>1.9 Technical data</h3>
+  <p>Our servers process IP addresses, request metadata and error logs to operate and secure the service. The app stores small amounts of data on your device, such as your pending role selection and sign-in session.</p>
+
+  <h2>2. Why we use your data</h2>
+  <table>
+    <tr><th>Purpose</th><th>Data used</th><th>Basis</th></tr>
+    <tr><td>Create and secure your account; send verification and password-reset codes</td><td>Account data, technical data</td><td>Performance of our contract with you</td></tr>
+    <tr><td>Match Volunteers with nearby campaigns (availability, distance, interests, remaining capacity)</td><td>Profile, availability and area, campaigns</td><td>Contract; your consent to location processing</td></tr>
+    <tr><td>Verify check-in and completion on site, and detect spoofed locations</td><td>Live location, integrity results</td><td>Contract; consent to location processing; our legitimate interest in preventing fraud</td></tr>
+    <tr><td>Draft campaigns, transcribe dictation and structure impact summaries with AI</td><td>Campaign briefs, notes, dictation audio, photos</td><td>Your consent to AI processing</td></tr>
+    <tr><td>Show Sponsors the evidence and impact of campaigns they fund</td><td>Evidence, participation, display name</td><td>Contract; your consent to evidence sharing</td></tr>
+    <tr><td>Process sponsorship payments, refunds and payouts</td><td>Payment data</td><td>Contract; legal obligations (tax, accounting)</td></tr>
+    <tr><td>Moderate unsafe content and keep an audit trail</td><td>Text you submit, audit records</td><td>Legitimate interest in safety; legal obligations</td></tr>
+  </table>
+  <p>We do not sell your personal data and we do not use it for third-party advertising.</p>
+
+  <h2>3. Who we share data with</h2>
+  <ul>
+    <li><strong>Sponsors of campaigns you join.</strong> Your display name, participation status, and the evidence you submit for their campaign (photo, confirmed summary and results). Before you join, Sponsors see only aggregated, approximate counts of potential volunteers in an area (at least three people per cell, rounded to about one kilometre), never your individual location.</li>
+    <li><strong>Volunteers.</strong> Volunteers see published campaign details, including the Sponsor's display or organisation name and the campaign location.</li>
+    <li><strong>AI providers: Google (Gemini API) and Groq.</strong> Campaign briefs, notes, dictation audio and evidence photos are sent to one of these providers to generate drafts, transcriptions and summaries. Obvious identifiers such as phone numbers and email addresses are screened before text is sent. These providers process data under their API terms and may process it outside your country.</li>
+    <li><strong>Google Maps Platform.</strong> Place searches, addresses and coordinates are sent to Google to search places, convert addresses to coordinates and estimate travel routes. Maps shown in the app are loaded from Google, which receives your device's network information.</li>
+    <li><strong>Razorpay.</strong> Our payment processor, which collects your payment details directly.</li>
+    <li><strong>Email delivery provider.</strong> Your email address and verification codes are passed to our email (SMTP) provider to deliver account emails.</li>
+    <li><strong>Hosting and infrastructure providers</strong> who store data on our behalf.</li>
+    <li><strong>Authorities</strong>, where required by law or to protect the safety of people.</li>
+  </ul>
+
+  <h2>4. International transfers</h2>
+  <p>Our AI, maps, payment and hosting providers may process data outside the country where you live. Where required, we rely on appropriate safeguards offered by those providers.</p>
+
+  <h2>5. How long we keep data</h2>
+  <ul>
+    <li>Account, profile, availability, consent and evidence data are kept while your account is active and deleted when your account is deleted (see section 6).</li>
+    <li>Records shared with other users, such as campaign participation and evidence, are deleted or anonymised when your account is deleted so the campaign's aggregate impact can remain.</li>
+    <li>Payment, refund and payout records are kept for as long as tax and accounting law requires, even after account deletion.</li>
+    <li>Dictation audio is not retained after transcription.</li>
+    <li>Server logs are kept for a limited period for security and troubleshooting.</li>
+  </ul>
+
+  <h2>6. Your choices and rights</h2>
+  <ul>
+    <li><strong>Access and export.</strong> Download a copy of your data (JSON or PDF) from the Trust area in the app. Photographs are not embedded in the export; ask us for copies.</li>
+    <li><strong>Correction.</strong> Edit your profile and availability in the app, or contact us.</li>
+    <li><strong>Deletion.</strong> Request account deletion from the Trust area in the app or by emailing <a href="mailto:[CONTACT_EMAIL]">[CONTACT_EMAIL]</a>. We complete deletion within [DELETION_DAYS] days, except for records we must keep by law.</li>
+    <li><strong>Withdraw consent.</strong> Location, AI-processing and evidence-sharing consent are needed to use FieldNote's core features. You can withdraw consent at any time by contacting us or deleting your account; this does not affect processing that already happened.</li>
+    <li><strong>Device permissions.</strong> You can revoke location, camera, microphone and speech-recognition permissions in your device settings. Features that need them will stop working.</li>
+    <li>Depending on where you live, you may have further rights, including the right to complain to a data-protection authority. Grievance officer: [GRIEVANCE_OFFICER], <a href="mailto:[CONTACT_EMAIL]">[CONTACT_EMAIL]</a>.</li>
+  </ul>
+
+  <h2>7. Security</h2>
+  <p>Data is encrypted in transit. Payment secrets and provider keys stay on our servers and never reach the app. Payments only count toward a campaign after the server verifies Razorpay's signature. Evidence photos are stored privately. No system is perfectly secure; tell us at once if you think your account has been compromised.</p>
+
+  <h2>8. Children</h2>
+  <p>FieldNote is not intended for anyone under [MINIMUM_AGE]. We do not knowingly collect data from children. If you believe a child has created an account, contact us and we will delete it.</p>
+
+  <h2>9. Changes to this policy</h2>
+  <p>Each version of this policy has a version identifier (this one is <strong>2026-09-22</strong>). When we make a material change we update the version and ask you to review and accept it in the app before you continue.</p>
+
+  <h2>10. Contact</h2>
+  <p>[LEGAL_ENTITY], [POSTAL_ADDRESS]. Email: <a href="mailto:[CONTACT_EMAIL]">[CONTACT_EMAIL]</a>.</p>
+</body>
+</html>

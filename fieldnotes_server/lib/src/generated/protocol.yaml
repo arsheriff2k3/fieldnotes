@@ -13,10 +13,14 @@ fieldnote:
   - getMyProfile:
   - getMyLegalConsent:
   - acceptLegalConsent:
+  - withdrawConsent:
+  - listMyConsentHistory:
+  - setEmailNotifications:
   - getTrustCenter:
   - exportMyData:
   - recordAccountDataExport:
   - requestAccountDeletion:
+  - getAccountDeletionStatus:
   - completeSponsorProfile:
   - completeVolunteerProfile:
   - updateMyProfile:
@@ -26,6 +30,8 @@ fieldnote:
   - proposeCampaign:
   - createCampaignFromProposal:
   - listCampaigns:
+  - getSharedCampaignBySlug:
+  - getCampaignShareLink:
   - getSharedCampaign:
   - listMyCreatedCampaigns:
   - refreshCampaignReadiness:
@@ -57,16 +63,23 @@ fieldnote:
   - simulateCampaignTestPayout:
   - getCampaignMatches:
   - joinCampaign:
+  - leaveCampaign:
   - getCampaignContactPhone:
   - listMyParticipations:
   - checkIn:
   - analyzeCompletion:
+  - isAiAvailable:
   - getEvidenceUploadDescription:
   - completeParticipation:
+  - reviewEvidence:
   - getEvidenceDownloadUrl:
   - getImpact:
+  - listMyCampaigns:
+  - listMyPaymentHistory:
+  - listMyParticipationHistory:
+  - listCampaignRefunds:
   - createCampaignPost:
   - listCampaignPosts:
   - watchCampaign:
-greeting:
-  - hello:
+legal:
+  - getLegalPolicies:

@@ -25,9 +25,14 @@ abstract class Sponsorship
     this.providerOrderId,
     this.providerPaymentId,
     this.verifiedAt,
+    this.failureReason,
+    int? reconcileAttempts,
+    this.lastReconciledAt,
+    this.updatedAt,
     DateTime? createdAt,
   }) : paymentProvider = paymentProvider ?? 'razorpay',
        paymentStatus = paymentStatus ?? 'created',
+       reconcileAttempts = reconcileAttempts ?? 0,
        createdAt = createdAt ?? DateTime.now();
 
   factory Sponsorship({
@@ -41,6 +46,10 @@ abstract class Sponsorship
     String? providerOrderId,
     String? providerPaymentId,
     DateTime? verifiedAt,
+    String? failureReason,
+    int? reconcileAttempts,
+    DateTime? lastReconciledAt,
+    DateTime? updatedAt,
     DateTime? createdAt,
   }) = _SponsorshipImpl;
 
@@ -60,6 +69,16 @@ abstract class Sponsorship
       verifiedAt: jsonSerialization['verifiedAt'] == null
           ? null
           : _is.DateTimeJsonExtension.fromJson(jsonSerialization['verifiedAt']),
+      failureReason: jsonSerialization['failureReason'] as String?,
+      reconcileAttempts: jsonSerialization['reconcileAttempts'] as int?,
+      lastReconciledAt: jsonSerialization['lastReconciledAt'] == null
+          ? null
+          : _is.DateTimeJsonExtension.fromJson(
+              jsonSerialization['lastReconciledAt'],
+            ),
+      updatedAt: jsonSerialization['updatedAt'] == null
+          ? null
+          : _is.DateTimeJsonExtension.fromJson(jsonSerialization['updatedAt']),
       createdAt: jsonSerialization['createdAt'] == null
           ? null
           : _is.DateTimeJsonExtension.fromJson(jsonSerialization['createdAt']),
@@ -91,6 +110,14 @@ abstract class Sponsorship
 
   DateTime? verifiedAt;
 
+  String? failureReason;
+
+  int reconcileAttempts;
+
+  DateTime? lastReconciledAt;
+
+  DateTime? updatedAt;
+
   DateTime createdAt;
 
   @override
@@ -110,6 +137,10 @@ abstract class Sponsorship
     String? providerOrderId,
     String? providerPaymentId,
     DateTime? verifiedAt,
+    String? failureReason,
+    int? reconcileAttempts,
+    DateTime? lastReconciledAt,
+    DateTime? updatedAt,
     DateTime? createdAt,
   });
   @override
@@ -126,6 +157,11 @@ abstract class Sponsorship
       if (providerOrderId != null) 'providerOrderId': providerOrderId,
       if (providerPaymentId != null) 'providerPaymentId': providerPaymentId,
       if (verifiedAt != null) 'verifiedAt': verifiedAt?.toJson(),
+      if (failureReason != null) 'failureReason': failureReason,
+      'reconcileAttempts': reconcileAttempts,
+      if (lastReconciledAt != null)
+        'lastReconciledAt': lastReconciledAt?.toJson(),
+      if (updatedAt != null) 'updatedAt': updatedAt?.toJson(),
       'createdAt': createdAt.toJson(),
     };
   }
@@ -144,6 +180,11 @@ abstract class Sponsorship
       if (providerOrderId != null) 'providerOrderId': providerOrderId,
       if (providerPaymentId != null) 'providerPaymentId': providerPaymentId,
       if (verifiedAt != null) 'verifiedAt': verifiedAt?.toJson(),
+      if (failureReason != null) 'failureReason': failureReason,
+      'reconcileAttempts': reconcileAttempts,
+      if (lastReconciledAt != null)
+        'lastReconciledAt': lastReconciledAt?.toJson(),
+      if (updatedAt != null) 'updatedAt': updatedAt?.toJson(),
       'createdAt': createdAt.toJson(),
     };
   }
@@ -190,6 +231,10 @@ class _SponsorshipImpl extends Sponsorship {
     String? providerOrderId,
     String? providerPaymentId,
     DateTime? verifiedAt,
+    String? failureReason,
+    int? reconcileAttempts,
+    DateTime? lastReconciledAt,
+    DateTime? updatedAt,
     DateTime? createdAt,
   }) : super._(
          id: id,
@@ -202,6 +247,10 @@ class _SponsorshipImpl extends Sponsorship {
          providerOrderId: providerOrderId,
          providerPaymentId: providerPaymentId,
          verifiedAt: verifiedAt,
+         failureReason: failureReason,
+         reconcileAttempts: reconcileAttempts,
+         lastReconciledAt: lastReconciledAt,
+         updatedAt: updatedAt,
          createdAt: createdAt,
        );
 
@@ -220,6 +269,10 @@ class _SponsorshipImpl extends Sponsorship {
     Object? providerOrderId = _Undefined,
     Object? providerPaymentId = _Undefined,
     Object? verifiedAt = _Undefined,
+    Object? failureReason = _Undefined,
+    int? reconcileAttempts,
+    Object? lastReconciledAt = _Undefined,
+    Object? updatedAt = _Undefined,
     DateTime? createdAt,
   }) {
     return Sponsorship(
@@ -237,6 +290,14 @@ class _SponsorshipImpl extends Sponsorship {
           ? providerPaymentId
           : this.providerPaymentId,
       verifiedAt: verifiedAt is DateTime? ? verifiedAt : this.verifiedAt,
+      failureReason: failureReason is String?
+          ? failureReason
+          : this.failureReason,
+      reconcileAttempts: reconcileAttempts ?? this.reconcileAttempts,
+      lastReconciledAt: lastReconciledAt is DateTime?
+          ? lastReconciledAt
+          : this.lastReconciledAt,
+      updatedAt: updatedAt is DateTime? ? updatedAt : this.updatedAt,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -297,6 +358,29 @@ class SponsorshipUpdateTable extends _is.UpdateTable<SponsorshipTable> {
         value,
       );
 
+  _is.ColumnValue<String, String> failureReason(String? value) =>
+      _is.ColumnValue(
+        table.failureReason,
+        value,
+      );
+
+  _is.ColumnValue<int, int> reconcileAttempts(int value) => _is.ColumnValue(
+    table.reconcileAttempts,
+    value,
+  );
+
+  _is.ColumnValue<DateTime, DateTime> lastReconciledAt(DateTime? value) =>
+      _is.ColumnValue(
+        table.lastReconciledAt,
+        value,
+      );
+
+  _is.ColumnValue<DateTime, DateTime> updatedAt(DateTime? value) =>
+      _is.ColumnValue(
+        table.updatedAt,
+        value,
+      );
+
   _is.ColumnValue<DateTime, DateTime> createdAt(DateTime value) =>
       _is.ColumnValue(
         table.createdAt,
@@ -346,6 +430,23 @@ class SponsorshipTable extends _is.Table<int?> {
       'verifiedAt',
       this,
     );
+    failureReason = _is.ColumnString(
+      'failureReason',
+      this,
+    );
+    reconcileAttempts = _is.ColumnInt(
+      'reconcileAttempts',
+      this,
+      hasDefault: true,
+    );
+    lastReconciledAt = _is.ColumnDateTime(
+      'lastReconciledAt',
+      this,
+    );
+    updatedAt = _is.ColumnDateTime(
+      'updatedAt',
+      this,
+    );
     createdAt = _is.ColumnDateTime(
       'createdAt',
       this,
@@ -373,6 +474,14 @@ class SponsorshipTable extends _is.Table<int?> {
 
   late final _is.ColumnDateTime verifiedAt;
 
+  late final _is.ColumnString failureReason;
+
+  late final _is.ColumnInt reconcileAttempts;
+
+  late final _is.ColumnDateTime lastReconciledAt;
+
+  late final _is.ColumnDateTime updatedAt;
+
   late final _is.ColumnDateTime createdAt;
 
   @override
@@ -387,6 +496,10 @@ class SponsorshipTable extends _is.Table<int?> {
     providerOrderId,
     providerPaymentId,
     verifiedAt,
+    failureReason,
+    reconcileAttempts,
+    lastReconciledAt,
+    updatedAt,
     createdAt,
   ];
 }

@@ -1,11 +1,11 @@
 {
-    "name": "fieldnotes_flutter",
-    "short_name": "fieldnotes_flutter",
+    "name": "FieldNote",
+    "short_name": "FieldNote",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "FieldNote connects sponsors with nearby volunteers for evidence-backed community action.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

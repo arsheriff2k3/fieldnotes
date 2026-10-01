@@ -2,14 +2,15 @@ import 'dart:async';
 
 import 'package:fieldnotes_client/fieldnotes_client.dart';
 import 'package:flutter/material.dart';
-import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
 
-import '../../../client.dart';
+import '../../core/error_messages.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/in_app_maps.dart';
 import '../../core/location_picker.dart';
 import '../../core/widgets.dart';
 import '../shell/fieldnote_view_model.dart';
+import '../trust/account_deletion.dart';
+import '../trust/trust_center_view.dart' show confirmSignOut;
 
 class ProfileView extends StatefulWidget {
   const ProfileView({
@@ -63,6 +64,8 @@ class _ProfileViewState extends State<ProfileView> {
   bool _saving = false;
   bool _citySearchAvailable = false;
   bool _searchingCity = false;
+  bool _savingNotifications = false;
+  bool _signingOut = false;
   int _cityRequest = 0;
 
   @override
@@ -426,46 +429,85 @@ class _ProfileViewState extends State<ProfileView> {
           ),
         ),
         const SizedBox(height: 16),
-        SurfaceCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Account', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              const Text(
-                'You can request deletion of this account and its private data.',
-              ),
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: _requestDeletion,
-                style: FilledButton.styleFrom(
-                  backgroundColor: FieldnoteColors.danger,
-                  foregroundColor: Colors.white,
-                ),
-                icon: const Icon(Icons.delete_outline),
-                label: const Text('Request account deletion'),
-              ),
-            ],
-          ),
-        ),
+        _notificationsCard(profile),
         const SizedBox(height: 16),
         _privacyCard(),
         const SizedBox(height: 16),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: OutlinedButton.icon(
-            onPressed: () async {
-              final signedOut = await client.auth.signOutDevice();
-              if (!signedOut && mounted) {
-                _message('Could not sign out this device.');
-              }
-            },
-            icon: const Icon(Icons.logout),
-            label: const Text('Sign out'),
-          ),
+        AccountDeletionCard(viewModel: widget.viewModel),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            OutlinedButton.icon(
+              onPressed: _signingOut ? null : () => _signOut(allDevices: false),
+              icon: const Icon(Icons.logout),
+              label: const Text('Sign out'),
+            ),
+            OutlinedButton.icon(
+              onPressed: _signingOut ? null : () => _signOut(allDevices: true),
+              icon: const Icon(Icons.devices_other_outlined),
+              label: const Text('Sign out of all devices'),
+            ),
+          ],
         ),
       ],
     );
+  }
+
+  Widget _notificationsCard(FieldnoteUserProfile profile) {
+    return SurfaceCard(
+      child: SwitchListTile.adaptive(
+        contentPadding: EdgeInsets.zero,
+        value: profile.emailNotifications,
+        title: const Text('Email notifications'),
+        subtitle: const Text(
+          'Emails about campaign changes, cancellations, invitations and '
+          'confirmations.',
+        ),
+        onChanged: _savingNotifications ? null : _setEmailNotifications,
+      ),
+    );
+  }
+
+  Future<void> _setEmailNotifications(bool enabled) async {
+    setState(() => _savingNotifications = true);
+    try {
+      await widget.viewModel.setEmailNotifications(enabled);
+    } on Object catch (error) {
+      if (mounted) {
+        _message(
+          userMessageFor(
+            error,
+            fallback: 'Could not update email notifications. Try again.',
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _savingNotifications = false);
+    }
+  }
+
+  Future<void> _signOut({required bool allDevices}) async {
+    final confirmed = await confirmSignOut(context, allDevices: allDevices);
+    if (confirmed != true || !mounted) return;
+    setState(() => _signingOut = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final signedOut = await widget.viewModel.signOut(allDevices: allDevices);
+    if (!signedOut) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            allDevices
+                ? 'Signed out here, but other devices could not be reached. '
+                      'Try again after signing in.'
+                : 'Signed out on this device. The server could not be '
+                      'reached to end the session.',
+          ),
+        ),
+      );
+    }
+    if (mounted) setState(() => _signingOut = false);
   }
 
   Widget _editor() {
@@ -693,61 +735,11 @@ class _ProfileViewState extends State<ProfileView> {
           _lockedChoice('Evidence sharing', consent?.evidenceSharingConsent),
           const SizedBox(height: 4),
           const Text(
-            'These choices cannot be changed from profile editing. Review the records in Trust Center.',
+            'Review your consent history or withdraw consent in Trust & safety.',
           ),
         ],
       ),
     );
-  }
-
-  Future<void> _requestDeletion() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Request account deletion?'),
-        content: const Text(
-          'The request is recorded for review. Shared campaign records are retained until it is processed.',
-        ),
-        actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-        actions: [
-          SizedBox(
-            width: double.infinity,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                OutlinedButton(
-                  onPressed: () => Navigator.pop(dialogContext, false),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: FieldnoteColors.danger,
-                    backgroundColor: Colors.transparent,
-                    side: const BorderSide(color: FieldnoteColors.danger),
-                  ),
-                  child: const Text('Cancel'),
-                ),
-                const SizedBox(height: 8),
-                FilledButton(
-                  onPressed: () => Navigator.pop(dialogContext, true),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: FieldnoteColors.danger,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text('Yes, request deletion'),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    try {
-      await widget.viewModel.requestAccountDeletion();
-      if (mounted) _message('Deletion request recorded.');
-    } on Object {
-      if (mounted) {
-        _message('Could not record the deletion request. Try again.');
-      }
-    }
   }
 
   Widget _lockedChoice(String label, bool? accepted) => Row(

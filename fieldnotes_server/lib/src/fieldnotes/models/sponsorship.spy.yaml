@@ -10,10 +10,18 @@ fields:
   providerOrderId: String?
   providerPaymentId: String?
   verifiedAt: DateTime?
+  failureReason: String?
+  reconcileAttempts: int, default=0
+  lastReconciledAt: DateTime?
+  updatedAt: DateTime?
   createdAt: DateTime, default=now
 indexes:
   fieldnote_sponsorship_campaign_idx:
     fields: campaignId
+  fieldnote_sponsorship_campaign_status_idx:
+    fields: campaignId, paymentStatus
+  fieldnote_sponsorship_status_idx:
+    fields: paymentStatus, createdAt
   fieldnote_sponsorship_sponsor_idx:
     fields: sponsorAuthUserId
   fieldnote_sponsorship_provider_order_idx:

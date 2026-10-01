@@ -2,6 +2,7 @@ import 'package:fieldnotes_client/fieldnotes_client.dart';
 import 'package:flutter/material.dart';
 
 import '../../../data/repositories/fieldnote_repository.dart';
+import '../../core/error_messages.dart';
 import '../../core/fieldnote_map.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/widgets.dart';
@@ -51,21 +52,45 @@ class _CampaignVolunteerReachViewState
       );
       if (mounted) setState(() => _map = map);
     } catch (error) {
-      if (mounted) setState(() => _error = '$error');
+      if (mounted) {
+        setState(
+          () => _error = userMessageFor(
+            error,
+            fallback: 'Could not load nearby volunteers.',
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  Future<void> _invite(CampaignVolunteerMapMember person) async {
-    if (person.status != 'available' || !_invitationsOpen) return;
+  static bool _isBucket(CampaignVolunteerMapMember member) =>
+      member.profileId == 0 && member.status != 'joined';
+
+  static int _bucketSize(CampaignVolunteerMapMember bucket) =>
+      bucket.volunteerCount ?? 0;
+
+  /// Invites every eligible volunteer in one anonymous area bucket. The
+  /// sponsor never learns who they are.
+  Future<void> _inviteArea(CampaignVolunteerMapMember bucket) async {
+    final latitude = bucket.latitude;
+    final longitude = bucket.longitude;
+    if (latitude == null ||
+        longitude == null ||
+        bucket.status != 'area' ||
+        !_invitationsOpen) {
+      return;
+    }
+    final count = _bucketSize(bucket);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Invite this volunteer?'),
+        title: const Text('Invite this area?'),
         content: Text(
-          'Send ${person.displayName} an in-app invitation to '
-          '${widget.campaign.name}? They can choose whether to join.',
+          'Send an in-app invitation to ${widget.campaign.name} to the '
+          '${count > 0 ? '$count ' : ''}available volunteers in this area? '
+          'Their identities stay private until they choose to join.',
         ),
         actions: [
           TextButton(
@@ -74,7 +99,7 @@ class _CampaignVolunteerReachViewState
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Send invite'),
+            child: const Text('Invite area'),
           ),
         ],
       ),
@@ -82,17 +107,18 @@ class _CampaignVolunteerReachViewState
     if (confirmed != true || !mounted) return;
     setState(() => _sending = true);
     try {
-      final sent = await widget.repository.inviteCampaignVolunteer(
+      final sent = await widget.repository.inviteCampaignVolunteersInArea(
         widget.campaign.id!,
-        person.profileId,
+        latitude,
+        longitude,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            sent
-                ? 'Invitation sent to ${person.displayName}.'
-                : '${person.displayName} has already joined or been invited.',
+            sent == 0
+                ? 'Everyone in this area has already been invited.'
+                : 'Invited $sent volunteer${sent == 1 ? '' : 's'} in this area.',
           ),
         ),
       );
@@ -100,14 +126,18 @@ class _CampaignVolunteerReachViewState
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not send invitation: $error')),
+        SnackBar(
+          content: Text(
+            userMessageFor(error, fallback: 'Could not send the invitations.'),
+          ),
+        ),
       );
     } finally {
       if (mounted) setState(() => _sending = false);
     }
   }
 
-  void _showArea(_VolunteerAreaGroup area) {
+  void _showJoinedArea(_VolunteerAreaGroup area) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -120,7 +150,7 @@ class _CampaignVolunteerReachViewState
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                '${_statusLabel(area.status)} in this area',
+                'Joined in this area',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 6),
@@ -130,13 +160,8 @@ class _CampaignVolunteerReachViewState
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: area.people.length,
-                  itemBuilder: (context, index) => _personTile(
-                    area.people[index],
-                    onInvite: () {
-                      Navigator.pop(sheetContext);
-                      _invite(area.people[index]);
-                    },
-                  ),
+                  itemBuilder: (context, index) =>
+                      _personTile(area.people[index]),
                   separatorBuilder: (_, _) => const SizedBox(height: 8),
                 ),
               ),
@@ -147,17 +172,34 @@ class _CampaignVolunteerReachViewState
     );
   }
 
-  Widget _personTile(
-    CampaignVolunteerMapMember person, {
-    VoidCallback? onInvite,
-  }) => Card(
+  void _showBucket(CampaignVolunteerMapMember bucket) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: _bucketTile(
+            bucket,
+            onInvite: () {
+              Navigator.pop(sheetContext);
+              _inviteArea(bucket);
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// A named row. Only volunteers who joined are ever named (A-2).
+  Widget _personTile(CampaignVolunteerMapMember person) => Card(
     child: Padding(
       padding: const EdgeInsets.all(12),
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: _statusColor(person.status).withValues(alpha: .16),
-            foregroundColor: _statusColor(person.status),
+            backgroundColor: _statusColor('joined').withValues(alpha: .16),
+            foregroundColor: _statusColor('joined'),
             child: Text(
               person.displayName.isEmpty
                   ? '?'
@@ -184,23 +226,75 @@ class _CampaignVolunteerReachViewState
             ),
           ),
           const SizedBox(width: 8),
-          if (person.status == 'available' && _invitationsOpen)
-            FilledButton(
-              onPressed: _sending ? null : onInvite ?? () => _invite(person),
-              child: const Text('Invite'),
-            )
-          else
-            StatusPill(
-              label: _statusLabel(person.status),
-              color: _statusColor(person.status),
-              icon: person.status == 'joined'
-                  ? Icons.check_circle_outline
-                  : Icons.mark_email_read_outlined,
-            ),
+          StatusPill(
+            label: 'Joined',
+            color: _statusColor('joined'),
+            icon: Icons.check_circle_outline,
+          ),
         ],
       ),
     ),
   );
+
+  /// An anonymous bucket: "N volunteers in this area".
+  Widget _bucketTile(
+    CampaignVolunteerMapMember bucket, {
+    VoidCallback? onInvite,
+  }) {
+    final count = _bucketSize(bucket);
+    final invited = bucket.status == 'invited';
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: _statusColor(
+                bucket.status,
+              ).withValues(alpha: .16),
+              foregroundColor: _statusColor(bucket.status),
+              child: const Icon(Icons.groups_outlined),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    count > 0
+                        ? '$count volunteer${count == 1 ? '' : 's'} in this area'
+                        : 'Volunteers in this area',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  Text(
+                    bucket.areaLabel,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            if (!invited && _invitationsOpen)
+              FilledButton(
+                onPressed: _sending
+                    ? null
+                    : onInvite ?? () => _inviteArea(bucket),
+                child: const Text('Invite area'),
+              )
+            else
+              StatusPill(
+                label: invited ? 'All invited' : 'Closed',
+                color: _statusColor(bucket.status),
+                icon: Icons.mark_email_read_outlined,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -208,14 +302,17 @@ class _CampaignVolunteerReachViewState
       widget.campaign.latitude,
       widget.campaign.longitude,
     );
-    final volunteers = _map?.volunteers ?? const <CampaignVolunteerMapMember>[];
-    final areas = _groupByArea(volunteers);
-    final joined = volunteers
-        .where((person) => person.status == 'joined')
-        .length;
-    final available = volunteers
-        .where((person) => person.status == 'available')
-        .length;
+    final members = _map?.volunteers ?? const <CampaignVolunteerMapMember>[];
+    final joinedPeople = members
+        .where((member) => member.status == 'joined')
+        .toList();
+    final buckets = members.where(_isBucket).toList();
+    final areas = _groupByArea(joinedPeople);
+    final joined = joinedPeople.length;
+    final inReach = buckets.fold<int>(
+      0,
+      (sum, bucket) => sum + _bucketSize(bucket),
+    );
     return Scaffold(
       appBar: AppBar(title: const Text('Nearby volunteers')),
       body: RefreshIndicator(
@@ -231,7 +328,9 @@ class _CampaignVolunteerReachViewState
             ),
             const SizedBox(height: 8),
             Text(
-              'See who joined and invite nearby volunteers. Pins show approximate areas.',
+              'Joined volunteers are named. Everyone else is shown only as an '
+              'area of at least three people, never individually. Pins show '
+              'approximate areas.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 12),
@@ -240,7 +339,7 @@ class _CampaignVolunteerReachViewState
             else if (_error != null)
               Column(
                 children: [
-                  Text(_error!),
+                  Text(_error!, textAlign: TextAlign.center),
                   TextButton(onPressed: _load, child: const Text('Try again')),
                 ],
               )
@@ -255,12 +354,13 @@ class _CampaignVolunteerReachViewState
                     icon: Icons.check_circle_outline,
                   ),
                   StatusPill(
-                    label: '$available to invite',
+                    label: '$inReach in reach',
                     color: FieldnoteColors.clay,
                     icon: Icons.person_add_alt_1_outlined,
                   ),
                   StatusPill(
-                    label: '${volunteers.length} total',
+                    label:
+                        '${buckets.length} area${buckets.length == 1 ? '' : 's'}',
                     color: FieldnoteColors.moss,
                     icon: Icons.groups_outlined,
                   ),
@@ -274,6 +374,9 @@ class _CampaignVolunteerReachViewState
                 fitBounds: [
                   campaignPoint,
                   for (final area in areas) area.position,
+                  for (final bucket in buckets)
+                    if (bucket.latitude != null && bucket.longitude != null)
+                      LatLng(bucket.latitude!, bucket.longitude!),
                 ],
                 semanticLabel: 'Campaign and approximate volunteer areas',
                 fallback: const Padding(
@@ -301,11 +404,30 @@ class _CampaignVolunteerReachViewState
                         _markerHue(area.status),
                       ),
                       infoWindow: InfoWindow(
-                        title: '${area.people.length} ${area.status}',
+                        title: '${area.people.length} joined',
                         snippet: 'Tap to view volunteers',
                       ),
-                      onTap: () => _showArea(area),
+                      onTap: () => _showJoinedArea(area),
                     ),
+                  for (final bucket in buckets)
+                    if (bucket.latitude != null && bucket.longitude != null)
+                      Marker(
+                        markerId: MarkerId(
+                          'area:${bucket.latitude},${bucket.longitude}',
+                        ),
+                        position: LatLng(
+                          bucket.latitude! + .0015,
+                          bucket.longitude! + .0015,
+                        ),
+                        icon: BitmapDescriptor.defaultMarkerWithHue(
+                          _markerHue(bucket.status),
+                        ),
+                        infoWindow: InfoWindow(
+                          title: '${_bucketSize(bucket)} volunteers',
+                          snippet: bucket.areaLabel,
+                        ),
+                        onTap: () => _showBucket(bucket),
+                      ),
                 },
               ),
               const SizedBox(height: 14),
@@ -315,21 +437,37 @@ class _CampaignVolunteerReachViewState
                 children: const [
                   _MapLegend(color: Colors.green, label: 'Campaign'),
                   _MapLegend(color: Colors.purple, label: 'Joined'),
-                  _MapLegend(color: Colors.blue, label: 'Available'),
-                  _MapLegend(color: Colors.orange, label: 'Invited'),
+                  _MapLegend(color: Colors.blue, label: 'Volunteer area'),
+                  _MapLegend(color: Colors.orange, label: 'Area invited'),
                 ],
               ),
               const SizedBox(height: 22),
-              Text('Volunteers', style: Theme.of(context).textTheme.titleLarge),
+              Text('Joined', style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 8),
-              if (volunteers.isEmpty)
-                const Text(
-                  'No joined or available volunteers are in reach yet. '
-                  'Ask volunteers to publish availability for this area.',
+              if (joinedPeople.isEmpty)
+                const Text('No volunteers have joined yet.')
+              else
+                for (final person in joinedPeople) ...[
+                  _personTile(person),
+                  const SizedBox(height: 8),
+                ],
+              const SizedBox(height: 18),
+              Text(
+                'Nearby volunteer areas',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 8),
+              if (buckets.isEmpty)
+                Text(
+                  _invitationsOpen
+                      ? 'No area has enough available volunteers to show yet. '
+                            'Areas appear once at least three volunteers '
+                            'nearby publish availability.'
+                      : 'Invitations are closed for this campaign.',
                 )
               else
-                for (final person in volunteers) ...[
-                  _personTile(person),
+                for (final bucket in buckets) ...[
+                  _bucketTile(bucket),
                   const SizedBox(height: 8),
                 ],
             ],
@@ -379,12 +517,6 @@ List<_VolunteerAreaGroup> _groupByArea(
   }
   return groups.values.toList();
 }
-
-String _statusLabel(String status) => switch (status) {
-  'joined' => 'Joined',
-  'invited' => 'Invited',
-  _ => 'Available',
-};
 
 Color _statusColor(String status) => switch (status) {
   'joined' => FieldnoteColors.forest,

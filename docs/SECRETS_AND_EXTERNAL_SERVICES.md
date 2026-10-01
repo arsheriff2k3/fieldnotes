@@ -20,14 +20,23 @@ development:
   # to the authenticated Flutter checkout after the server creates an order.
   razorpayKeyId: 'rzp_test_...'
   razorpayKeySecret: 'YOUR_RAZORPAY_TEST_SECRET'
+  # Secret entered when creating the webhook in the Razorpay Dashboard.
+  # Verifies X-Razorpay-Signature on POST /webhooks/razorpay. Optional
+  # locally; without it the webhook answers 503 and the sweep still
+  # reconciles payments by polling Razorpay.
+  razorpayWebhookSecret: 'YOUR_RAZORPAY_WEBHOOK_SECRET'
 
   # Google Maps Platform web services: Places, Geocoding, and Routes. This key
   # must NOT be the same restricted key the Flutter app renders tiles with.
   googleMapsApiKey: 'YOUR_GOOGLE_MAPS_SERVER_KEY'
 
-  # Email delivery for signup verification and password reset.
+  # Email delivery for signup verification, password reset and
+  # transactional notifications (cancellations, invites, receipts).
   smtpUsername: 'YOUR_SENDING_GMAIL_ADDRESS'
   smtpAppPassword: 'YOUR_GOOGLE_APP_PASSWORD'
+  # Optional, notifications only: use another STARTTLS provider than Gmail.
+  # smtpHost: 'smtp.example.com'
+  # smtpPort: '587'
 ```
 
 Do not replace the existing database, email pepper, JWT, refresh-token, or service-secret entries.
@@ -40,6 +49,7 @@ export SERVERPOD_PASSWORD_geminiModel='gemini-3.8-flash'
 export SERVERPOD_PASSWORD_geminiTranscriptionModel='gemini-3.5-transcribe'
 export SERVERPOD_PASSWORD_razorpayKeyId='rzp_test_...'
 export SERVERPOD_PASSWORD_razorpayKeySecret='...'
+export SERVERPOD_PASSWORD_razorpayWebhookSecret='...'
 export SERVERPOD_PASSWORD_googleMapsApiKey='...'
 export SERVERPOD_PASSWORD_smtpUsername='sender@gmail.com'
 export SERVERPOD_PASSWORD_smtpAppPassword='...'
@@ -77,6 +87,15 @@ the SMTP failure without printing the verification code. Password-reset
 requests retain their account-enumeration protection and log delivery failures
 only on the server. Normal email/password sign-in does not send a code.
 
+### Transactional email
+
+The same SMTP passwords drive `NotificationService` (see
+`docs/DEPLOYMENT.md` section 6). Emails are queued in
+`fieldnote_notification_outbox` and delivered by the one-minute
+`fieldnote-outbox` future call. Without SMTP the rows are marked `skipped`.
+Users can turn notifications off in their profile
+(`setEmailNotifications`).
+
 ### Gemini
 
 Required:
@@ -90,7 +109,7 @@ The key remains on the Serverpod server. The intended integration uses:
 - `POST https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent`
 - structured JSON schemas for campaign proposals and evidence extraction;
 - the volunteer evidence photograph plus the original note for multimodal extraction;
-- deterministic fallback only when the key is absent in local development.
+- no AI fallback for campaign drafting; evidence summaries fall back to a deterministic, volunteer-confirmed summary (`StructuredSummaryService.manualCompletionProposal`) when no key is set or the provider fails.
 
 Restrict the key to the Generative Language API and the server's IP/application restrictions when available. Configure quota and billing alerts before public testing.
 
@@ -101,11 +120,29 @@ Required for manual testing:
 - Razorpay account with **Test Mode** enabled.
 - Test Key ID beginning with `rzp_test_`.
 - Matching Test Key Secret.
-- No webhook is required for the local APK demo. A public deployment should add a webhook secret and handle `payment.captured`, `payment.failed`, `order.paid`, and refund events.
+- Optional locally, required for a public deployment: a webhook secret stored as `razorpayWebhookSecret`.
 
 The server must create the Razorpay Order. Flutter receives only the Key ID and Order ID, opens checkout, and returns payment ID/order ID/signature to Serverpod. Serverpod verifies the HMAC-SHA256 signature before recording sponsorship. Never put `razorpayKeySecret` in Flutter.
 
-For local USB testing, Razorpay Checkout returns directly to the app and Serverpod verifies the signature. Webhook testing is intentionally deferred with public deployment because it requires a public HTTPS endpoint.
+For local USB testing, Razorpay Checkout returns directly to the app and Serverpod verifies the signature.
+
+#### Webhook
+
+Create a webhook in the Razorpay Dashboard (Settings → Webhooks) pointing at the **web server** host:
+
+```
+POST https://<web-server-host>/webhooks/razorpay
+```
+
+Subscribe to `payment.captured`, `order.paid`, `payment.failed`, `refund.processed`, and `refund.failed`. Store the secret you type there as the `razorpayWebhookSecret` password. The server checks `X-Razorpay-Signature` (hex HMAC-SHA256 of the raw body) with a constant-time compare, de-duplicates deliveries by `X-Razorpay-Event-Id` in `fieldnote_payment_webhook_event`, and credits payments through the same locked path as checkout verification. Bad signatures get `401`, a missing secret gets `503`, and a processing error gets `500` so Razorpay retries.
+
+#### Reconciliation and refunds
+
+The `campaign-readiness-sweep` future call runs every 5 minutes and needs only `razorpayKeyId`/`razorpayKeySecret`:
+
+- Unpaid orders older than 5 minutes are checked with `GET /v1/orders/{id}/payments`. A captured payment is credited; an order with no payment after 30 minutes is marked `expired` and stops reserving campaign balance.
+- Refunds are queued when a campaign is cancelled or expires, and for any captured payment that could not be credited (`verified_uncredited`). The worker calls `POST /v1/payments/{id}/refund` with receipt `fn_refund_<rowId>`, header `X-Refund-Idempotency`, and note `fieldnote_refund_id`. Failures retry with exponential backoff, up to 6 attempts.
+- With `rzp_test_` keys every refund runs in Razorpay Test Mode and moves no real money. Refund rows record `testMode`.
 
 ### Google Maps Platform
 
@@ -160,7 +197,7 @@ These features already use device/platform functionality and require no external
 - speech recognition: `speech_to_text`
 - local Serverpod PostgreSQL
 - local Serverpod private object storage
-- development email verification codes, which appear in the Serverpod log
+- transactional notifications are skipped (logged, never failing the action) when SMTP is not configured
 
 The volunteer work screen includes a Live Location Check panel that visibly streams coordinates, accuracy, freshness, the platform mock-location flag, and campaign distance. Streaming stays on that screen; only the check-in snapshot is sent to Serverpod. The debug GPS simulation remains clearly labeled. Server checks coordinate bounds, freshness, accuracy, the mock flag, geofence distance, and movement continuity. These are meaningful anti-spoof signals for the demo, but mobile GPS alone cannot guarantee physical presence; a public high-risk deployment should also add Android Play Integrity / Apple App Attest and server-side device-risk telemetry.
 

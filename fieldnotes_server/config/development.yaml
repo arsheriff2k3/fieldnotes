@@ -7,11 +7,14 @@
 # facing ports.
 
 # Configuration for the main API server.
+# For a phone on Wi-Fi or a tunnel, override without editing this file:
+#   SERVERPOD_API_SERVER_PUBLIC_HOST=<lan-ip-or-tunnel-host>
+#   SERVERPOD_API_SERVER_PUBLIC_PORT=443 SERVERPOD_API_SERVER_PUBLIC_SCHEME=https
 apiServer:
   port: 8080
-  publicHost: observed-phi-notification-condition.trycloudflare.com
-  publicPort: 443
-  publicScheme: https
+  publicHost: localhost
+  publicPort: 8080
+  publicScheme: http
 
 # Configuration for the Insights server.
 insightsServer:

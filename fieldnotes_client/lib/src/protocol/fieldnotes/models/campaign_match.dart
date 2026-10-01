@@ -25,7 +25,8 @@ abstract class CampaignMatch
     this.travelMinutes,
     this.travelDistanceKm,
     this.travelMode,
-  });
+    bool? isFull,
+  }) : isFull = isFull ?? false;
 
   factory CampaignMatch({
     required _iatxe5ix.Campaign campaign,
@@ -36,6 +37,7 @@ abstract class CampaignMatch
     int? travelMinutes,
     double? travelDistanceKm,
     String? travelMode,
+    bool? isFull,
   }) = _CampaignMatchImpl;
 
   factory CampaignMatch.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -55,6 +57,9 @@ abstract class CampaignMatch
       travelDistanceKm: (jsonSerialization['travelDistanceKm'] as num?)
           ?.toDouble(),
       travelMode: jsonSerialization['travelMode'] as String?,
+      isFull: jsonSerialization['isFull'] == null
+          ? null
+          : _isc.BoolJsonExtension.fromJson(jsonSerialization['isFull']),
     );
   }
 
@@ -76,6 +81,10 @@ abstract class CampaignMatch
 
   String? travelMode;
 
+  /// Every place is taken. Only returned for a campaign the volunteer holds a
+  /// place in; other full campaigns are not matched.
+  bool isFull;
+
   /// Returns a shallow copy of this [CampaignMatch]
   /// with some or all fields replaced by the given arguments.
   @_isc.useResult
@@ -88,6 +97,7 @@ abstract class CampaignMatch
     int? travelMinutes,
     double? travelDistanceKm,
     String? travelMode,
+    bool? isFull,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -101,6 +111,7 @@ abstract class CampaignMatch
       if (travelMinutes != null) 'travelMinutes': travelMinutes,
       if (travelDistanceKm != null) 'travelDistanceKm': travelDistanceKm,
       if (travelMode != null) 'travelMode': travelMode,
+      'isFull': isFull,
     };
   }
 
@@ -116,6 +127,7 @@ abstract class CampaignMatch
       if (travelMinutes != null) 'travelMinutes': travelMinutes,
       if (travelDistanceKm != null) 'travelDistanceKm': travelDistanceKm,
       if (travelMode != null) 'travelMode': travelMode,
+      'isFull': isFull,
     };
   }
 
@@ -137,6 +149,7 @@ class _CampaignMatchImpl extends CampaignMatch {
     int? travelMinutes,
     double? travelDistanceKm,
     String? travelMode,
+    bool? isFull,
   }) : super._(
          campaign: campaign,
          score: score,
@@ -146,6 +159,7 @@ class _CampaignMatchImpl extends CampaignMatch {
          travelMinutes: travelMinutes,
          travelDistanceKm: travelDistanceKm,
          travelMode: travelMode,
+         isFull: isFull,
        );
 
   /// Returns a shallow copy of this [CampaignMatch]
@@ -161,6 +175,7 @@ class _CampaignMatchImpl extends CampaignMatch {
     Object? travelMinutes = _Undefined,
     Object? travelDistanceKm = _Undefined,
     Object? travelMode = _Undefined,
+    bool? isFull,
   }) {
     return CampaignMatch(
       campaign: campaign ?? this.campaign.copyWith(),
@@ -173,6 +188,7 @@ class _CampaignMatchImpl extends CampaignMatch {
           ? travelDistanceKm
           : this.travelDistanceKm,
       travelMode: travelMode is String? ? travelMode : this.travelMode,
+      isFull: isFull ?? this.isFull,
     );
   }
 }

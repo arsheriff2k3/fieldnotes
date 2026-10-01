@@ -30,6 +30,10 @@ abstract class CampaignParticipation
     this.locationIntegrityStatus,
     this.locationIntegrityReasons,
     bool? locationIsDemo,
+    this.leftAt,
+    this.resolvedAt,
+    this.evidenceUploadPath,
+    this.aiAnalyzedAt,
   }) : confirmedRevision = confirmedRevision ?? 0,
        joinedAt = joinedAt ?? DateTime.now(),
        locationIsDemo = locationIsDemo ?? false;
@@ -49,6 +53,10 @@ abstract class CampaignParticipation
     String? locationIntegrityStatus,
     String? locationIntegrityReasons,
     bool? locationIsDemo,
+    DateTime? leftAt,
+    DateTime? resolvedAt,
+    String? evidenceUploadPath,
+    DateTime? aiAnalyzedAt,
   }) = _CampaignParticipationImpl;
 
   factory CampaignParticipation.fromJson(
@@ -92,6 +100,20 @@ abstract class CampaignParticipation
           : _isc.BoolJsonExtension.fromJson(
               jsonSerialization['locationIsDemo'],
             ),
+      leftAt: jsonSerialization['leftAt'] == null
+          ? null
+          : _isc.DateTimeJsonExtension.fromJson(jsonSerialization['leftAt']),
+      resolvedAt: jsonSerialization['resolvedAt'] == null
+          ? null
+          : _isc.DateTimeJsonExtension.fromJson(
+              jsonSerialization['resolvedAt'],
+            ),
+      evidenceUploadPath: jsonSerialization['evidenceUploadPath'] as String?,
+      aiAnalyzedAt: jsonSerialization['aiAnalyzedAt'] == null
+          ? null
+          : _isc.DateTimeJsonExtension.fromJson(
+              jsonSerialization['aiAnalyzedAt'],
+            ),
     );
   }
 
@@ -126,6 +148,14 @@ abstract class CampaignParticipation
 
   bool locationIsDemo;
 
+  DateTime? leftAt;
+
+  DateTime? resolvedAt;
+
+  String? evidenceUploadPath;
+
+  DateTime? aiAnalyzedAt;
+
   /// Returns a shallow copy of this [CampaignParticipation]
   /// with some or all fields replaced by the given arguments.
   @_isc.useResult
@@ -144,6 +174,10 @@ abstract class CampaignParticipation
     String? locationIntegrityStatus,
     String? locationIntegrityReasons,
     bool? locationIsDemo,
+    DateTime? leftAt,
+    DateTime? resolvedAt,
+    String? evidenceUploadPath,
+    DateTime? aiAnalyzedAt,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -166,6 +200,10 @@ abstract class CampaignParticipation
       if (locationIntegrityReasons != null)
         'locationIntegrityReasons': locationIntegrityReasons,
       'locationIsDemo': locationIsDemo,
+      if (leftAt != null) 'leftAt': leftAt?.toJson(),
+      if (resolvedAt != null) 'resolvedAt': resolvedAt?.toJson(),
+      if (evidenceUploadPath != null) 'evidenceUploadPath': evidenceUploadPath,
+      if (aiAnalyzedAt != null) 'aiAnalyzedAt': aiAnalyzedAt?.toJson(),
     };
   }
 
@@ -190,6 +228,10 @@ abstract class CampaignParticipation
       if (locationIntegrityReasons != null)
         'locationIntegrityReasons': locationIntegrityReasons,
       'locationIsDemo': locationIsDemo,
+      if (leftAt != null) 'leftAt': leftAt?.toJson(),
+      if (resolvedAt != null) 'resolvedAt': resolvedAt?.toJson(),
+      if (evidenceUploadPath != null) 'evidenceUploadPath': evidenceUploadPath,
+      if (aiAnalyzedAt != null) 'aiAnalyzedAt': aiAnalyzedAt?.toJson(),
     };
   }
 
@@ -217,6 +259,10 @@ class _CampaignParticipationImpl extends CampaignParticipation {
     String? locationIntegrityStatus,
     String? locationIntegrityReasons,
     bool? locationIsDemo,
+    DateTime? leftAt,
+    DateTime? resolvedAt,
+    String? evidenceUploadPath,
+    DateTime? aiAnalyzedAt,
   }) : super._(
          id: id,
          campaignId: campaignId,
@@ -232,6 +278,10 @@ class _CampaignParticipationImpl extends CampaignParticipation {
          locationIntegrityStatus: locationIntegrityStatus,
          locationIntegrityReasons: locationIntegrityReasons,
          locationIsDemo: locationIsDemo,
+         leftAt: leftAt,
+         resolvedAt: resolvedAt,
+         evidenceUploadPath: evidenceUploadPath,
+         aiAnalyzedAt: aiAnalyzedAt,
        );
 
   /// Returns a shallow copy of this [CampaignParticipation]
@@ -253,6 +303,10 @@ class _CampaignParticipationImpl extends CampaignParticipation {
     Object? locationIntegrityStatus = _Undefined,
     Object? locationIntegrityReasons = _Undefined,
     bool? locationIsDemo,
+    Object? leftAt = _Undefined,
+    Object? resolvedAt = _Undefined,
+    Object? evidenceUploadPath = _Undefined,
+    Object? aiAnalyzedAt = _Undefined,
   }) {
     return CampaignParticipation(
       id: id is int? ? id : this.id,
@@ -279,6 +333,14 @@ class _CampaignParticipationImpl extends CampaignParticipation {
           ? locationIntegrityReasons
           : this.locationIntegrityReasons,
       locationIsDemo: locationIsDemo ?? this.locationIsDemo,
+      leftAt: leftAt is DateTime? ? leftAt : this.leftAt,
+      resolvedAt: resolvedAt is DateTime? ? resolvedAt : this.resolvedAt,
+      evidenceUploadPath: evidenceUploadPath is String?
+          ? evidenceUploadPath
+          : this.evidenceUploadPath,
+      aiAnalyzedAt: aiAnalyzedAt is DateTime?
+          ? aiAnalyzedAt
+          : this.aiAnalyzedAt,
     );
   }
 }

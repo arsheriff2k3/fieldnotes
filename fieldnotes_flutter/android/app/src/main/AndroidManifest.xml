@@ -7,8 +7,10 @@
     <application
         android:label="FieldNote"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher"
-        android:usesCleartextTraffic="true">
+        android:icon="@mipmap/ic_launcher">
+        <!-- Cleartext HTTP is enabled only in src/debug and src/profile
+             manifests for local development servers. Release builds are
+             HTTPS-only (the platform default for targetSdk >= 28). -->
         <!-- Google Maps SDK key. Supplied from .env.maps (which is git-ignored)
              as GOOGLE_MAPS_ANDROID_API_KEY, so no key is committed. When
              it is empty the app still runs and every FieldNote map falls back
@@ -43,6 +45,19 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="fieldnote" android:host="campaign" />
+            </intent-filter>
+            <!-- Verified Android App Links for shared campaign URLs
+                 (https://<host>/c/<id>). The host comes from the Gradle
+                 property fieldnote.linkHost (placeholder "localhost" in
+                 debug/profile). The host must serve
+                 /.well-known/assetlinks.json; see docs/DEPLOYMENT.md. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:host="${fieldnoteLinkHost}" />
+                <data android:pathPrefix="/c/" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>

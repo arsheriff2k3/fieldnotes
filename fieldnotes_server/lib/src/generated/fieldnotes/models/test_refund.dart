@@ -20,9 +20,21 @@ abstract class TestRefund
     required this.sponsorshipId,
     required this.amount,
     String? status,
+    String? reason,
+    bool? testMode,
+    int? attempts,
+    this.providerRefundId,
+    this.lastError,
+    this.nextAttemptAt,
+    this.processedAt,
     DateTime? createdAt,
-  }) : status = status ?? 'refund_due_test',
-       createdAt = createdAt ?? DateTime.now();
+    DateTime? updatedAt,
+  }) : status = status ?? 'pending',
+       reason = reason ?? 'campaign_cancelled',
+       testMode = testMode ?? true,
+       attempts = attempts ?? 0,
+       createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
 
   factory TestRefund({
     int? id,
@@ -30,7 +42,15 @@ abstract class TestRefund
     required int sponsorshipId,
     required double amount,
     String? status,
+    String? reason,
+    bool? testMode,
+    int? attempts,
+    String? providerRefundId,
+    String? lastError,
+    DateTime? nextAttemptAt,
+    DateTime? processedAt,
     DateTime? createdAt,
+    DateTime? updatedAt,
   }) = _TestRefundImpl;
 
   factory TestRefund.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -40,9 +60,29 @@ abstract class TestRefund
       sponsorshipId: jsonSerialization['sponsorshipId'] as int,
       amount: (jsonSerialization['amount'] as num).toDouble(),
       status: jsonSerialization['status'] as String?,
+      reason: jsonSerialization['reason'] as String?,
+      testMode: jsonSerialization['testMode'] == null
+          ? null
+          : _is.BoolJsonExtension.fromJson(jsonSerialization['testMode']),
+      attempts: jsonSerialization['attempts'] as int?,
+      providerRefundId: jsonSerialization['providerRefundId'] as String?,
+      lastError: jsonSerialization['lastError'] as String?,
+      nextAttemptAt: jsonSerialization['nextAttemptAt'] == null
+          ? null
+          : _is.DateTimeJsonExtension.fromJson(
+              jsonSerialization['nextAttemptAt'],
+            ),
+      processedAt: jsonSerialization['processedAt'] == null
+          ? null
+          : _is.DateTimeJsonExtension.fromJson(
+              jsonSerialization['processedAt'],
+            ),
       createdAt: jsonSerialization['createdAt'] == null
           ? null
           : _is.DateTimeJsonExtension.fromJson(jsonSerialization['createdAt']),
+      updatedAt: jsonSerialization['updatedAt'] == null
+          ? null
+          : _is.DateTimeJsonExtension.fromJson(jsonSerialization['updatedAt']),
     );
   }
 
@@ -61,7 +101,23 @@ abstract class TestRefund
 
   String status;
 
+  String reason;
+
+  bool testMode;
+
+  int attempts;
+
+  String? providerRefundId;
+
+  String? lastError;
+
+  DateTime? nextAttemptAt;
+
+  DateTime? processedAt;
+
   DateTime createdAt;
+
+  DateTime updatedAt;
 
   @override
   _is.Table<int?> get table => t;
@@ -75,7 +131,15 @@ abstract class TestRefund
     int? sponsorshipId,
     double? amount,
     String? status,
+    String? reason,
+    bool? testMode,
+    int? attempts,
+    String? providerRefundId,
+    String? lastError,
+    DateTime? nextAttemptAt,
+    DateTime? processedAt,
     DateTime? createdAt,
+    DateTime? updatedAt,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -86,7 +150,15 @@ abstract class TestRefund
       'sponsorshipId': sponsorshipId,
       'amount': amount,
       'status': status,
+      'reason': reason,
+      'testMode': testMode,
+      'attempts': attempts,
+      if (providerRefundId != null) 'providerRefundId': providerRefundId,
+      if (lastError != null) 'lastError': lastError,
+      if (nextAttemptAt != null) 'nextAttemptAt': nextAttemptAt?.toJson(),
+      if (processedAt != null) 'processedAt': processedAt?.toJson(),
       'createdAt': createdAt.toJson(),
+      'updatedAt': updatedAt.toJson(),
     };
   }
 
@@ -99,7 +171,15 @@ abstract class TestRefund
       'sponsorshipId': sponsorshipId,
       'amount': amount,
       'status': status,
+      'reason': reason,
+      'testMode': testMode,
+      'attempts': attempts,
+      if (providerRefundId != null) 'providerRefundId': providerRefundId,
+      if (lastError != null) 'lastError': lastError,
+      if (nextAttemptAt != null) 'nextAttemptAt': nextAttemptAt?.toJson(),
+      if (processedAt != null) 'processedAt': processedAt?.toJson(),
       'createdAt': createdAt.toJson(),
+      'updatedAt': updatedAt.toJson(),
     };
   }
 
@@ -140,14 +220,30 @@ class _TestRefundImpl extends TestRefund {
     required int sponsorshipId,
     required double amount,
     String? status,
+    String? reason,
+    bool? testMode,
+    int? attempts,
+    String? providerRefundId,
+    String? lastError,
+    DateTime? nextAttemptAt,
+    DateTime? processedAt,
     DateTime? createdAt,
+    DateTime? updatedAt,
   }) : super._(
          id: id,
          campaignId: campaignId,
          sponsorshipId: sponsorshipId,
          amount: amount,
          status: status,
+         reason: reason,
+         testMode: testMode,
+         attempts: attempts,
+         providerRefundId: providerRefundId,
+         lastError: lastError,
+         nextAttemptAt: nextAttemptAt,
+         processedAt: processedAt,
          createdAt: createdAt,
+         updatedAt: updatedAt,
        );
 
   /// Returns a shallow copy of this [TestRefund]
@@ -160,7 +256,15 @@ class _TestRefundImpl extends TestRefund {
     int? sponsorshipId,
     double? amount,
     String? status,
+    String? reason,
+    bool? testMode,
+    int? attempts,
+    Object? providerRefundId = _Undefined,
+    Object? lastError = _Undefined,
+    Object? nextAttemptAt = _Undefined,
+    Object? processedAt = _Undefined,
     DateTime? createdAt,
+    DateTime? updatedAt,
   }) {
     return TestRefund(
       id: id is int? ? id : this.id,
@@ -168,7 +272,19 @@ class _TestRefundImpl extends TestRefund {
       sponsorshipId: sponsorshipId ?? this.sponsorshipId,
       amount: amount ?? this.amount,
       status: status ?? this.status,
+      reason: reason ?? this.reason,
+      testMode: testMode ?? this.testMode,
+      attempts: attempts ?? this.attempts,
+      providerRefundId: providerRefundId is String?
+          ? providerRefundId
+          : this.providerRefundId,
+      lastError: lastError is String? ? lastError : this.lastError,
+      nextAttemptAt: nextAttemptAt is DateTime?
+          ? nextAttemptAt
+          : this.nextAttemptAt,
+      processedAt: processedAt is DateTime? ? processedAt : this.processedAt,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 }
@@ -196,9 +312,53 @@ class TestRefundUpdateTable extends _is.UpdateTable<TestRefundTable> {
     value,
   );
 
+  _is.ColumnValue<String, String> reason(String value) => _is.ColumnValue(
+    table.reason,
+    value,
+  );
+
+  _is.ColumnValue<bool, bool> testMode(bool value) => _is.ColumnValue(
+    table.testMode,
+    value,
+  );
+
+  _is.ColumnValue<int, int> attempts(int value) => _is.ColumnValue(
+    table.attempts,
+    value,
+  );
+
+  _is.ColumnValue<String, String> providerRefundId(String? value) =>
+      _is.ColumnValue(
+        table.providerRefundId,
+        value,
+      );
+
+  _is.ColumnValue<String, String> lastError(String? value) => _is.ColumnValue(
+    table.lastError,
+    value,
+  );
+
+  _is.ColumnValue<DateTime, DateTime> nextAttemptAt(DateTime? value) =>
+      _is.ColumnValue(
+        table.nextAttemptAt,
+        value,
+      );
+
+  _is.ColumnValue<DateTime, DateTime> processedAt(DateTime? value) =>
+      _is.ColumnValue(
+        table.processedAt,
+        value,
+      );
+
   _is.ColumnValue<DateTime, DateTime> createdAt(DateTime value) =>
       _is.ColumnValue(
         table.createdAt,
+        value,
+      );
+
+  _is.ColumnValue<DateTime, DateTime> updatedAt(DateTime value) =>
+      _is.ColumnValue(
+        table.updatedAt,
         value,
       );
 }
@@ -224,8 +384,44 @@ class TestRefundTable extends _is.Table<int?> {
       this,
       hasDefault: true,
     );
+    reason = _is.ColumnString(
+      'reason',
+      this,
+      hasDefault: true,
+    );
+    testMode = _is.ColumnBool(
+      'testMode',
+      this,
+      hasDefault: true,
+    );
+    attempts = _is.ColumnInt(
+      'attempts',
+      this,
+      hasDefault: true,
+    );
+    providerRefundId = _is.ColumnString(
+      'providerRefundId',
+      this,
+    );
+    lastError = _is.ColumnString(
+      'lastError',
+      this,
+    );
+    nextAttemptAt = _is.ColumnDateTime(
+      'nextAttemptAt',
+      this,
+    );
+    processedAt = _is.ColumnDateTime(
+      'processedAt',
+      this,
+    );
     createdAt = _is.ColumnDateTime(
       'createdAt',
+      this,
+      hasDefault: true,
+    );
+    updatedAt = _is.ColumnDateTime(
+      'updatedAt',
       this,
       hasDefault: true,
     );
@@ -241,7 +437,23 @@ class TestRefundTable extends _is.Table<int?> {
 
   late final _is.ColumnString status;
 
+  late final _is.ColumnString reason;
+
+  late final _is.ColumnBool testMode;
+
+  late final _is.ColumnInt attempts;
+
+  late final _is.ColumnString providerRefundId;
+
+  late final _is.ColumnString lastError;
+
+  late final _is.ColumnDateTime nextAttemptAt;
+
+  late final _is.ColumnDateTime processedAt;
+
   late final _is.ColumnDateTime createdAt;
+
+  late final _is.ColumnDateTime updatedAt;
 
   @override
   List<_is.Column> get columns => [
@@ -250,7 +462,15 @@ class TestRefundTable extends _is.Table<int?> {
     sponsorshipId,
     amount,
     status,
+    reason,
+    testMode,
+    attempts,
+    providerRefundId,
+    lastError,
+    nextAttemptAt,
+    processedAt,
     createdAt,
+    updatedAt,
   ];
 }
 
