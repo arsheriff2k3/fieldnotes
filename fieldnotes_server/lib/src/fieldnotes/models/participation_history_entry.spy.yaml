@@ -1,0 +1,6 @@
+# One row of a volunteer's history with the campaign and any evidence.
+class: ParticipationHistoryEntry
+fields:
+  participation: CampaignParticipation
+  campaign: Campaign
+  evidence: CompletionEvidence?

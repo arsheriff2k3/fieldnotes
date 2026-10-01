@@ -23,6 +23,7 @@ abstract class CampaignVolunteerMapMember
     this.latitude,
     this.longitude,
     required this.status,
+    this.volunteerCount,
   });
 
   factory CampaignVolunteerMapMember({
@@ -32,6 +33,7 @@ abstract class CampaignVolunteerMapMember
     double? latitude,
     double? longitude,
     required String status,
+    int? volunteerCount,
   }) = _CampaignVolunteerMapMemberImpl;
 
   factory CampaignVolunteerMapMember.fromJson(
@@ -44,6 +46,7 @@ abstract class CampaignVolunteerMapMember
       latitude: (jsonSerialization['latitude'] as num?)?.toDouble(),
       longitude: (jsonSerialization['longitude'] as num?)?.toDouble(),
       status: jsonSerialization['status'] as String,
+      volunteerCount: jsonSerialization['volunteerCount'] as int?,
     );
   }
 
@@ -59,6 +62,8 @@ abstract class CampaignVolunteerMapMember
 
   String status;
 
+  int? volunteerCount;
+
   /// Returns a shallow copy of this [CampaignVolunteerMapMember]
   /// with some or all fields replaced by the given arguments.
   @_isc.useResult
@@ -69,6 +74,7 @@ abstract class CampaignVolunteerMapMember
     double? latitude,
     double? longitude,
     String? status,
+    int? volunteerCount,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -80,6 +86,7 @@ abstract class CampaignVolunteerMapMember
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
       'status': status,
+      if (volunteerCount != null) 'volunteerCount': volunteerCount,
     };
   }
 
@@ -93,6 +100,7 @@ abstract class CampaignVolunteerMapMember
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
       'status': status,
+      if (volunteerCount != null) 'volunteerCount': volunteerCount,
     };
   }
 
@@ -112,6 +120,7 @@ class _CampaignVolunteerMapMemberImpl extends CampaignVolunteerMapMember {
     double? latitude,
     double? longitude,
     required String status,
+    int? volunteerCount,
   }) : super._(
          profileId: profileId,
          displayName: displayName,
@@ -119,6 +128,7 @@ class _CampaignVolunteerMapMemberImpl extends CampaignVolunteerMapMember {
          latitude: latitude,
          longitude: longitude,
          status: status,
+         volunteerCount: volunteerCount,
        );
 
   /// Returns a shallow copy of this [CampaignVolunteerMapMember]
@@ -132,6 +142,7 @@ class _CampaignVolunteerMapMemberImpl extends CampaignVolunteerMapMember {
     Object? latitude = _Undefined,
     Object? longitude = _Undefined,
     String? status,
+    Object? volunteerCount = _Undefined,
   }) {
     return CampaignVolunteerMapMember(
       profileId: profileId ?? this.profileId,
@@ -140,6 +151,9 @@ class _CampaignVolunteerMapMemberImpl extends CampaignVolunteerMapMember {
       latitude: latitude is double? ? latitude : this.latitude,
       longitude: longitude is double? ? longitude : this.longitude,
       status: status ?? this.status,
+      volunteerCount: volunteerCount is int?
+          ? volunteerCount
+          : this.volunteerCount,
     );
   }
 }

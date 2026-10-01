@@ -26,6 +26,9 @@ abstract class VolunteerAvailability
     this.latitude,
     this.longitude,
     required this.locationLabel,
+    this.timezone,
+    this.utcOffsetMinutes,
+    this.availableTodayDate,
     DateTime? updatedAt,
   }) : isAvailable = isAvailable ?? true,
        availableToday = availableToday ?? false,
@@ -43,6 +46,9 @@ abstract class VolunteerAvailability
     double? latitude,
     double? longitude,
     required String locationLabel,
+    String? timezone,
+    int? utcOffsetMinutes,
+    String? availableTodayDate,
     DateTime? updatedAt,
   }) = _VolunteerAvailabilityImpl;
 
@@ -67,6 +73,9 @@ abstract class VolunteerAvailability
       latitude: (jsonSerialization['latitude'] as num?)?.toDouble(),
       longitude: (jsonSerialization['longitude'] as num?)?.toDouble(),
       locationLabel: jsonSerialization['locationLabel'] as String,
+      timezone: jsonSerialization['timezone'] as String?,
+      utcOffsetMinutes: jsonSerialization['utcOffsetMinutes'] as int?,
+      availableTodayDate: jsonSerialization['availableTodayDate'] as String?,
       updatedAt: jsonSerialization['updatedAt'] == null
           ? null
           : _is.DateTimeJsonExtension.fromJson(jsonSerialization['updatedAt']),
@@ -100,6 +109,12 @@ abstract class VolunteerAvailability
 
   String locationLabel;
 
+  String? timezone;
+
+  int? utcOffsetMinutes;
+
+  String? availableTodayDate;
+
   DateTime updatedAt;
 
   @override
@@ -120,6 +135,9 @@ abstract class VolunteerAvailability
     double? latitude,
     double? longitude,
     String? locationLabel,
+    String? timezone,
+    int? utcOffsetMinutes,
+    String? availableTodayDate,
     DateTime? updatedAt,
   });
   @override
@@ -137,6 +155,9 @@ abstract class VolunteerAvailability
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
       'locationLabel': locationLabel,
+      if (timezone != null) 'timezone': timezone,
+      if (utcOffsetMinutes != null) 'utcOffsetMinutes': utcOffsetMinutes,
+      if (availableTodayDate != null) 'availableTodayDate': availableTodayDate,
       'updatedAt': updatedAt.toJson(),
     };
   }
@@ -156,6 +177,9 @@ abstract class VolunteerAvailability
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
       'locationLabel': locationLabel,
+      if (timezone != null) 'timezone': timezone,
+      if (utcOffsetMinutes != null) 'utcOffsetMinutes': utcOffsetMinutes,
+      if (availableTodayDate != null) 'availableTodayDate': availableTodayDate,
       'updatedAt': updatedAt.toJson(),
     };
   }
@@ -203,6 +227,9 @@ class _VolunteerAvailabilityImpl extends VolunteerAvailability {
     double? latitude,
     double? longitude,
     required String locationLabel,
+    String? timezone,
+    int? utcOffsetMinutes,
+    String? availableTodayDate,
     DateTime? updatedAt,
   }) : super._(
          id: id,
@@ -216,6 +243,9 @@ class _VolunteerAvailabilityImpl extends VolunteerAvailability {
          latitude: latitude,
          longitude: longitude,
          locationLabel: locationLabel,
+         timezone: timezone,
+         utcOffsetMinutes: utcOffsetMinutes,
+         availableTodayDate: availableTodayDate,
          updatedAt: updatedAt,
        );
 
@@ -235,6 +265,9 @@ class _VolunteerAvailabilityImpl extends VolunteerAvailability {
     Object? latitude = _Undefined,
     Object? longitude = _Undefined,
     String? locationLabel,
+    Object? timezone = _Undefined,
+    Object? utcOffsetMinutes = _Undefined,
+    Object? availableTodayDate = _Undefined,
     DateTime? updatedAt,
   }) {
     return VolunteerAvailability(
@@ -249,6 +282,13 @@ class _VolunteerAvailabilityImpl extends VolunteerAvailability {
       latitude: latitude is double? ? latitude : this.latitude,
       longitude: longitude is double? ? longitude : this.longitude,
       locationLabel: locationLabel ?? this.locationLabel,
+      timezone: timezone is String? ? timezone : this.timezone,
+      utcOffsetMinutes: utcOffsetMinutes is int?
+          ? utcOffsetMinutes
+          : this.utcOffsetMinutes,
+      availableTodayDate: availableTodayDate is String?
+          ? availableTodayDate
+          : this.availableTodayDate,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
@@ -312,6 +352,22 @@ class VolunteerAvailabilityUpdateTable
         value,
       );
 
+  _is.ColumnValue<String, String> timezone(String? value) => _is.ColumnValue(
+    table.timezone,
+    value,
+  );
+
+  _is.ColumnValue<int, int> utcOffsetMinutes(int? value) => _is.ColumnValue(
+    table.utcOffsetMinutes,
+    value,
+  );
+
+  _is.ColumnValue<String, String> availableTodayDate(String? value) =>
+      _is.ColumnValue(
+        table.availableTodayDate,
+        value,
+      );
+
   _is.ColumnValue<DateTime, DateTime> updatedAt(DateTime value) =>
       _is.ColumnValue(
         table.updatedAt,
@@ -365,6 +421,18 @@ class VolunteerAvailabilityTable extends _is.Table<int?> {
       'locationLabel',
       this,
     );
+    timezone = _is.ColumnString(
+      'timezone',
+      this,
+    );
+    utcOffsetMinutes = _is.ColumnInt(
+      'utcOffsetMinutes',
+      this,
+    );
+    availableTodayDate = _is.ColumnString(
+      'availableTodayDate',
+      this,
+    );
     updatedAt = _is.ColumnDateTime(
       'updatedAt',
       this,
@@ -394,6 +462,12 @@ class VolunteerAvailabilityTable extends _is.Table<int?> {
 
   late final _is.ColumnString locationLabel;
 
+  late final _is.ColumnString timezone;
+
+  late final _is.ColumnInt utcOffsetMinutes;
+
+  late final _is.ColumnString availableTodayDate;
+
   late final _is.ColumnDateTime updatedAt;
 
   @override
@@ -409,6 +483,9 @@ class VolunteerAvailabilityTable extends _is.Table<int?> {
     latitude,
     longitude,
     locationLabel,
+    timezone,
+    utcOffsetMinutes,
+    availableTodayDate,
     updatedAt,
   ];
 }

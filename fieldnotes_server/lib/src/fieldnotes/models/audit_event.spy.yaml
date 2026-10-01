@@ -12,3 +12,5 @@ fields:
 indexes:
   fieldnote_audit_actor_idx:
     fields: actorAuthUserId
+  fieldnote_audit_actor_time_idx:
+    fields: actorAuthUserId, occurredAt

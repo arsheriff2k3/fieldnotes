@@ -1,0 +1,19 @@
+### Append-only consent history (T-2). LegalConsent keeps the current state;
+### every accept and withdraw also appends one row here. On account deletion
+### the rows are kept with an anonymous id as the legal record.
+###
+### action: accepted | withdrawn
+class: LegalConsentHistory
+table: fieldnote_legal_consent_history
+fields:
+  authUserId: UuidValue
+  action: String
+  privacyPolicyVersion: String
+  termsVersion: String
+  locationConsent: bool
+  aiProcessingConsent: bool
+  evidenceSharingConsent: bool
+  recordedAt: DateTime, default=now
+indexes:
+  fieldnote_consent_history_user_idx:
+    fields: authUserId, recordedAt

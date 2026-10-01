@@ -3,8 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
 
 import '../client.dart';
+import '../data/repositories/fieldnote_repository.dart';
 import '../data/services/pending_role_service.dart';
+import '../ui/core/error_messages.dart';
 import '../ui/core/fieldnote_theme.dart';
+import '../ui/core/legal.dart';
+import '../ui/features/shell/fieldnote_view_model.dart'
+    show sessionExpiredNotice;
+import '../ui/features/trust/account_deletion.dart'
+    show accountDeletionNotice, accountDeletionSignInMessage;
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key, required this.child});
@@ -20,13 +27,55 @@ class _SignInScreenState extends State<SignInScreen> {
   bool _isSignedIn = false;
   bool _showAuth = false;
   AccountRole? _selectedRole;
+  LegalPolicies? _policies;
+  bool _loadingPolicies = false;
+
+  /// Shown above the sign-in panels (session expiry, account deletion).
+  String? _notice;
 
   @override
   void initState() {
     super.initState();
     client.auth.authInfoListenable.addListener(_updateSignedInState);
+    sessionExpiredNotice.addListener(_takeNotices);
+    accountDeletionNotice.addListener(_takeNotices);
     _isSignedIn = client.auth.isAuthenticated;
     _restorePendingRole();
+    _takeNotices();
+    _loadPolicies();
+  }
+
+  /// Copies a pending notice into [_notice] and resets the flag.
+  void _takeNotices() {
+    String? notice;
+    if (accountDeletionNotice.value) {
+      notice = accountDeletionSignInMessage;
+      accountDeletionNotice.value = false;
+      // A deletion sign-out is never also an "expired session".
+      sessionExpiredNotice.value = false;
+    } else if (sessionExpiredNotice.value) {
+      notice = sessionExpiredMessage;
+      sessionExpiredNotice.value = false;
+    }
+    if (notice == null) return;
+    if (mounted) {
+      setState(() => _notice = notice);
+    } else {
+      _notice = notice;
+    }
+  }
+
+  Future<void> _loadPolicies() async {
+    if (_loadingPolicies) return;
+    setState(() => _loadingPolicies = true);
+    try {
+      final policies = await FieldnoteRepository().legalPolicies();
+      if (mounted) setState(() => _policies = policies);
+    } on Object {
+      // The links offer a retry while the policies are unavailable.
+    } finally {
+      if (mounted) setState(() => _loadingPolicies = false);
+    }
   }
 
   Future<void> _restorePendingRole() async {
@@ -37,11 +86,17 @@ class _SignInScreenState extends State<SignInScreen> {
   @override
   void dispose() {
     client.auth.authInfoListenable.removeListener(_updateSignedInState);
+    sessionExpiredNotice.removeListener(_takeNotices);
+    accountDeletionNotice.removeListener(_takeNotices);
     super.dispose();
   }
 
   void _updateSignedInState() {
-    setState(() => _isSignedIn = client.auth.isAuthenticated);
+    final signedIn = client.auth.isAuthenticated;
+    setState(() {
+      _isSignedIn = signedIn;
+      if (signedIn) _notice = null;
+    });
   }
 
   Future<void> _chooseRole(AccountRole role) async {
@@ -63,6 +118,11 @@ class _SignInScreenState extends State<SignInScreen> {
         builder: (context, constraints) {
           final wide = constraints.maxWidth >= 880;
           final story = _StoryPanel(compact: !wide);
+          final legal = LegalLinks(
+            policies: _policies,
+            onRetry: _loadingPolicies ? null : _loadPolicies,
+            alignment: WrapAlignment.center,
+          );
           final action = AnimatedSwitcher(
             duration: const Duration(milliseconds: 320),
             child: _showAuth
@@ -70,9 +130,11 @@ class _SignInScreenState extends State<SignInScreen> {
                     key: const ValueKey('auth'),
                     selectedRole: _selectedRole,
                     onBack: () => setState(() => _showAuth = false),
+                    footer: legal,
                   )
                 : _RolePanel(
                     key: const ValueKey('roles'),
+                    footer: legal,
                     onRole: _chooseRole,
                     onExistingAccount: () async {
                       await _pendingRole.clear();
@@ -85,15 +147,43 @@ class _SignInScreenState extends State<SignInScreen> {
                     },
                   ),
           );
+          final notice = _notice;
+          final panel = notice == null
+              ? action
+              : Column(
+                  children: [
+                    SafeArea(
+                      bottom: false,
+                      child: MaterialBanner(
+                        backgroundColor: FieldnoteColors.mist,
+                        leading: const Icon(
+                          Icons.info_outline,
+                          color: FieldnoteColors.forest,
+                        ),
+                        content: Semantics(
+                          liveRegion: true,
+                          child: Text(notice),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => setState(() => _notice = null),
+                            child: const Text('Dismiss'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(child: action),
+                  ],
+                );
           if (wide) {
             return Row(
               children: [
                 Expanded(flex: 6, child: story),
-                Expanded(flex: 5, child: action),
+                Expanded(flex: 5, child: panel),
               ],
             );
           }
-          return action;
+          return panel;
         },
       ),
     );
@@ -131,11 +221,16 @@ class _StoryPanel extends StatelessWidget {
                 children: [
                   const _Brand(light: true),
                   const SizedBox(height: 60),
-                  Text(
-                    'Fund an idea.\nMatch the people.\nProve the impact.',
-                    style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                      color: Colors.white,
-                      fontSize: 62,
+                  // Scales down instead of clipping at large text sizes.
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Fund an idea.\nMatch the people.\nProve the impact.',
+                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                        color: Colors.white,
+                        fontSize: 62,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 22),
@@ -161,10 +256,12 @@ class _RolePanel extends StatelessWidget {
     super.key,
     required this.onRole,
     required this.onExistingAccount,
+    required this.footer,
   });
 
   final ValueChanged<AccountRole> onRole;
   final VoidCallback onExistingAccount;
+  final Widget footer;
 
   @override
   Widget build(BuildContext context) {
@@ -209,6 +306,16 @@ class _RolePanel extends StatelessWidget {
                   child: const Text('I already have an account'),
                 ),
               ),
+              const SizedBox(height: 12),
+              const Center(
+                child: Text(
+                  'By creating an account you agree to the FieldNote Terms '
+                  'and Privacy Policy.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12),
+                ),
+              ),
+              footer,
             ],
           ),
         ),
@@ -278,10 +385,12 @@ class _AuthPanel extends StatelessWidget {
     super.key,
     required this.selectedRole,
     required this.onBack,
+    required this.footer,
   });
 
   final AccountRole? selectedRole;
   final VoidCallback onBack;
+  final Widget footer;
 
   @override
   Widget build(BuildContext context) {
@@ -294,6 +403,7 @@ class _AuthPanel extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               IconButton(
+                tooltip: 'Back',
                 onPressed: onBack,
                 icon: const Icon(Icons.arrow_back),
               ),
@@ -316,10 +426,24 @@ class _AuthPanel extends StatelessWidget {
                 onAuthenticated: () {},
                 onError: (error) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Authentication failed: $error')),
+                    SnackBar(
+                      content: Text(
+                        isNetworkError(error)
+                            ? offlineMessage
+                            : 'Authentication failed: $error',
+                      ),
+                    ),
                   );
                 },
               ),
+              const SizedBox(height: 16),
+              const Text(
+                'By continuing you agree to the FieldNote Terms and Privacy '
+                'Policy.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12),
+              ),
+              Center(child: footer),
             ],
           ),
         ),

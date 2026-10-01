@@ -1,5 +1,14 @@
 # Build from the project root with:
 # docker build -f fieldnotes_server/Dockerfile .
+#
+# Secrets are NOT baked into the image. The root .dockerignore excludes
+# config/passwords.yaml and .env*, and the build stage deletes any copy that
+# slips through. At runtime, provide every password as an environment
+# variable named SERVERPOD_PASSWORD_<key>, where <key> is the exact
+# (case-sensitive) passwords.yaml key, e.g. SERVERPOD_PASSWORD_razorpayKeySecret.
+# The database, Redis and service secrets can alternatively use
+# SERVERPOD_DATABASE_PASSWORD, SERVERPOD_REDIS_PASSWORD and
+# SERVERPOD_SERVICE_SECRET. See docs/DEPLOYMENT.md for the full list.
 
 # Build stage
 FROM dart:3.12.2 AS build
@@ -8,6 +17,11 @@ FROM dart:3.12.2 AS build
 WORKDIR /app
 COPY pubspec.lock .
 COPY fieldnotes_server fieldnotes_server
+# Defence in depth: never let local secrets reach the final image even if the
+# build is run with a context that bypasses .dockerignore.
+RUN rm -f fieldnotes_server/config/passwords.yaml \
+  fieldnotes_server/config/firebase_service_account_key.json \
+  && find fieldnotes_server -name '.env*' -type f -delete
 RUN printf '%s\n' \
   'name: _' \
   'environment:' \

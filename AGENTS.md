@@ -16,10 +16,23 @@ Core workflow:
 - Volunteers join, check in inside a 200-meter geofence, capture a photograph, dictate or type a note, and confirm an AI-structured impact summary.
 - Sponsors see funding, joins, completions, private evidence summaries, and streamed campaign events.
 - Razorpay Test Mode uses the real provider checkout but moves no real money. The secret remains server-side and funding changes only after HMAC signature verification.
-- The Trust area shows versioned consent, payment/location/moderation audit events, JSON data export, and a locally queued deletion request.
+- The Trust area shows versioned consent (withdrawable, with append-only history), payment/location/moderation audit events, JSON data export, and real account deletion (`requestAccountDeletion` + `getAccountDeletionStatus`).
 - Live GPS checks freshness, accuracy, valid bounds, device mock flags, geofence, and movement continuity. Explicit hackathon GPS remains labeled as demo data.
 
-Hand-written backend code lives under `fieldnotes_server/lib/src/fieldnotes/`. Data contracts are `.spy.yaml` files under `models/`; `fieldnote_endpoint.dart` is the RPC boundary; `services/gemini_ai_service.dart` is the hosted structured/multimodal AI provider and `services/hackathon_ai_service.dart` is its credential-free development fallback. `services/google_maps_service.dart` holds the billed Google Maps web-service calls (Places, Geocoding, Routes) behind the `googleMapsApiKey` password. Never put business logic in generated files.
+Hand-written backend code lives under `fieldnotes_server/lib/src/fieldnotes/`. Data contracts are `.spy.yaml` files under `models/`; `fieldnote_endpoint.dart` is the RPC boundary; `services/gemini_ai_service.dart` and `services/groq_ai_service.dart` are the hosted structured/multimodal AI providers, selected by `services/ai_provider_router.dart`. Campaign drafting and dictation need `geminiApiKey` or `groqApiKey`; evidence summaries do not: without a key (or when the provider fails) `analyzeCompletion` returns a deterministic summary of the volunteer's note (`StructuredSummaryService.manualCompletionProposal`, rationale `manualRationale`) that the volunteer confirms, and `isAiAvailable` tells the client which case applies. `services/google_maps_service.dart` holds the billed Google Maps web-service calls (Places, Geocoding, Routes) behind the `googleMapsApiKey` password. Never put business logic in generated files.
+
+Other services under `services/`:
+
+- `campaign_lifecycle_service.dart`, `campaign_events_service.dart`, `campaign_validation.dart`, `money.dart`: readiness/expiry/completion state machine, audit + live messages, input bounds, integer-paise maths.
+- `payment_reconciliation_service.dart`, `refund_service.dart`, `razorpay_webhook_service.dart`: Razorpay settlement, polling reconciliation, refund worker, `/webhooks/razorpay`.
+- `fieldnote_sweep_service.dart`: the 5-minute `campaign-readiness-sweep` and the 1-minute `fieldnote-outbox` (`FieldnoteOutboxService`: deletions, email, rate-limit cleanup). Both are scheduled in `lib/server.dart`.
+- `account_deletion_service.dart`: P0-6 deletion policy (refuse on open obligations, delete personal rows and the Serverpod auth user, anonymise shared/financial rows).
+- `notification_service.dart`: outbox-based transactional email over the SMTP passwords; one email per event per user; never fails the business action. Tests swap the mailer via `NotificationRuntime.mailerResolver`.
+- `rate_limiter.dart`: DB-backed per-user fixed windows (`RateLimits`), throws `rate_limited` with `retryAfterSeconds`.
+- `fieldnote_time.dart`: volunteer-offset weekday/time maths for matching and "I can help today" expiry. Never use `toLocal()`/server time for matching.
+- `fieldnote_config.dart`: non-secret `FIELDNOTE_*` env settings (app IDs for share pages and `/.well-known/*`, store URLs, link base URL, Gemini model).
+
+`legal_endpoint.dart` is the only endpoint without login (`getLegalPolicies`). Volunteer identities reach sponsors only for volunteers who joined; everyone else appears in k>=3 area buckets. Live campaign streams are limited to the campaign team and never carry names.
 
 Google Maps is additive and never load-bearing. Map tiles use platform-restricted client keys from `fieldnotes_flutter/.env.maps`; when the current platform's key is absent every map renders a coordinate fallback panel and the app behaves exactly as it did before Maps. Geofence admission in `checkIn` uses the server's own haversine maths and must never depend on a Google call. Routes travel time refines match *ranking* only. Sponsor reach previews return k-anonymised buckets, never individual volunteer coordinates. See `docs/SECRETS_AND_EXTERNAL_SERVICES.md`.
 
@@ -30,7 +43,7 @@ The Flutter app uses a small MVVM/repository layout:
 - `lib/ui/features/` contains views and view models.
 - `lib/ui/core/` contains the FieldNote design system.
 
-`getMyProfile` ensures three public demo campaigns exist. Seeding is safe to call repeatedly. Real GPS is requested first; the clearly labeled hackathon demo venue is only a fallback or explicit simulation. Photo uploads use Serverpod private storage and must be verified before completion.
+`getMyProfile` only reads the caller's profile; it does not seed demo campaigns. Real GPS is requested first; the clearly labeled hackathon demo venue is only a fallback or explicit simulation. Photo uploads use Serverpod private storage and must be verified before completion.
 
 The user starts the server and Flutter app with `serverpod start`. There is no need to check if the server is running: make the changes and call the `serverpod` MCP tools as needed. If the server is not running, an informative error message will be received from the MCP server. Then STOP and ask the user to start it. NEVER start the server yourself. The Flutter app is started along with it, or can be launched from the MCP tool `spawn_flutter_app`.
 

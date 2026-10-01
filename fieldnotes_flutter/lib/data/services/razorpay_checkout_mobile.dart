@@ -44,19 +44,26 @@ class MobileRazorpayCheckout implements RazorpayCheckoutService {
     return completer.future.whenComplete(() => _pending = null);
   }
 
+  // The native SDKs handle `retry` inside the open checkout and only emit
+  // EVENT_PAYMENT_ERROR once the checkout closes (final failure or user
+  // cancel), so completing on that event cannot drop a later successful retry
+  // the way Checkout.js `payment.failed` could on web. Callbacks are still
+  // guarded so a late or duplicate event never throws or overwrites a result.
   void _success(PaymentSuccessResponse response) {
+    final pending = _pending;
+    if (pending == null || pending.isCompleted) return;
     final orderId = response.orderId;
     final paymentId = response.paymentId;
     final signature = response.signature;
     if (orderId == null || paymentId == null || signature == null) {
-      _pending?.completeError(
+      pending.completeError(
         const RazorpayCheckoutException(
           'Razorpay did not return all verification fields.',
         ),
       );
       return;
     }
-    _pending?.complete(
+    pending.complete(
       RazorpayCheckoutResult(
         orderId: orderId,
         paymentId: paymentId,
@@ -66,8 +73,10 @@ class MobileRazorpayCheckout implements RazorpayCheckoutService {
   }
 
   void _failure(PaymentFailureResponse response) {
+    final pending = _pending;
+    if (pending == null || pending.isCompleted) return;
     final rawMessage = response.message?.trim();
-    _pending?.completeError(
+    pending.completeError(
       RazorpayCheckoutException(
         rawMessage == null ||
                 rawMessage.isEmpty ||
@@ -91,5 +100,6 @@ class MobileRazorpayCheckout implements RazorpayCheckoutService {
         const RazorpayCheckoutException('Checkout was closed.'),
       );
     }
+    _pending = null;
   }
 }

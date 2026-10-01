@@ -14,6 +14,8 @@
 import 'dart:async' as _ida;
 import 'dart:io' as _idi;
 import 'dart:typed_data' as _idt;
+import 'package:fieldnotes_server/src/generated/fieldnotes/models/account_deletion_request.dart'
+    as _ixk3uep9;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/audit_event.dart'
     as _i3lt536m;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/campaign.dart'
@@ -44,6 +46,12 @@ import 'package:fieldnotes_server/src/generated/fieldnotes/models/impact_summary
     as _igdptf07;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/legal_consent.dart'
     as _id1317s7;
+import 'package:fieldnotes_server/src/generated/fieldnotes/models/legal_consent_history.dart'
+    as _iocrnsa2;
+import 'package:fieldnotes_server/src/generated/fieldnotes/models/legal_policies.dart'
+    as _iefbknsr;
+import 'package:fieldnotes_server/src/generated/fieldnotes/models/participation_history_entry.dart'
+    as _io1qzx7f;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/place_suggestion.dart'
     as _i18eudx8;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/razorpay_checkout_order.dart'
@@ -52,8 +60,12 @@ import 'package:fieldnotes_server/src/generated/fieldnotes/models/resolved_place
     as _i7kx1qhs;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/sponsorship.dart'
     as _iwnubjux;
+import 'package:fieldnotes_server/src/generated/fieldnotes/models/sponsorship_history_entry.dart'
+    as _ipfz3r0x;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/test_payout.dart'
     as _i1fp4tnr;
+import 'package:fieldnotes_server/src/generated/fieldnotes/models/test_refund.dart'
+    as _ingh9nb7;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/travel_route.dart'
     as _ikylpxje;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/trust_center_summary.dart'
@@ -63,8 +75,6 @@ import 'package:fieldnotes_server/src/generated/fieldnotes/models/user_profile.d
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/volunteer_availability.dart'
     as _i5cnujyk;
 import 'package:fieldnotes_server/src/generated/future_calls.dart' as _ivhm99lh;
-import 'package:fieldnotes_server/src/generated/greetings/greeting.dart'
-    as _iah5jf45;
 import 'package:serverpod/serverpod.dart' as _is;
 import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
     as _iacs;
@@ -205,7 +215,7 @@ class TestEndpoints {
 
   late final _FieldnoteEndpoint fieldnote;
 
-  late final _GreetingEndpoint greeting;
+  late final _LegalEndpoint legal;
 }
 
 class _InternalTestEndpoints extends TestEndpoints
@@ -227,7 +237,7 @@ class _InternalTestEndpoints extends TestEndpoints
       endpoints,
       serializationManager,
     );
-    greeting = _GreetingEndpoint(
+    legal = _LegalEndpoint(
       endpoints,
       serializationManager,
     );
@@ -236,6 +246,8 @@ class _InternalTestEndpoints extends TestEndpoints
 
 class _FutureCalls {
   late final campaignReadiness = _CampaignReadinessFutureCall();
+
+  late final fieldnoteOutbox = _FieldnoteOutboxFutureCall();
 }
 
 class _EmailIdpEndpoint {
@@ -630,8 +642,10 @@ class _FieldnoteEndpoint {
     _ist.TestSessionBuilder sessionBuilder,
     bool locationConsent,
     bool aiProcessingConsent,
-    bool evidenceSharingConsent,
-  ) async {
+    bool evidenceSharingConsent, {
+    String? acceptedPrivacyPolicyVersion,
+    String? acceptedTermsVersion,
+  }) async {
     return _ist.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
           (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
@@ -647,6 +661,8 @@ class _FieldnoteEndpoint {
             'locationConsent': locationConsent,
             'aiProcessingConsent': aiProcessingConsent,
             'evidenceSharingConsent': evidenceSharingConsent,
+            'acceptedPrivacyPolicyVersion': acceptedPrivacyPolicyVersion,
+            'acceptedTermsVersion': acceptedTermsVersion,
           }),
           serializationManager: _serializationManager,
         );
@@ -656,6 +672,102 @@ class _FieldnoteEndpoint {
                   _localCallContext.arguments,
                 )
                 as _ida.Future<_id1317s7.LegalConsent>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<_id1317s7.LegalConsent?> withdrawConsent(
+    _ist.TestSessionBuilder sessionBuilder,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'withdrawConsent',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'withdrawConsent',
+          parameters: _ist.testObjectToJson({}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_id1317s7.LegalConsent?>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<List<_iocrnsa2.LegalConsentHistory>> listMyConsentHistory(
+    _ist.TestSessionBuilder sessionBuilder, {
+    int? limit,
+    int? offset,
+  }) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'listMyConsentHistory',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'listMyConsentHistory',
+          parameters: _ist.testObjectToJson({
+            'limit': limit,
+            'offset': offset,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<List<_iocrnsa2.LegalConsentHistory>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<_iwhpwl59.FieldnoteUserProfile> setEmailNotifications(
+    _ist.TestSessionBuilder sessionBuilder,
+    bool enabled,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'setEmailNotifications',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'setEmailNotifications',
+          parameters: _ist.testObjectToJson({'enabled': enabled}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_iwhpwl59.FieldnoteUserProfile>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -784,6 +896,36 @@ class _FieldnoteEndpoint {
     });
   }
 
+  _ida.Future<_ixk3uep9.AccountDeletionRequest?> getAccountDeletionStatus(
+    _ist.TestSessionBuilder sessionBuilder,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'getAccountDeletionStatus',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'getAccountDeletionStatus',
+          parameters: _ist.testObjectToJson({}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_ixk3uep9.AccountDeletionRequest?>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
   _ida.Future<_iwhpwl59.FieldnoteUserProfile> completeSponsorProfile(
     _ist.TestSessionBuilder sessionBuilder,
     String displayName,
@@ -847,8 +989,10 @@ class _FieldnoteEndpoint {
     double maximumTravelKm,
     double? latitude,
     double? longitude,
-    String locationLabel,
-  ) async {
+    String locationLabel, {
+    String? timezone,
+    int? utcOffsetMinutes,
+  }) async {
     return _ist.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
           (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
@@ -874,6 +1018,8 @@ class _FieldnoteEndpoint {
             'latitude': latitude,
             'longitude': longitude,
             'locationLabel': locationLabel,
+            'timezone': timezone,
+            'utcOffsetMinutes': utcOffsetMinutes,
           }),
           serializationManager: _serializationManager,
         );
@@ -981,8 +1127,10 @@ class _FieldnoteEndpoint {
     double maximumTravelKm,
     double? latitude,
     double? longitude,
-    String locationLabel,
-  ) async {
+    String locationLabel, {
+    String? timezone,
+    int? utcOffsetMinutes,
+  }) async {
     return _ist.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
           (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
@@ -1004,6 +1152,8 @@ class _FieldnoteEndpoint {
             'latitude': latitude,
             'longitude': longitude,
             'locationLabel': locationLabel,
+            'timezone': timezone,
+            'utcOffsetMinutes': utcOffsetMinutes,
           }),
           serializationManager: _serializationManager,
         );
@@ -1059,8 +1209,9 @@ class _FieldnoteEndpoint {
 
   _ida.Future<_imistozd.CampaignProposal> proposeCampaign(
     _ist.TestSessionBuilder sessionBuilder,
-    String prompt,
-  ) async {
+    String prompt, {
+    int? utcOffsetMinutes,
+  }) async {
     return _ist.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
           (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
@@ -1072,7 +1223,10 @@ class _FieldnoteEndpoint {
           createSessionCallback: (_) => _localUniqueSession,
           endpointPath: 'fieldnote',
           methodName: 'proposeCampaign',
-          parameters: _ist.testObjectToJson({'prompt': prompt}),
+          parameters: _ist.testObjectToJson({
+            'prompt': prompt,
+            'utcOffsetMinutes': utcOffsetMinutes,
+          }),
           serializationManager: _serializationManager,
         );
         var _localReturnValue =
@@ -1130,8 +1284,10 @@ class _FieldnoteEndpoint {
   }
 
   _ida.Future<List<_iuzdi22u.Campaign>> listCampaigns(
-    _ist.TestSessionBuilder sessionBuilder,
-  ) async {
+    _ist.TestSessionBuilder sessionBuilder, {
+    int? limit,
+    int? offset,
+  }) async {
     return _ist.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
           (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
@@ -1143,7 +1299,10 @@ class _FieldnoteEndpoint {
           createSessionCallback: (_) => _localUniqueSession,
           endpointPath: 'fieldnote',
           methodName: 'listCampaigns',
-          parameters: _ist.testObjectToJson({}),
+          parameters: _ist.testObjectToJson({
+            'limit': limit,
+            'offset': offset,
+          }),
           serializationManager: _serializationManager,
         );
         var _localReturnValue =
@@ -1152,6 +1311,68 @@ class _FieldnoteEndpoint {
                   _localCallContext.arguments,
                 )
                 as _ida.Future<List<_iuzdi22u.Campaign>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<_iuzdi22u.Campaign?> getSharedCampaignBySlug(
+    _ist.TestSessionBuilder sessionBuilder,
+    String shareSlug,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'getSharedCampaignBySlug',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'getSharedCampaignBySlug',
+          parameters: _ist.testObjectToJson({'shareSlug': shareSlug}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_iuzdi22u.Campaign?>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<String> getCampaignShareLink(
+    _ist.TestSessionBuilder sessionBuilder,
+    int campaignId,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'getCampaignShareLink',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'getCampaignShareLink',
+          parameters: _ist.testObjectToJson({'campaignId': campaignId}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<String>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -1191,8 +1412,10 @@ class _FieldnoteEndpoint {
   }
 
   _ida.Future<List<_iuzdi22u.Campaign>> listMyCreatedCampaigns(
-    _ist.TestSessionBuilder sessionBuilder,
-  ) async {
+    _ist.TestSessionBuilder sessionBuilder, {
+    int? limit,
+    int? offset,
+  }) async {
     return _ist.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
           (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
@@ -1204,7 +1427,10 @@ class _FieldnoteEndpoint {
           createSessionCallback: (_) => _localUniqueSession,
           endpointPath: 'fieldnote',
           methodName: 'listMyCreatedCampaigns',
-          parameters: _ist.testObjectToJson({}),
+          parameters: _ist.testObjectToJson({
+            'limit': limit,
+            'offset': offset,
+          }),
           serializationManager: _serializationManager,
         );
         var _localReturnValue =
@@ -1390,8 +1616,10 @@ class _FieldnoteEndpoint {
   }
 
   _ida.Future<List<_iuzdi22u.Campaign>> listMyJoinedCampaigns(
-    _ist.TestSessionBuilder sessionBuilder,
-  ) async {
+    _ist.TestSessionBuilder sessionBuilder, {
+    int? limit,
+    int? offset,
+  }) async {
     return _ist.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
           (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
@@ -1403,7 +1631,10 @@ class _FieldnoteEndpoint {
           createSessionCallback: (_) => _localUniqueSession,
           endpointPath: 'fieldnote',
           methodName: 'listMyJoinedCampaigns',
-          parameters: _ist.testObjectToJson({}),
+          parameters: _ist.testObjectToJson({
+            'limit': limit,
+            'offset': offset,
+          }),
           serializationManager: _serializationManager,
         );
         var _localReturnValue =
@@ -1853,8 +2084,10 @@ class _FieldnoteEndpoint {
   }
 
   _ida.Future<List<_icudrue1.CampaignInvitation>> listMyCampaignInvitations(
-    _ist.TestSessionBuilder sessionBuilder,
-  ) async {
+    _ist.TestSessionBuilder sessionBuilder, {
+    int? limit,
+    int? offset,
+  }) async {
     return _ist.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
           (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
@@ -1866,7 +2099,10 @@ class _FieldnoteEndpoint {
           createSessionCallback: (_) => _localUniqueSession,
           endpointPath: 'fieldnote',
           methodName: 'listMyCampaignInvitations',
-          parameters: _ist.testObjectToJson({}),
+          parameters: _ist.testObjectToJson({
+            'limit': limit,
+            'offset': offset,
+          }),
           serializationManager: _serializationManager,
         );
         var _localReturnValue =
@@ -2025,8 +2261,10 @@ class _FieldnoteEndpoint {
   }
 
   _ida.Future<List<_iwnubjux.Sponsorship>> listMySponsorships(
-    _ist.TestSessionBuilder sessionBuilder,
-  ) async {
+    _ist.TestSessionBuilder sessionBuilder, {
+    int? limit,
+    int? offset,
+  }) async {
     return _ist.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
           (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
@@ -2038,7 +2276,10 @@ class _FieldnoteEndpoint {
           createSessionCallback: (_) => _localUniqueSession,
           endpointPath: 'fieldnote',
           methodName: 'listMySponsorships',
-          parameters: _ist.testObjectToJson({}),
+          parameters: _ist.testObjectToJson({
+            'limit': limit,
+            'offset': offset,
+          }),
           serializationManager: _serializationManager,
         );
         var _localReturnValue =
@@ -2056,8 +2297,10 @@ class _FieldnoteEndpoint {
 
   _ida.Future<List<_i1fp4tnr.TestPayout>> listCampaignTestPayouts(
     _ist.TestSessionBuilder sessionBuilder,
-    int campaignId,
-  ) async {
+    int campaignId, {
+    int? limit,
+    int? offset,
+  }) async {
     return _ist.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
           (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
@@ -2069,7 +2312,11 @@ class _FieldnoteEndpoint {
           createSessionCallback: (_) => _localUniqueSession,
           endpointPath: 'fieldnote',
           methodName: 'listCampaignTestPayouts',
-          parameters: _ist.testObjectToJson({'campaignId': campaignId}),
+          parameters: _ist.testObjectToJson({
+            'campaignId': campaignId,
+            'limit': limit,
+            'offset': offset,
+          }),
           serializationManager: _serializationManager,
         );
         var _localReturnValue =
@@ -2177,6 +2424,39 @@ class _FieldnoteEndpoint {
     });
   }
 
+  _ida.Future<_i363uv3e.CampaignParticipation> leaveCampaign(
+    _ist.TestSessionBuilder sessionBuilder,
+    int participationId,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'leaveCampaign',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'leaveCampaign',
+          parameters: _ist.testObjectToJson({
+            'participationId': participationId,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_i363uv3e.CampaignParticipation>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
   _ida.Future<String?> getCampaignContactPhone(
     _ist.TestSessionBuilder sessionBuilder,
     int campaignId,
@@ -2209,8 +2489,10 @@ class _FieldnoteEndpoint {
   }
 
   _ida.Future<List<_i363uv3e.CampaignParticipation>> listMyParticipations(
-    _ist.TestSessionBuilder sessionBuilder,
-  ) async {
+    _ist.TestSessionBuilder sessionBuilder, {
+    int? limit,
+    int? offset,
+  }) async {
     return _ist.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
           (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
@@ -2222,7 +2504,10 @@ class _FieldnoteEndpoint {
           createSessionCallback: (_) => _localUniqueSession,
           endpointPath: 'fieldnote',
           methodName: 'listMyParticipations',
-          parameters: _ist.testObjectToJson({}),
+          parameters: _ist.testObjectToJson({
+            'limit': limit,
+            'offset': offset,
+          }),
           serializationManager: _serializationManager,
         );
         var _localReturnValue =
@@ -2322,6 +2607,36 @@ class _FieldnoteEndpoint {
     });
   }
 
+  _ida.Future<bool> isAiAvailable(
+    _ist.TestSessionBuilder sessionBuilder,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'isAiAvailable',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'isAiAvailable',
+          parameters: _ist.testObjectToJson({}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<bool>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
   _ida.Future<String> getEvidenceUploadDescription(
     _ist.TestSessionBuilder sessionBuilder,
     int participationId,
@@ -2369,8 +2684,10 @@ class _FieldnoteEndpoint {
     double accuracyMeters,
     bool deviceReportedMock,
     bool explicitDemo,
-    DateTime capturedAt,
-  ) async {
+    DateTime capturedAt, {
+    String? uploadPath,
+    bool? manualSummary,
+  }) async {
     return _ist.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
           (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
@@ -2394,6 +2711,45 @@ class _FieldnoteEndpoint {
             'deviceReportedMock': deviceReportedMock,
             'explicitDemo': explicitDemo,
             'capturedAt': capturedAt,
+            'uploadPath': uploadPath,
+            'manualSummary': manualSummary,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_iwy2dzi1.CompletionEvidence>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<_iwy2dzi1.CompletionEvidence> reviewEvidence(
+    _ist.TestSessionBuilder sessionBuilder,
+    int evidenceId,
+    bool approve,
+    String? note,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'reviewEvidence',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'reviewEvidence',
+          parameters: _ist.testObjectToJson({
+            'evidenceId': evidenceId,
+            'approve': approve,
+            'note': note,
           }),
           serializationManager: _serializationManager,
         );
@@ -2472,6 +2828,149 @@ class _FieldnoteEndpoint {
     });
   }
 
+  _ida.Future<List<_iuzdi22u.Campaign>> listMyCampaigns(
+    _ist.TestSessionBuilder sessionBuilder, {
+    int? limit,
+    int? offset,
+  }) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'listMyCampaigns',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'listMyCampaigns',
+          parameters: _ist.testObjectToJson({
+            'limit': limit,
+            'offset': offset,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<List<_iuzdi22u.Campaign>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<List<_ipfz3r0x.SponsorshipHistoryEntry>> listMyPaymentHistory(
+    _ist.TestSessionBuilder sessionBuilder, {
+    int? limit,
+    int? offset,
+  }) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'listMyPaymentHistory',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'listMyPaymentHistory',
+          parameters: _ist.testObjectToJson({
+            'limit': limit,
+            'offset': offset,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<List<_ipfz3r0x.SponsorshipHistoryEntry>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<List<_io1qzx7f.ParticipationHistoryEntry>>
+  listMyParticipationHistory(
+    _ist.TestSessionBuilder sessionBuilder, {
+    int? limit,
+    int? offset,
+  }) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'listMyParticipationHistory',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'listMyParticipationHistory',
+          parameters: _ist.testObjectToJson({
+            'limit': limit,
+            'offset': offset,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<List<_io1qzx7f.ParticipationHistoryEntry>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<List<_ingh9nb7.TestRefund>> listCampaignRefunds(
+    _ist.TestSessionBuilder sessionBuilder,
+    int campaignId, {
+    int? limit,
+    int? offset,
+  }) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'listCampaignRefunds',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'listCampaignRefunds',
+          parameters: _ist.testObjectToJson({
+            'campaignId': campaignId,
+            'limit': limit,
+            'offset': offset,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<List<_ingh9nb7.TestRefund>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
   _ida.Future<_id4uw0jw.CampaignPost> createCampaignPost(
     _ist.TestSessionBuilder sessionBuilder,
     int campaignId,
@@ -2511,8 +3010,10 @@ class _FieldnoteEndpoint {
 
   _ida.Future<List<_id4uw0jw.CampaignPost>> listCampaignPosts(
     _ist.TestSessionBuilder sessionBuilder,
-    int campaignId,
-  ) async {
+    int campaignId, {
+    int? limit,
+    int? offset,
+  }) async {
     return _ist.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
           (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
@@ -2524,7 +3025,11 @@ class _FieldnoteEndpoint {
           createSessionCallback: (_) => _localUniqueSession,
           endpointPath: 'fieldnote',
           methodName: 'listCampaignPosts',
-          parameters: _ist.testObjectToJson({'campaignId': campaignId}),
+          parameters: _ist.testObjectToJson({
+            'campaignId': campaignId,
+            'limit': limit,
+            'offset': offset,
+          }),
           serializationManager: _serializationManager,
         );
         var _localReturnValue =
@@ -2574,8 +3079,8 @@ class _FieldnoteEndpoint {
   }
 }
 
-class _GreetingEndpoint {
-  _GreetingEndpoint(
+class _LegalEndpoint {
+  _LegalEndpoint(
     this._endpointDispatch,
     this._serializationManager,
   );
@@ -2584,22 +3089,21 @@ class _GreetingEndpoint {
 
   final _is.SerializationManager _serializationManager;
 
-  _ida.Future<_iah5jf45.Greeting> hello(
+  _ida.Future<_iefbknsr.LegalPolicies> getLegalPolicies(
     _ist.TestSessionBuilder sessionBuilder,
-    String name,
   ) async {
     return _ist.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
           (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
-            endpoint: 'greeting',
-            method: 'hello',
+            endpoint: 'legal',
+            method: 'getLegalPolicies',
           );
       try {
         var _localCallContext = await _endpointDispatch.getMethodCallContext(
           createSessionCallback: (_) => _localUniqueSession,
-          endpointPath: 'greeting',
-          methodName: 'hello',
-          parameters: _ist.testObjectToJson({'name': name}),
+          endpointPath: 'legal',
+          methodName: 'getLegalPolicies',
+          parameters: _ist.testObjectToJson({}),
           serializationManager: _serializationManager,
         );
         var _localReturnValue =
@@ -2607,7 +3111,7 @@ class _GreetingEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _ida.Future<_iah5jf45.Greeting>);
+                as _ida.Future<_iefbknsr.LegalPolicies>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -2622,6 +3126,21 @@ class _CampaignReadinessFutureCall {
         (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild();
     try {
       await _ivhm99lh.CampaignReadinessSweepFutureCall().invoke(
+        _localUniqueSession,
+        null,
+      );
+    } finally {
+      await _localUniqueSession.close();
+    }
+  }
+}
+
+class _FieldnoteOutboxFutureCall {
+  Future<void> run(_ist.TestSessionBuilder sessionBuilder) async {
+    var _localUniqueSession =
+        (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild();
+    try {
+      await _ivhm99lh.FieldnoteOutboxRunFutureCall().invoke(
         _localUniqueSession,
         null,
       );

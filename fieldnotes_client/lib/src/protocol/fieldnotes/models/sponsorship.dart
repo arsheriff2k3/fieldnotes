@@ -25,9 +25,14 @@ abstract class Sponsorship
     this.providerOrderId,
     this.providerPaymentId,
     this.verifiedAt,
+    this.failureReason,
+    int? reconcileAttempts,
+    this.lastReconciledAt,
+    this.updatedAt,
     DateTime? createdAt,
   }) : paymentProvider = paymentProvider ?? 'razorpay',
        paymentStatus = paymentStatus ?? 'created',
+       reconcileAttempts = reconcileAttempts ?? 0,
        createdAt = createdAt ?? DateTime.now();
 
   factory Sponsorship({
@@ -41,6 +46,10 @@ abstract class Sponsorship
     String? providerOrderId,
     String? providerPaymentId,
     DateTime? verifiedAt,
+    String? failureReason,
+    int? reconcileAttempts,
+    DateTime? lastReconciledAt,
+    DateTime? updatedAt,
     DateTime? createdAt,
   }) = _SponsorshipImpl;
 
@@ -62,6 +71,16 @@ abstract class Sponsorship
           : _isc.DateTimeJsonExtension.fromJson(
               jsonSerialization['verifiedAt'],
             ),
+      failureReason: jsonSerialization['failureReason'] as String?,
+      reconcileAttempts: jsonSerialization['reconcileAttempts'] as int?,
+      lastReconciledAt: jsonSerialization['lastReconciledAt'] == null
+          ? null
+          : _isc.DateTimeJsonExtension.fromJson(
+              jsonSerialization['lastReconciledAt'],
+            ),
+      updatedAt: jsonSerialization['updatedAt'] == null
+          ? null
+          : _isc.DateTimeJsonExtension.fromJson(jsonSerialization['updatedAt']),
       createdAt: jsonSerialization['createdAt'] == null
           ? null
           : _isc.DateTimeJsonExtension.fromJson(jsonSerialization['createdAt']),
@@ -91,6 +110,14 @@ abstract class Sponsorship
 
   DateTime? verifiedAt;
 
+  String? failureReason;
+
+  int reconcileAttempts;
+
+  DateTime? lastReconciledAt;
+
+  DateTime? updatedAt;
+
   DateTime createdAt;
 
   /// Returns a shallow copy of this [Sponsorship]
@@ -107,6 +134,10 @@ abstract class Sponsorship
     String? providerOrderId,
     String? providerPaymentId,
     DateTime? verifiedAt,
+    String? failureReason,
+    int? reconcileAttempts,
+    DateTime? lastReconciledAt,
+    DateTime? updatedAt,
     DateTime? createdAt,
   });
   @override
@@ -123,6 +154,11 @@ abstract class Sponsorship
       if (providerOrderId != null) 'providerOrderId': providerOrderId,
       if (providerPaymentId != null) 'providerPaymentId': providerPaymentId,
       if (verifiedAt != null) 'verifiedAt': verifiedAt?.toJson(),
+      if (failureReason != null) 'failureReason': failureReason,
+      'reconcileAttempts': reconcileAttempts,
+      if (lastReconciledAt != null)
+        'lastReconciledAt': lastReconciledAt?.toJson(),
+      if (updatedAt != null) 'updatedAt': updatedAt?.toJson(),
       'createdAt': createdAt.toJson(),
     };
   }
@@ -141,6 +177,11 @@ abstract class Sponsorship
       if (providerOrderId != null) 'providerOrderId': providerOrderId,
       if (providerPaymentId != null) 'providerPaymentId': providerPaymentId,
       if (verifiedAt != null) 'verifiedAt': verifiedAt?.toJson(),
+      if (failureReason != null) 'failureReason': failureReason,
+      'reconcileAttempts': reconcileAttempts,
+      if (lastReconciledAt != null)
+        'lastReconciledAt': lastReconciledAt?.toJson(),
+      if (updatedAt != null) 'updatedAt': updatedAt?.toJson(),
       'createdAt': createdAt.toJson(),
     };
   }
@@ -165,6 +206,10 @@ class _SponsorshipImpl extends Sponsorship {
     String? providerOrderId,
     String? providerPaymentId,
     DateTime? verifiedAt,
+    String? failureReason,
+    int? reconcileAttempts,
+    DateTime? lastReconciledAt,
+    DateTime? updatedAt,
     DateTime? createdAt,
   }) : super._(
          id: id,
@@ -177,6 +222,10 @@ class _SponsorshipImpl extends Sponsorship {
          providerOrderId: providerOrderId,
          providerPaymentId: providerPaymentId,
          verifiedAt: verifiedAt,
+         failureReason: failureReason,
+         reconcileAttempts: reconcileAttempts,
+         lastReconciledAt: lastReconciledAt,
+         updatedAt: updatedAt,
          createdAt: createdAt,
        );
 
@@ -195,6 +244,10 @@ class _SponsorshipImpl extends Sponsorship {
     Object? providerOrderId = _Undefined,
     Object? providerPaymentId = _Undefined,
     Object? verifiedAt = _Undefined,
+    Object? failureReason = _Undefined,
+    int? reconcileAttempts,
+    Object? lastReconciledAt = _Undefined,
+    Object? updatedAt = _Undefined,
     DateTime? createdAt,
   }) {
     return Sponsorship(
@@ -212,6 +265,14 @@ class _SponsorshipImpl extends Sponsorship {
           ? providerPaymentId
           : this.providerPaymentId,
       verifiedAt: verifiedAt is DateTime? ? verifiedAt : this.verifiedAt,
+      failureReason: failureReason is String?
+          ? failureReason
+          : this.failureReason,
+      reconcileAttempts: reconcileAttempts ?? this.reconcileAttempts,
+      lastReconciledAt: lastReconciledAt is DateTime?
+          ? lastReconciledAt
+          : this.lastReconciledAt,
+      updatedAt: updatedAt is DateTime? ? updatedAt : this.updatedAt,
       createdAt: createdAt ?? this.createdAt,
     );
   }

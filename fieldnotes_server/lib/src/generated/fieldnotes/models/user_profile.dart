@@ -30,9 +30,11 @@ abstract class FieldnoteUserProfile
     this.locationLongitude,
     required this.interests,
     required this.skills,
+    bool? emailNotifications,
     DateTime? createdAt,
     DateTime? updatedAt,
-  }) : createdAt = createdAt ?? DateTime.now(),
+  }) : emailNotifications = emailNotifications ?? true,
+       createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
 
   factory FieldnoteUserProfile({
@@ -50,6 +52,7 @@ abstract class FieldnoteUserProfile
     double? locationLongitude,
     required String interests,
     required String skills,
+    bool? emailNotifications,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) = _FieldnoteUserProfileImpl;
@@ -78,6 +81,11 @@ abstract class FieldnoteUserProfile
           ?.toDouble(),
       interests: jsonSerialization['interests'] as String,
       skills: jsonSerialization['skills'] as String,
+      emailNotifications: jsonSerialization['emailNotifications'] == null
+          ? null
+          : _is.BoolJsonExtension.fromJson(
+              jsonSerialization['emailNotifications'],
+            ),
       createdAt: jsonSerialization['createdAt'] == null
           ? null
           : _is.DateTimeJsonExtension.fromJson(jsonSerialization['createdAt']),
@@ -120,6 +128,8 @@ abstract class FieldnoteUserProfile
 
   String skills;
 
+  bool emailNotifications;
+
   DateTime createdAt;
 
   DateTime updatedAt;
@@ -145,6 +155,7 @@ abstract class FieldnoteUserProfile
     double? locationLongitude,
     String? interests,
     String? skills,
+    bool? emailNotifications,
     DateTime? createdAt,
     DateTime? updatedAt,
   });
@@ -166,6 +177,7 @@ abstract class FieldnoteUserProfile
       if (locationLongitude != null) 'locationLongitude': locationLongitude,
       'interests': interests,
       'skills': skills,
+      'emailNotifications': emailNotifications,
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
     };
@@ -189,6 +201,7 @@ abstract class FieldnoteUserProfile
       if (locationLongitude != null) 'locationLongitude': locationLongitude,
       'interests': interests,
       'skills': skills,
+      'emailNotifications': emailNotifications,
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
     };
@@ -240,6 +253,7 @@ class _FieldnoteUserProfileImpl extends FieldnoteUserProfile {
     double? locationLongitude,
     required String interests,
     required String skills,
+    bool? emailNotifications,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : super._(
@@ -257,6 +271,7 @@ class _FieldnoteUserProfileImpl extends FieldnoteUserProfile {
          locationLongitude: locationLongitude,
          interests: interests,
          skills: skills,
+         emailNotifications: emailNotifications,
          createdAt: createdAt,
          updatedAt: updatedAt,
        );
@@ -280,6 +295,7 @@ class _FieldnoteUserProfileImpl extends FieldnoteUserProfile {
     Object? locationLongitude = _Undefined,
     String? interests,
     String? skills,
+    bool? emailNotifications,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -308,6 +324,7 @@ class _FieldnoteUserProfileImpl extends FieldnoteUserProfile {
           : this.locationLongitude,
       interests: interests ?? this.interests,
       skills: skills ?? this.skills,
+      emailNotifications: emailNotifications ?? this.emailNotifications,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -393,6 +410,11 @@ class FieldnoteUserProfileUpdateTable
     value,
   );
 
+  _is.ColumnValue<bool, bool> emailNotifications(bool value) => _is.ColumnValue(
+    table.emailNotifications,
+    value,
+  );
+
   _is.ColumnValue<DateTime, DateTime> createdAt(DateTime value) =>
       _is.ColumnValue(
         table.createdAt,
@@ -463,6 +485,11 @@ class FieldnoteUserProfileTable extends _is.Table<int?> {
       'skills',
       this,
     );
+    emailNotifications = _is.ColumnBool(
+      'emailNotifications',
+      this,
+      hasDefault: true,
+    );
     createdAt = _is.ColumnDateTime(
       'createdAt',
       this,
@@ -503,6 +530,8 @@ class FieldnoteUserProfileTable extends _is.Table<int?> {
 
   late final _is.ColumnString skills;
 
+  late final _is.ColumnBool emailNotifications;
+
   late final _is.ColumnDateTime createdAt;
 
   late final _is.ColumnDateTime updatedAt;
@@ -523,6 +552,7 @@ class FieldnoteUserProfileTable extends _is.Table<int?> {
     locationLongitude,
     interests,
     skills,
+    emailNotifications,
     createdAt,
     updatedAt,
   ];

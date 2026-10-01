@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:app_links/app_links.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -11,12 +13,43 @@ import 'screens/sign_in_screen.dart';
 import 'ui/core/fieldnote_theme.dart';
 import 'ui/features/shell/app_shell.dart';
 
+/// Logs an uncaught error. No crash-reporting vendor is used; this is the
+/// single place to add one later.
+void logUncaughtError(Object error, StackTrace? stack, {String? context}) {
+  final label = context == null
+      ? 'Uncaught error'
+      : 'Uncaught error ($context)';
+  developer.log(
+    label,
+    name: 'fieldnote',
+    error: error,
+    stackTrace: stack,
+    level: 1000,
+  );
+  debugPrint('$label: $error');
+}
+
+void installErrorHooks() {
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    logUncaughtError(
+      details.exception,
+      details.stack,
+      context: details.context?.toDescription() ?? 'framework',
+    );
+  };
+  // Errors outside the framework (async gaps, platform channels). This is
+  // the recommended replacement for wrapping runApp in runZonedGuarded.
+  PlatformDispatcher.instance.onError = (error, stack) {
+    logUncaughtError(error, stack, context: 'platform');
+    return true;
+  };
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  installErrorHooks();
   final appLinks = AppLinks();
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-  ]);
   await initializeClient();
   // Loads the Maps client key and, on web, the Maps JavaScript API. Never
   // throws; a missing key just leaves every map on its fallback panel.
@@ -34,7 +67,9 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  final ValueNotifier<int?> _linkedCampaignId = ValueNotifier(null);
+  final ValueNotifier<CampaignLinkTarget?> _linkedCampaign = ValueNotifier(
+    null,
+  );
   StreamSubscription<Uri>? _linkSubscription;
   Uri? _lastLink;
   DateTime? _lastLinkAt;
@@ -56,8 +91,8 @@ class _MyAppState extends State<MyApp> {
   }
 
   void _handleLink(Uri uri) {
-    final id = campaignIdFromDeepLink(uri);
-    if (id == null) return;
+    final target = campaignLinkFromDeepLink(uri);
+    if (target == null) return;
     final now = DateTime.now();
     if (_lastLink == uri &&
         _lastLinkAt != null &&
@@ -66,13 +101,13 @@ class _MyAppState extends State<MyApp> {
     }
     _lastLink = uri;
     _lastLinkAt = now;
-    _linkedCampaignId.value = id;
+    _linkedCampaign.value = target;
   }
 
   @override
   void dispose() {
     _linkSubscription?.cancel();
-    _linkedCampaignId.dispose();
+    _linkedCampaign.dispose();
     super.dispose();
   }
 
@@ -82,9 +117,53 @@ class _MyAppState extends State<MyApp> {
       title: 'FieldNote Teams AI',
       debugShowCheckedModeBanner: false,
       theme: buildFieldnoteTheme(),
+      // The design system has light tokens only; keep the theme explicit.
+      themeMode: ThemeMode.light,
+      builder: (context, child) =>
+          OrientationPolicy(child: child ?? const SizedBox.shrink()),
       home: SignInScreen(
-        child: AppShell(campaignLink: _linkedCampaignId),
+        child: AppShell(campaignLink: _linkedCampaign),
       ),
     );
   }
+}
+
+/// Locks phones to portrait; tablets (shortest side >= 600), web and desktop
+/// may rotate freely. Decided from MediaQuery, so it runs after the first
+/// frame rather than before runApp.
+class OrientationPolicy extends StatefulWidget {
+  const OrientationPolicy({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  State<OrientationPolicy> createState() => _OrientationPolicyState();
+}
+
+class _OrientationPolicyState extends State<OrientationPolicy> {
+  bool? _portraitOnly;
+
+  static bool get _isMobilePlatform =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_isMobilePlatform) return;
+    final shortestSide = MediaQuery.sizeOf(context).shortestSide;
+    if (shortestSide == 0) return;
+    final portraitOnly = shortestSide < 600;
+    if (portraitOnly == _portraitOnly) return;
+    _portraitOnly = portraitOnly;
+    unawaited(
+      SystemChrome.setPreferredOrientations(
+        portraitOnly ? const [DeviceOrientation.portraitUp] : const [],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

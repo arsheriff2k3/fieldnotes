@@ -20,9 +20,21 @@ abstract class TestRefund
     required this.sponsorshipId,
     required this.amount,
     String? status,
+    String? reason,
+    bool? testMode,
+    int? attempts,
+    this.providerRefundId,
+    this.lastError,
+    this.nextAttemptAt,
+    this.processedAt,
     DateTime? createdAt,
-  }) : status = status ?? 'refund_due_test',
-       createdAt = createdAt ?? DateTime.now();
+    DateTime? updatedAt,
+  }) : status = status ?? 'pending',
+       reason = reason ?? 'campaign_cancelled',
+       testMode = testMode ?? true,
+       attempts = attempts ?? 0,
+       createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
 
   factory TestRefund({
     int? id,
@@ -30,7 +42,15 @@ abstract class TestRefund
     required int sponsorshipId,
     required double amount,
     String? status,
+    String? reason,
+    bool? testMode,
+    int? attempts,
+    String? providerRefundId,
+    String? lastError,
+    DateTime? nextAttemptAt,
+    DateTime? processedAt,
     DateTime? createdAt,
+    DateTime? updatedAt,
   }) = _TestRefundImpl;
 
   factory TestRefund.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -40,9 +60,29 @@ abstract class TestRefund
       sponsorshipId: jsonSerialization['sponsorshipId'] as int,
       amount: (jsonSerialization['amount'] as num).toDouble(),
       status: jsonSerialization['status'] as String?,
+      reason: jsonSerialization['reason'] as String?,
+      testMode: jsonSerialization['testMode'] == null
+          ? null
+          : _isc.BoolJsonExtension.fromJson(jsonSerialization['testMode']),
+      attempts: jsonSerialization['attempts'] as int?,
+      providerRefundId: jsonSerialization['providerRefundId'] as String?,
+      lastError: jsonSerialization['lastError'] as String?,
+      nextAttemptAt: jsonSerialization['nextAttemptAt'] == null
+          ? null
+          : _isc.DateTimeJsonExtension.fromJson(
+              jsonSerialization['nextAttemptAt'],
+            ),
+      processedAt: jsonSerialization['processedAt'] == null
+          ? null
+          : _isc.DateTimeJsonExtension.fromJson(
+              jsonSerialization['processedAt'],
+            ),
       createdAt: jsonSerialization['createdAt'] == null
           ? null
           : _isc.DateTimeJsonExtension.fromJson(jsonSerialization['createdAt']),
+      updatedAt: jsonSerialization['updatedAt'] == null
+          ? null
+          : _isc.DateTimeJsonExtension.fromJson(jsonSerialization['updatedAt']),
     );
   }
 
@@ -59,7 +99,23 @@ abstract class TestRefund
 
   String status;
 
+  String reason;
+
+  bool testMode;
+
+  int attempts;
+
+  String? providerRefundId;
+
+  String? lastError;
+
+  DateTime? nextAttemptAt;
+
+  DateTime? processedAt;
+
   DateTime createdAt;
+
+  DateTime updatedAt;
 
   /// Returns a shallow copy of this [TestRefund]
   /// with some or all fields replaced by the given arguments.
@@ -70,7 +126,15 @@ abstract class TestRefund
     int? sponsorshipId,
     double? amount,
     String? status,
+    String? reason,
+    bool? testMode,
+    int? attempts,
+    String? providerRefundId,
+    String? lastError,
+    DateTime? nextAttemptAt,
+    DateTime? processedAt,
     DateTime? createdAt,
+    DateTime? updatedAt,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -81,7 +145,15 @@ abstract class TestRefund
       'sponsorshipId': sponsorshipId,
       'amount': amount,
       'status': status,
+      'reason': reason,
+      'testMode': testMode,
+      'attempts': attempts,
+      if (providerRefundId != null) 'providerRefundId': providerRefundId,
+      if (lastError != null) 'lastError': lastError,
+      if (nextAttemptAt != null) 'nextAttemptAt': nextAttemptAt?.toJson(),
+      if (processedAt != null) 'processedAt': processedAt?.toJson(),
       'createdAt': createdAt.toJson(),
+      'updatedAt': updatedAt.toJson(),
     };
   }
 
@@ -94,7 +166,15 @@ abstract class TestRefund
       'sponsorshipId': sponsorshipId,
       'amount': amount,
       'status': status,
+      'reason': reason,
+      'testMode': testMode,
+      'attempts': attempts,
+      if (providerRefundId != null) 'providerRefundId': providerRefundId,
+      if (lastError != null) 'lastError': lastError,
+      if (nextAttemptAt != null) 'nextAttemptAt': nextAttemptAt?.toJson(),
+      if (processedAt != null) 'processedAt': processedAt?.toJson(),
       'createdAt': createdAt.toJson(),
+      'updatedAt': updatedAt.toJson(),
     };
   }
 
@@ -113,14 +193,30 @@ class _TestRefundImpl extends TestRefund {
     required int sponsorshipId,
     required double amount,
     String? status,
+    String? reason,
+    bool? testMode,
+    int? attempts,
+    String? providerRefundId,
+    String? lastError,
+    DateTime? nextAttemptAt,
+    DateTime? processedAt,
     DateTime? createdAt,
+    DateTime? updatedAt,
   }) : super._(
          id: id,
          campaignId: campaignId,
          sponsorshipId: sponsorshipId,
          amount: amount,
          status: status,
+         reason: reason,
+         testMode: testMode,
+         attempts: attempts,
+         providerRefundId: providerRefundId,
+         lastError: lastError,
+         nextAttemptAt: nextAttemptAt,
+         processedAt: processedAt,
          createdAt: createdAt,
+         updatedAt: updatedAt,
        );
 
   /// Returns a shallow copy of this [TestRefund]
@@ -133,7 +229,15 @@ class _TestRefundImpl extends TestRefund {
     int? sponsorshipId,
     double? amount,
     String? status,
+    String? reason,
+    bool? testMode,
+    int? attempts,
+    Object? providerRefundId = _Undefined,
+    Object? lastError = _Undefined,
+    Object? nextAttemptAt = _Undefined,
+    Object? processedAt = _Undefined,
     DateTime? createdAt,
+    DateTime? updatedAt,
   }) {
     return TestRefund(
       id: id is int? ? id : this.id,
@@ -141,7 +245,19 @@ class _TestRefundImpl extends TestRefund {
       sponsorshipId: sponsorshipId ?? this.sponsorshipId,
       amount: amount ?? this.amount,
       status: status ?? this.status,
+      reason: reason ?? this.reason,
+      testMode: testMode ?? this.testMode,
+      attempts: attempts ?? this.attempts,
+      providerRefundId: providerRefundId is String?
+          ? providerRefundId
+          : this.providerRefundId,
+      lastError: lastError is String? ? lastError : this.lastError,
+      nextAttemptAt: nextAttemptAt is DateTime?
+          ? nextAttemptAt
+          : this.nextAttemptAt,
+      processedAt: processedAt is DateTime? ? processedAt : this.processedAt,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 }

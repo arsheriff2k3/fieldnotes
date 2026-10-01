@@ -5,9 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 
+import '../../../data/services/campaign_link_service.dart';
+import '../../core/error_messages.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/widgets.dart';
 import '../shell/fieldnote_view_model.dart';
+import 'sponsor_checkout.dart';
+import 'sponsor_formatting.dart';
 
 class CampaignReadinessView extends StatefulWidget {
   const CampaignReadinessView({
@@ -40,9 +44,10 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
     } catch (error) {
       if (mounted) {
         setState(
-          () => _error = error is FieldnoteException
-              ? error.message
-              : 'Could not update campaign readiness.',
+          () => _error = userMessageFor(
+            error,
+            fallback: 'Could not update campaign readiness.',
+          ),
         );
       }
     } finally {
@@ -58,71 +63,95 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
       text: '${_campaign.minimumVolunteers}',
     );
     final scope = TextEditingController(text: _campaign.description);
+    String? problem;
+    // The dialog validates before it closes, so nothing typed is lost (P2).
     final saved = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Revise the work scope'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'A revised scope asks joined volunteers to reconfirm before they count toward the minimum team.',
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: goal,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Revised funding goal (₹)',
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Revise the work scope'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'A revised scope asks joined volunteers to reconfirm before they count toward the minimum team.',
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: minimum,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Minimum safe team',
+                const SizedBox(height: 14),
+                TextField(
+                  controller: goal,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Revised funding goal (₹)',
+                    helperText: '₹100 – ₹10,00,000',
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: scope,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  labelText: 'Revised work description',
+                const SizedBox(height: 12),
+                TextField(
+                  controller: minimum,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Minimum safe team',
+                    helperText: '1 – ${_campaign.volunteerCapacity}',
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 12),
+                TextField(
+                  controller: scope,
+                  maxLines: 4,
+                  maxLength: CampaignLimits.scopeNoteMax,
+                  decoration: const InputDecoration(
+                    labelText: 'Revised work description',
+                  ),
+                ),
+                if (problem != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    problem!,
+                    style: const TextStyle(
+                      color: FieldnoteColors.danger,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final error = validateScopeRevision(
+                  goal: goal.text,
+                  minimum: minimum.text,
+                  description: scope.text,
+                  volunteerCapacity: _campaign.volunteerCapacity,
+                );
+                if (error != null) {
+                  setDialogState(() => problem = error);
+                  return;
+                }
+                Navigator.pop(context, true);
+              },
+              child: const Text('Save revision'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Save revision'),
-          ),
-        ],
       ),
     );
     if (saved == true && mounted) {
-      final amount = double.tryParse(goal.text.trim());
-      final count = int.tryParse(minimum.text.trim());
-      if (amount == null || count == null) {
-        setState(() => _error = 'Enter a valid goal and minimum team.');
-      } else {
-        await _run(
-          () => widget.viewModel.repository.reviseCampaignScope(
-            _campaign.id!,
-            amount,
-            count,
-            scope.text,
-          ),
-        );
-      }
+      await _run(
+        () => widget.viewModel.repository.reviseCampaignScope(
+          _campaign.id!,
+          parseRupees(goal.text)!,
+          parseWholeNumber(minimum.text)!,
+          scope.text.trim(),
+        ),
+      );
     }
     goal.dispose();
     minimum.dispose();
@@ -152,6 +181,13 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
       time.hour,
       time.minute,
     );
+    if (!start.isAfter(DateTime.now())) {
+      setState(
+        () => _error =
+            'That time has already passed. Choose a new start in the future.',
+      );
+      return;
+    }
     await _run(
       () => widget.viewModel.repository.postponeCampaign(
         _campaign.id!,
@@ -161,12 +197,23 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
   }
 
   Future<void> _cancel() async {
+    final campaign = _campaign;
+    final joined =
+        widget.viewModel.impacts[campaign.id]?.joinedVolunteers ??
+        campaign.eligibleVolunteers;
+    final volunteers = joined == 1
+        ? '1 volunteer has'
+        : '$joined volunteers have';
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Cancel this campaign?'),
-        content: const Text(
-          'Joined volunteers will see that the event is cancelled. Existing test sponsorships remain in the ledger for refund review.',
+        content: Text(
+          '$volunteers joined. Their places are released and they are '
+          'emailed and told not to travel.\n\n'
+          'Every verified sponsorship '
+          '(${formatRupees(campaign.sponsoredAmount)} recorded) is refunded to '
+          'the original payment method. This cannot be undone.',
         ),
         actions: [
           TextButton(
@@ -192,18 +239,44 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
 
   Future<void> _invite() async {
     final campaign = _campaign;
+    String link;
+    try {
+      link = await widget.viewModel.campaignShareLink(campaign.id!);
+    } catch (_) {
+      link = campaignShareUri(campaign).toString();
+    }
     final message =
         '${campaign.name}\n'
         '${DateFormat('EEE, d MMM · h:mm a').format(campaign.startsAt.toLocal())}\n'
         '${campaign.locationName}\n'
-        'Volunteer places are open in FieldNote. Ask the organizer for campaign details.';
+        'Volunteer places are open on FieldNote. Join here: $link';
     await Clipboard.setData(ClipboardData(text: message));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Invite details copied. Share them with your volunteers.',
+            'Invite and campaign link copied. Share them with your volunteers.',
           ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _checkout() async {
+    setState(() => _error = null);
+    final paid = await openSponsorCheckout(
+      context,
+      widget.viewModel,
+      _campaign,
+    );
+    if (!mounted) return;
+    // The checkout refreshes the view model; pick up the new funding figures.
+    final fresh = widget.viewModel.campaignById(_campaign.id!);
+    if (fresh != null) setState(() => _campaign = fresh);
+    if (paid) {
+      await _run(
+        () => widget.viewModel.repository.refreshCampaignReadiness(
+          _campaign.id!,
         ),
       );
     }
@@ -223,7 +296,11 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
     );
     final cutoff = campaign.startsAt.subtract(const Duration(hours: 24));
     final beforeCutoff = DateTime.now().toUtc().isBefore(cutoff);
+    final phase = campaignPhase(campaign);
+    final editable = campaignIsEditable(campaign);
     final status = switch (campaign.readinessState) {
+      _ when phase == CampaignPhase.completed => 'Completed',
+      _ when phase == CampaignPhase.inProgress => 'In progress',
       'confirmed' => 'Confirmed',
       'fundingShort' => 'Funding short',
       'volunteersShort' => 'Volunteers short',
@@ -236,10 +313,7 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
       'expired' => 'Date expired',
       _ => 'Open · date tentative',
     };
-    final closed = const {
-      'cancelled',
-      'expired',
-    }.contains(campaign.readinessState);
+    final closed = campaignIsClosed(phase);
     return Scaffold(
       appBar: AppBar(title: const Text('Campaign readiness')),
       body: SafeArea(
@@ -303,7 +377,16 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
                       ],
                     ),
                   ),
-                  if (!closed) ...[
+                  if (!closed && !editable) ...[
+                    const SizedBox(height: 12),
+                    const SurfaceCard(
+                      child: Text(
+                        'This campaign has started. Its date and scope are '
+                        'locked and it can no longer be cancelled.',
+                      ),
+                    ),
+                  ],
+                  if (editable) ...[
                     const SizedBox(height: 12),
                     SurfaceCard(
                       child: Column(
@@ -337,12 +420,7 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
                                 ),
                               if (fundingGap > 0)
                                 OutlinedButton.icon(
-                                  onPressed: _working
-                                      ? null
-                                      : () {
-                                          Navigator.pop(context);
-                                          widget.viewModel.selectSection(0);
-                                        },
+                                  onPressed: _working ? null : _checkout,
                                   icon: const Icon(
                                     Icons.volunteer_activism_outlined,
                                   ),

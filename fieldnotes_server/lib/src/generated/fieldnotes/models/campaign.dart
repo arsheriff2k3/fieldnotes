@@ -47,6 +47,8 @@ abstract class Campaign
     bool? aiGenerated,
     this.coverImagePath,
     this.publishedAt,
+    this.completedAt,
+    this.shareSlug,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : fundingGoal = fundingGoal ?? 0.0,
@@ -99,6 +101,8 @@ abstract class Campaign
     bool? aiGenerated,
     String? coverImagePath,
     DateTime? publishedAt,
+    DateTime? completedAt,
+    String? shareSlug,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) = _CampaignImpl;
@@ -172,6 +176,12 @@ abstract class Campaign
           : _is.DateTimeJsonExtension.fromJson(
               jsonSerialization['publishedAt'],
             ),
+      completedAt: jsonSerialization['completedAt'] == null
+          ? null
+          : _is.DateTimeJsonExtension.fromJson(
+              jsonSerialization['completedAt'],
+            ),
+      shareSlug: jsonSerialization['shareSlug'] as String?,
       createdAt: jsonSerialization['createdAt'] == null
           ? null
           : _is.DateTimeJsonExtension.fromJson(jsonSerialization['createdAt']),
@@ -248,6 +258,10 @@ abstract class Campaign
 
   DateTime? publishedAt;
 
+  DateTime? completedAt;
+
+  String? shareSlug;
+
   DateTime createdAt;
 
   DateTime updatedAt;
@@ -290,6 +304,8 @@ abstract class Campaign
     bool? aiGenerated,
     String? coverImagePath,
     DateTime? publishedAt,
+    DateTime? completedAt,
+    String? shareSlug,
     DateTime? createdAt,
     DateTime? updatedAt,
   });
@@ -329,6 +345,8 @@ abstract class Campaign
       'aiGenerated': aiGenerated,
       if (coverImagePath != null) 'coverImagePath': coverImagePath,
       if (publishedAt != null) 'publishedAt': publishedAt?.toJson(),
+      if (completedAt != null) 'completedAt': completedAt?.toJson(),
+      if (shareSlug != null) 'shareSlug': shareSlug,
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
     };
@@ -370,6 +388,8 @@ abstract class Campaign
       'aiGenerated': aiGenerated,
       if (coverImagePath != null) 'coverImagePath': coverImagePath,
       if (publishedAt != null) 'publishedAt': publishedAt?.toJson(),
+      if (completedAt != null) 'completedAt': completedAt?.toJson(),
+      if (shareSlug != null) 'shareSlug': shareSlug,
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
     };
@@ -438,6 +458,8 @@ class _CampaignImpl extends Campaign {
     bool? aiGenerated,
     String? coverImagePath,
     DateTime? publishedAt,
+    DateTime? completedAt,
+    String? shareSlug,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : super._(
@@ -472,6 +494,8 @@ class _CampaignImpl extends Campaign {
          aiGenerated: aiGenerated,
          coverImagePath: coverImagePath,
          publishedAt: publishedAt,
+         completedAt: completedAt,
+         shareSlug: shareSlug,
          createdAt: createdAt,
          updatedAt: updatedAt,
        );
@@ -512,6 +536,8 @@ class _CampaignImpl extends Campaign {
     bool? aiGenerated,
     Object? coverImagePath = _Undefined,
     Object? publishedAt = _Undefined,
+    Object? completedAt = _Undefined,
+    Object? shareSlug = _Undefined,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -553,6 +579,8 @@ class _CampaignImpl extends Campaign {
           ? coverImagePath
           : this.coverImagePath,
       publishedAt: publishedAt is DateTime? ? publishedAt : this.publishedAt,
+      completedAt: completedAt is DateTime? ? completedAt : this.completedAt,
+      shareSlug: shareSlug is String? ? shareSlug : this.shareSlug,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -730,6 +758,17 @@ class CampaignUpdateTable extends _is.UpdateTable<CampaignTable> {
         value,
       );
 
+  _is.ColumnValue<DateTime, DateTime> completedAt(DateTime? value) =>
+      _is.ColumnValue(
+        table.completedAt,
+        value,
+      );
+
+  _is.ColumnValue<String, String> shareSlug(String? value) => _is.ColumnValue(
+    table.shareSlug,
+    value,
+  );
+
   _is.ColumnValue<DateTime, DateTime> createdAt(DateTime value) =>
       _is.ColumnValue(
         table.createdAt,
@@ -883,6 +922,14 @@ class CampaignTable extends _is.Table<int?> {
       'publishedAt',
       this,
     );
+    completedAt = _is.ColumnDateTime(
+      'completedAt',
+      this,
+    );
+    shareSlug = _is.ColumnString(
+      'shareSlug',
+      this,
+    );
     createdAt = _is.ColumnDateTime(
       'createdAt',
       this,
@@ -957,6 +1004,10 @@ class CampaignTable extends _is.Table<int?> {
 
   late final _is.ColumnDateTime publishedAt;
 
+  late final _is.ColumnDateTime completedAt;
+
+  late final _is.ColumnString shareSlug;
+
   late final _is.ColumnDateTime createdAt;
 
   late final _is.ColumnDateTime updatedAt;
@@ -994,6 +1045,8 @@ class CampaignTable extends _is.Table<int?> {
     aiGenerated,
     coverImagePath,
     publishedAt,
+    completedAt,
+    shareSlug,
     createdAt,
     updatedAt,
   ];

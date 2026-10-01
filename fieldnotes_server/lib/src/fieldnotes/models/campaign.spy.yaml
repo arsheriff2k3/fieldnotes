@@ -31,8 +31,20 @@ fields:
   aiGenerated: bool, default=false
   coverImagePath: String?
   publishedAt: DateTime?
+  completedAt: DateTime?
+  # R-3: unguessable public share id used in /c/<slug> links. Nullable only
+  # because rows created before it existed are backfilled by the migration;
+  # every new campaign gets one at publish time.
+  shareSlug: String?
   createdAt: DateTime, default=now
   updatedAt: DateTime, default=now
 indexes:
   fieldnote_campaign_organization_idx:
     fields: organizationId
+  fieldnote_campaign_status_starts_idx:
+    fields: status, startsAt
+  fieldnote_campaign_created_by_idx:
+    fields: createdBy
+  fieldnote_campaign_share_slug_idx:
+    fields: shareSlug
+    unique: true

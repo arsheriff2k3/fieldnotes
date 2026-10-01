@@ -1,0 +1,21 @@
+# Used only if a build is run with fieldnotes_server/ as the context.
+# The supported build uses the repo root as context (see ../.dockerignore):
+#   docker build -f fieldnotes_server/Dockerfile .
+# Secrets are injected at runtime as SERVERPOD_PASSWORD_<key> env vars.
+
+config/passwords.yaml
+config/firebase_service_account_key.json
+**/.env
+**/.env.*
+**/*.jks
+**/*.keystore
+**/*.p12
+**/*.pem
+
+.dart_tool
+build
+coverage
+.serverpod
+**/sp_*.db*
+**/*.log
+test

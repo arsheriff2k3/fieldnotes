@@ -15,6 +15,7 @@ import 'dart:async' as _ida;
 import 'package:clock/clock.dart' as _io0w16m8;
 import 'package:serverpod/serverpod.dart' as _is;
 import '../fieldnotes/fieldnote_endpoint.dart' as _i4pdwwji;
+import '../fieldnotes/fieldnote_outbox_future_call.dart' as _ic8d0e82;
 
 /// Invokes a future call.
 typedef _InvokeFutureCall =
@@ -59,6 +60,7 @@ class FutureCalls extends _is.FutureCallDispatch<_FutureCallRef> {
   ) {
     var registeredFutureCalls = <String, _is.InvokableFutureCall>{
       'CampaignReadinessSweepFutureCall': CampaignReadinessSweepFutureCall(),
+      'FieldnoteOutboxRunFutureCall': FieldnoteOutboxRunFutureCall(),
     };
     _futureCallManager = futureCallManager;
     _serverId = serverId;
@@ -182,6 +184,10 @@ class _FutureCallRef {
   late final campaignReadiness = _CampaignReadinessFutureCallDispatcher(
     _invokeFutureCall,
   );
+
+  late final fieldnoteOutbox = _FieldnoteOutboxFutureCallDispatcher(
+    _invokeFutureCall,
+  );
 }
 
 class _CampaignReadinessFutureCallDispatcher {
@@ -197,6 +203,19 @@ class _CampaignReadinessFutureCallDispatcher {
   }
 }
 
+class _FieldnoteOutboxFutureCallDispatcher {
+  _FieldnoteOutboxFutureCallDispatcher(this._invokeFutureCall);
+
+  final _InvokeFutureCall _invokeFutureCall;
+
+  Future<void> run() {
+    return _invokeFutureCall(
+      'FieldnoteOutboxRunFutureCall',
+      null,
+    );
+  }
+}
+
 class CampaignReadinessSweepFutureCall extends _is.FutureCall
     implements _is.InvokableFutureCall {
   @override
@@ -205,5 +224,16 @@ class CampaignReadinessSweepFutureCall extends _is.FutureCall
     _is.SerializableModel? object,
   ) async {
     await _i4pdwwji.CampaignReadinessFutureCall().sweep(session);
+  }
+}
+
+class FieldnoteOutboxRunFutureCall extends _is.FutureCall
+    implements _is.InvokableFutureCall {
+  @override
+  _ida.Future<void> invoke(
+    _is.Session session,
+    _is.SerializableModel? object,
+  ) async {
+    await _ic8d0e82.FieldnoteOutboxFutureCall().run(session);
   }
 }

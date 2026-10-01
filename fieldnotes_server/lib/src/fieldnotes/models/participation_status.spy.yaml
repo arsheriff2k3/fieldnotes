@@ -3,4 +3,11 @@ values:
   - joined
   - checkedIn
   - completed
-
+  # The volunteer left before checking in; the place was freed.
+  - left
+  # The campaign was cancelled or expired before the volunteer took part.
+  - cancelled
+  # The campaign completed and the volunteer never checked in.
+  - noShow
+  # The volunteer checked in but did not submit evidence before the deadline.
+  - incomplete

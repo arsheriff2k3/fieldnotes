@@ -11,6 +11,7 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:serverpod_client/serverpod_client.dart' as _isc;
+import '../../fieldnotes/models/review_state.dart' as _i926tkng;
 
 abstract class CompletionEvidence
     implements _isc.SerializableModel, _isc.ProtocolSerialization {
@@ -29,12 +30,19 @@ abstract class CompletionEvidence
     bool? locationIsDemo,
     String? moderationStatus,
     DateTime? submittedAt,
+    bool? aiGenerated,
+    _i926tkng.ReviewState? reviewState,
+    this.reviewNote,
+    this.reviewedByAuthUserId,
+    this.reviewedAt,
   }) : locationIntegrityStatus = locationIntegrityStatus ?? 'verified',
        locationIntegrityReasons =
            locationIntegrityReasons ?? 'Location checks passed',
        locationIsDemo = locationIsDemo ?? false,
        moderationStatus = moderationStatus ?? 'passed',
-       submittedAt = submittedAt ?? DateTime.now();
+       submittedAt = submittedAt ?? DateTime.now(),
+       aiGenerated = aiGenerated ?? true,
+       reviewState = reviewState ?? _i926tkng.ReviewState.awaitingReview;
 
   factory CompletionEvidence({
     int? id,
@@ -51,6 +59,11 @@ abstract class CompletionEvidence
     bool? locationIsDemo,
     String? moderationStatus,
     DateTime? submittedAt,
+    bool? aiGenerated,
+    _i926tkng.ReviewState? reviewState,
+    String? reviewNote,
+    _isc.UuidValue? reviewedByAuthUserId,
+    DateTime? reviewedAt,
   }) = _CompletionEvidenceImpl;
 
   factory CompletionEvidence.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -79,6 +92,25 @@ abstract class CompletionEvidence
           ? null
           : _isc.DateTimeJsonExtension.fromJson(
               jsonSerialization['submittedAt'],
+            ),
+      aiGenerated: jsonSerialization['aiGenerated'] == null
+          ? null
+          : _isc.BoolJsonExtension.fromJson(jsonSerialization['aiGenerated']),
+      reviewState: jsonSerialization['reviewState'] == null
+          ? null
+          : _i926tkng.ReviewState.fromJson(
+              (jsonSerialization['reviewState'] as String),
+            ),
+      reviewNote: jsonSerialization['reviewNote'] as String?,
+      reviewedByAuthUserId: jsonSerialization['reviewedByAuthUserId'] == null
+          ? null
+          : _isc.UuidValueJsonExtension.fromJson(
+              jsonSerialization['reviewedByAuthUserId'],
+            ),
+      reviewedAt: jsonSerialization['reviewedAt'] == null
+          ? null
+          : _isc.DateTimeJsonExtension.fromJson(
+              jsonSerialization['reviewedAt'],
             ),
     );
   }
@@ -114,6 +146,16 @@ abstract class CompletionEvidence
 
   DateTime submittedAt;
 
+  bool aiGenerated;
+
+  _i926tkng.ReviewState reviewState;
+
+  String? reviewNote;
+
+  _isc.UuidValue? reviewedByAuthUserId;
+
+  DateTime? reviewedAt;
+
   /// Returns a shallow copy of this [CompletionEvidence]
   /// with some or all fields replaced by the given arguments.
   @_isc.useResult
@@ -132,6 +174,11 @@ abstract class CompletionEvidence
     bool? locationIsDemo,
     String? moderationStatus,
     DateTime? submittedAt,
+    bool? aiGenerated,
+    _i926tkng.ReviewState? reviewState,
+    String? reviewNote,
+    _isc.UuidValue? reviewedByAuthUserId,
+    DateTime? reviewedAt,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -151,6 +198,12 @@ abstract class CompletionEvidence
       'locationIsDemo': locationIsDemo,
       'moderationStatus': moderationStatus,
       'submittedAt': submittedAt.toJson(),
+      'aiGenerated': aiGenerated,
+      'reviewState': reviewState.toJson(),
+      if (reviewNote != null) 'reviewNote': reviewNote,
+      if (reviewedByAuthUserId != null)
+        'reviewedByAuthUserId': reviewedByAuthUserId?.toJson(),
+      if (reviewedAt != null) 'reviewedAt': reviewedAt?.toJson(),
     };
   }
 
@@ -172,6 +225,12 @@ abstract class CompletionEvidence
       'locationIsDemo': locationIsDemo,
       'moderationStatus': moderationStatus,
       'submittedAt': submittedAt.toJson(),
+      'aiGenerated': aiGenerated,
+      'reviewState': reviewState.toJson(),
+      if (reviewNote != null) 'reviewNote': reviewNote,
+      if (reviewedByAuthUserId != null)
+        'reviewedByAuthUserId': reviewedByAuthUserId?.toJson(),
+      if (reviewedAt != null) 'reviewedAt': reviewedAt?.toJson(),
     };
   }
 
@@ -199,6 +258,11 @@ class _CompletionEvidenceImpl extends CompletionEvidence {
     bool? locationIsDemo,
     String? moderationStatus,
     DateTime? submittedAt,
+    bool? aiGenerated,
+    _i926tkng.ReviewState? reviewState,
+    String? reviewNote,
+    _isc.UuidValue? reviewedByAuthUserId,
+    DateTime? reviewedAt,
   }) : super._(
          id: id,
          participationId: participationId,
@@ -214,6 +278,11 @@ class _CompletionEvidenceImpl extends CompletionEvidence {
          locationIsDemo: locationIsDemo,
          moderationStatus: moderationStatus,
          submittedAt: submittedAt,
+         aiGenerated: aiGenerated,
+         reviewState: reviewState,
+         reviewNote: reviewNote,
+         reviewedByAuthUserId: reviewedByAuthUserId,
+         reviewedAt: reviewedAt,
        );
 
   /// Returns a shallow copy of this [CompletionEvidence]
@@ -235,6 +304,11 @@ class _CompletionEvidenceImpl extends CompletionEvidence {
     bool? locationIsDemo,
     String? moderationStatus,
     DateTime? submittedAt,
+    bool? aiGenerated,
+    _i926tkng.ReviewState? reviewState,
+    Object? reviewNote = _Undefined,
+    Object? reviewedByAuthUserId = _Undefined,
+    Object? reviewedAt = _Undefined,
   }) {
     return CompletionEvidence(
       id: id is int? ? id : this.id,
@@ -256,6 +330,13 @@ class _CompletionEvidenceImpl extends CompletionEvidence {
       locationIsDemo: locationIsDemo ?? this.locationIsDemo,
       moderationStatus: moderationStatus ?? this.moderationStatus,
       submittedAt: submittedAt ?? this.submittedAt,
+      aiGenerated: aiGenerated ?? this.aiGenerated,
+      reviewState: reviewState ?? this.reviewState,
+      reviewNote: reviewNote is String? ? reviewNote : this.reviewNote,
+      reviewedByAuthUserId: reviewedByAuthUserId is _isc.UuidValue?
+          ? reviewedByAuthUserId
+          : this.reviewedByAuthUserId,
+      reviewedAt: reviewedAt is DateTime? ? reviewedAt : this.reviewedAt,
     );
   }
 }

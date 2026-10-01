@@ -30,9 +30,11 @@ abstract class FieldnoteUserProfile
     this.locationLongitude,
     required this.interests,
     required this.skills,
+    bool? emailNotifications,
     DateTime? createdAt,
     DateTime? updatedAt,
-  }) : createdAt = createdAt ?? DateTime.now(),
+  }) : emailNotifications = emailNotifications ?? true,
+       createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
 
   factory FieldnoteUserProfile({
@@ -50,6 +52,7 @@ abstract class FieldnoteUserProfile
     double? locationLongitude,
     required String interests,
     required String skills,
+    bool? emailNotifications,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) = _FieldnoteUserProfileImpl;
@@ -78,6 +81,11 @@ abstract class FieldnoteUserProfile
           ?.toDouble(),
       interests: jsonSerialization['interests'] as String,
       skills: jsonSerialization['skills'] as String,
+      emailNotifications: jsonSerialization['emailNotifications'] == null
+          ? null
+          : _isc.BoolJsonExtension.fromJson(
+              jsonSerialization['emailNotifications'],
+            ),
       createdAt: jsonSerialization['createdAt'] == null
           ? null
           : _isc.DateTimeJsonExtension.fromJson(jsonSerialization['createdAt']),
@@ -118,6 +126,8 @@ abstract class FieldnoteUserProfile
 
   String skills;
 
+  bool emailNotifications;
+
   DateTime createdAt;
 
   DateTime updatedAt;
@@ -140,6 +150,7 @@ abstract class FieldnoteUserProfile
     double? locationLongitude,
     String? interests,
     String? skills,
+    bool? emailNotifications,
     DateTime? createdAt,
     DateTime? updatedAt,
   });
@@ -161,6 +172,7 @@ abstract class FieldnoteUserProfile
       if (locationLongitude != null) 'locationLongitude': locationLongitude,
       'interests': interests,
       'skills': skills,
+      'emailNotifications': emailNotifications,
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
     };
@@ -184,6 +196,7 @@ abstract class FieldnoteUserProfile
       if (locationLongitude != null) 'locationLongitude': locationLongitude,
       'interests': interests,
       'skills': skills,
+      'emailNotifications': emailNotifications,
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
     };
@@ -213,6 +226,7 @@ class _FieldnoteUserProfileImpl extends FieldnoteUserProfile {
     double? locationLongitude,
     required String interests,
     required String skills,
+    bool? emailNotifications,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : super._(
@@ -230,6 +244,7 @@ class _FieldnoteUserProfileImpl extends FieldnoteUserProfile {
          locationLongitude: locationLongitude,
          interests: interests,
          skills: skills,
+         emailNotifications: emailNotifications,
          createdAt: createdAt,
          updatedAt: updatedAt,
        );
@@ -253,6 +268,7 @@ class _FieldnoteUserProfileImpl extends FieldnoteUserProfile {
     Object? locationLongitude = _Undefined,
     String? interests,
     String? skills,
+    bool? emailNotifications,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -281,6 +297,7 @@ class _FieldnoteUserProfileImpl extends FieldnoteUserProfile {
           : this.locationLongitude,
       interests: interests ?? this.interests,
       skills: skills ?? this.skills,
+      emailNotifications: emailNotifications ?? this.emailNotifications,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

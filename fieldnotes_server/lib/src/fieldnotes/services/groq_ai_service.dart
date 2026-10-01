@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 import '../../generated/protocol.dart';
+import 'fieldnote_time.dart';
 
 /// Server-side Groq fallback for FieldNote's text, image, and speech tasks.
 class GroqAiService {
@@ -23,6 +24,7 @@ class GroqAiService {
     required String prompt,
     required DateTime now,
     String model = defaultVisionModel,
+    int utcOffsetMinutes = FieldnoteTime.defaultUtcOffsetMinutes,
   }) async {
     final json = await _chat(
       apiKey: apiKey,
@@ -33,8 +35,9 @@ class GroqAiService {
           'text':
               '''
 Return only a JSON object for a safe, achievable local volunteer campaign.
-Today is ${now.toUtc().toIso8601String()}. startsAt must be a future ISO-8601
-date-time with timezone. Preserve an explicit budget and volunteer count.
+The sponsor's local time is ${FieldnoteTime.isoWithOffset(now, utcOffsetMinutes)}.
+Resolve relative dates and times in that UTC offset. startsAt must be a future
+ISO-8601 date-time including that offset. Preserve an explicit budget and volunteer count.
 Do not invent legal, medical, or environmental certainty.
 Keep the sponsor's named city or place in locationName exactly as given. Do not
 replace it with a nearby or more familiar place. The sponsor verifies the pin.
@@ -135,10 +138,10 @@ Volunteer note: ${note.trim()}
         http.MultipartRequest(
             'POST',
             Uri.parse('$endpoint/audio/transcriptions'),
-    )
-      ..headers['Authorization'] = 'Bearer $apiKey'
-      ..headers['User-Agent'] = 'FieldnotesServer/1.0'
-      ..fields['model'] = model
+          )
+          ..headers['Authorization'] = 'Bearer $apiKey'
+          ..headers['User-Agent'] = 'FieldnotesServer/1.0'
+          ..fields['model'] = model
           ..fields['response_format'] = 'json';
     request.files.add(
       http.MultipartFile.fromBytes(

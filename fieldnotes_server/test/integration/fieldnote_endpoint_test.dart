@@ -554,7 +554,8 @@ void main() {
         );
         expect(refunds.length, 1);
         expect(refunds.single.sponsorshipId, sponsorship.id);
-        expect(refunds.single.status, 'refund_due_test');
+        expect(refunds.single.status, 'pending');
+        expect(refunds.single.reason, 'campaign_cancelled');
       },
     );
 
@@ -917,17 +918,23 @@ void main() {
         contactPhone: '+919876543210',
       );
       await endpoints.fieldnote.acceptLegalConsent(sponsor, true, true, true);
-      final now = DateTime.now();
-      final laterToday = now.add(const Duration(minutes: 1));
+      // Pick a volunteer offset where it is mid-morning now, so a 3-hour
+      // campaign starting in a minute stays inside one local day.
+      final utcNow = DateTime.now().toUtc();
+      var offset = 600 - (utcNow.hour * 60 + utcNow.minute);
+      if (offset < -720) offset += 1440;
+      if (offset > 840) offset -= 1440;
+      final local = utcNow.add(Duration(minutes: offset));
+      final laterToday = utcNow.add(const Duration(minutes: 1));
       final campaign = await endpoints.fieldnote.createCampaignFromProposal(
         sponsor,
-        _campaignProposal().copyWith(startsAt: laterToday.toUtc()),
+        _campaignProposal().copyWith(startsAt: laterToday),
         18.52040,
         73.85670,
         null,
         null,
       );
-      final otherDay = now.weekday == 7 ? 1 : now.weekday + 1;
+      final otherDay = local.weekday == 7 ? 1 : local.weekday + 1;
       await endpoints.fieldnote.completeVolunteerProfile(
         volunteer,
         'Ravi Volunteer',
@@ -938,11 +945,12 @@ void main() {
         true,
         [otherDay],
         0,
-        1439,
+        1440,
         10,
         18.52040,
         73.85670,
         'Current GPS area',
+        utcOffsetMinutes: offset,
       );
       await endpoints.fieldnote.acceptLegalConsent(volunteer, true, true, true);
       final matches = await endpoints.fieldnote.getCampaignMatches(volunteer);
@@ -1269,7 +1277,7 @@ void main() {
     });
 
     test(
-      'creator map shows one volunteer, invitation, and joined state',
+      'creator map hides a lone unjoined volunteer and names joined ones',
       () async {
         await endpoints.fieldnote.completeSponsorProfile(
           sponsor,
@@ -1314,15 +1322,13 @@ void main() {
           200,
         );
 
+        // A-2: one unjoined volunteer is below the k=3 threshold, so the
+        // creator sees neither a name nor an area.
         final before = await endpoints.fieldnote.getCampaignVolunteerMap(
           sponsor,
           campaign.id!,
         );
-        expect(before.volunteers.single.profileId, volunteerProfile.id);
-        expect(before.volunteers.single.status, 'available');
-        expect(before.volunteers.single.latitude, 18.52);
-        expect(before.volunteers.single.longitude, 73.86);
-        expect(before.volunteers.single.areaLabel, 'Approximate area');
+        expect(before.volunteers, isEmpty);
         expect(
           await endpoints.fieldnote.inviteCampaignVolunteer(
             sponsor,
@@ -1343,7 +1349,7 @@ void main() {
           sponsor,
           campaign.id!,
         );
-        expect(invited.volunteers.single.status, 'invited');
+        expect(invited.volunteers, isEmpty);
 
         await endpoints.fieldnote.joinCampaign(volunteer, campaign.id!);
         final joined = await endpoints.fieldnote.getCampaignVolunteerMap(
@@ -1351,6 +1357,11 @@ void main() {
           campaign.id!,
         );
         expect(joined.volunteers.single.status, 'joined');
+        expect(joined.volunteers.single.profileId, volunteerProfile.id);
+        expect(joined.volunteers.single.displayName, 'Vik Volunteer');
+        expect(joined.volunteers.single.latitude, 18.52);
+        expect(joined.volunteers.single.longitude, 73.86);
+        expect(joined.volunteers.single.areaLabel, 'Approximate area');
         await endpoints.fieldnote.updateAvailability(
           volunteer,
           false,
