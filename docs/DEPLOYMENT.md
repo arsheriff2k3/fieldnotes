@@ -7,13 +7,13 @@ and password is supplied at build or deploy time.
 
 Placeholders used below:
 
-| Placeholder | Meaning |
-|---|---|
-| `<api-host>` | Public host of the Serverpod API server (port 8080 behind TLS) |
-| `<web-host>` | Public host of the Serverpod web server (port 8082 behind TLS); serves the Flutter web app, `/c/<slug>` share pages, `/legal/*`, `/.well-known/*` and `/webhooks/razorpay` |
-| `<link-host>` | Host used in shared campaign links `https://<link-host>/c/<slug>`. Normally the same as `<web-host>` |
-| `<app-id>` | Android application ID / iOS bundle ID you own (reverse DNS). Must not start with `com.example` |
-| `<TEAM_ID>` | Apple Developer team ID |
+| Placeholder     | Meaning                                                                                                                                                                           |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `<api-host>`  | Public host of the Serverpod API server (port 8080 behind TLS)                                                                                                                    |
+| `<web-host>`  | Public host of the Serverpod web server (port 8082 behind TLS); serves the Flutter web app,`/c/<slug>` share pages, `/legal/*`, `/.well-known/*` and `/webhooks/razorpay` |
+| `<link-host>` | Host used in shared campaign links`https://<link-host>/c/<slug>`. Normally the same as `<web-host>`                                                                           |
+| `<app-id>`    | Android application ID / iOS bundle ID you own (reverse DNS). Must not start with`com.example`                                                                                  |
+| `<TEAM_ID>`   | Apple Developer team ID                                                                                                                                                           |
 
 ---
 
@@ -55,26 +55,26 @@ Derived from `session.passwords[...]` / `getPassword(...)` in
 `fieldnotes_server/lib` and from the Serverpod auth packages that `server.dart`
 configures (`JwtConfigFromPasswords`, `EmailIdpConfigFromPasswords`).
 
-| Key (`SERVERPOD_PASSWORD_<key>`) | Required | Used by |
-|---|---|---|
-| `database` | Yes | PostgreSQL password (or `SERVERPOD_DATABASE_PASSWORD`) |
-| `serviceSecret` | Yes | Serverpod service/Insights auth (or `SERVERPOD_SERVICE_SECRET`) |
-| `redis` | Yes once Redis is on (A-8) | Redis password (or `SERVERPOD_REDIS_PASSWORD`) |
-| `jwtHmacSha512PrivateKey` | Yes | JWT access-token signing (`JwtConfigFromPasswords`) |
-| `jwtRefreshTokenHashPepper` | Yes | JWT refresh-token hashing; at least 10 characters |
-| `emailSecretHashPepper` | Yes | Email IdP password/code hashing (`EmailIdpConfigFromPasswords`) |
-| `smtpUsername` | Yes | Sender account for verification/password-reset email (`lib/src/auth/verification_email_sender.dart`) and transactional notifications (`NotificationService`) |
-| `smtpAppPassword` | Yes | SMTP app password for that account |
-| `smtpHost`, `smtpPort` | Optional | Notifications only: any STARTTLS provider instead of Gmail (port defaults to 587). Without SMTP passwords notifications are marked `skipped`, never fail the action |
-| `razorpayKeyId` | Yes | Razorpay key ID. Live keys start `rzp_live_`. Payout simulation runs only with `rzp_test_` keys; with live keys it answers `payouts_manual` (section 7) |
-| `razorpayKeySecret` | Yes | Razorpay order creation and checkout-signature verification |
-| `razorpayWebhookSecret` | Yes | Verifies `X-Razorpay-Signature` on the web-server route `/webhooks/razorpay` (P0-2) |
-| `geminiApiKey` | One of Gemini/Groq is required (P0-8) | Campaign drafting, evidence summaries, dictation transcription |
-| `groqApiKey` | See above | Fallback/alternative AI provider |
-| `aiPrimaryProvider` | Optional | `gemini` or `groq`; chooses which provider is tried first |
-| `geminiModel` | Optional | Overrides the default Gemini model (`GeminiAiService.defaultModel`). The non-secret env var `FIELDNOTE_GEMINI_MODEL` works too; the password wins |
-| `geminiTranscriptionModel` | Optional | Overrides the Gemini speech model |
-| `googleMapsApiKey` | Optional | Server-side Places, Geocoding and Routes (never load-bearing) |
+| Key (`SERVERPOD_PASSWORD_<key>`) | Required                              | Used by                                                                                                                                                              |
+| ---------------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `database`                       | Yes                                   | PostgreSQL password (or`SERVERPOD_DATABASE_PASSWORD`)                                                                                                              |
+| `serviceSecret`                  | Yes                                   | Serverpod service/Insights auth (or`SERVERPOD_SERVICE_SECRET`)                                                                                                     |
+| `redis`                          | Yes once Redis is on (A-8)            | Redis password (or`SERVERPOD_REDIS_PASSWORD`)                                                                                                                      |
+| `jwtHmacSha512PrivateKey`        | Yes                                   | JWT access-token signing (`JwtConfigFromPasswords`)                                                                                                                |
+| `jwtRefreshTokenHashPepper`      | Yes                                   | JWT refresh-token hashing; at least 10 characters                                                                                                                    |
+| `emailSecretHashPepper`          | Yes                                   | Email IdP password/code hashing (`EmailIdpConfigFromPasswords`)                                                                                                    |
+| `smtpUsername`                   | Yes                                   | Sender account for verification/password-reset email (`lib/src/auth/verification_email_sender.dart`) and transactional notifications (`NotificationService`)     |
+| `smtpAppPassword`                | Yes                                   | SMTP app password for that account                                                                                                                                   |
+| `smtpHost`, `smtpPort`         | Optional                              | Notifications only: any STARTTLS provider instead of Gmail (port defaults to 587). Without SMTP passwords notifications are marked`skipped`, never fail the action |
+| `razorpayKeyId`                  | Yes                                   | Razorpay key ID. Live keys start`rzp_live_`. Payout simulation runs only with `rzp_test_` keys; with live keys it answers `payouts_manual` (section 7)         |
+| `razorpayKeySecret`              | Yes                                   | Razorpay order creation and checkout-signature verification                                                                                                          |
+| `razorpayWebhookSecret`          | Yes                                   | Verifies`X-Razorpay-Signature` on the web-server route `/webhooks/razorpay` (P0-2)                                                                               |
+| `geminiApiKey`                   | One of Gemini/Groq is required (P0-8) | Campaign drafting, evidence summaries, dictation transcription                                                                                                       |
+| `groqApiKey`                     | See above                             | Fallback/alternative AI provider                                                                                                                                     |
+| `aiPrimaryProvider`              | Optional                              | `gemini` or `groq`; chooses which provider is tried first                                                                                                        |
+| `geminiModel`                    | Optional                              | Overrides the default Gemini model (`GeminiAiService.defaultModel`). The non-secret env var `FIELDNOTE_GEMINI_MODEL` works too; the password wins                |
+| `geminiTranscriptionModel`       | Optional                              | Overrides the Gemini speech model                                                                                                                                    |
+| `googleMapsApiKey`               | Optional                              | Server-side Places, Geocoding and Routes (never load-bearing)                                                                                                        |
 
 Rotate every value that was ever used in development. Do not reuse the dev or
 CI database/Redis passwords committed in `docker-compose.yaml` and
@@ -88,28 +88,28 @@ forgotten override fails safe instead of pointing at someone else's domain.
 Serverpod merges these env vars over the YAML (`serverpod_shared`
 `_buildConfigMap`, verified against 4.0.0):
 
-| Env var | Required | Value |
-|---|---|---|
-| `SERVERPOD_API_SERVER_PUBLIC_HOST` | Yes | `<api-host>` |
-| `SERVERPOD_WEB_SERVER_PUBLIC_HOST` | Yes | `<web-host>`. Also used to build legal URLs and server-generated share links |
-| `SERVERPOD_INSIGHTS_SERVER_PUBLIC_HOST` | Optional | Insights host (keep it private if possible) |
-| `SERVERPOD_DATABASE_HOST`, `_PORT`, `_NAME`, `_USER`, `_REQUIRE_SSL` | Host required | Managed Postgres (YAML defaults: port 5432, name `fieldnote`, user `postgres`, SSL on) |
-| `SERVERPOD_REDIS_HOST`, `_PORT`, `_USER`, `_REQUIRE_SSL`, `_ENABLED` | Host required | Redis is **enabled** in both files (A-8); see section 5 |
-| `SERVERPOD_ALLOWED_ORIGINS` | Yes | `https://<web-host>` (comma-separated). The YAML placeholder `https://localhost` rejects real browsers' WebSockets until this is set. Native apps send no `Origin` and are unaffected |
-| `SERVERPOD_AUTH_COOKIE_DOMAIN`, `_SECURE`, `_SAME_SITE`, `_NAME`, `_PATH` | Optional | `authCookie` is configured (`sameSite: lax`, `secure: true`). The web app keeps bearer tokens until it sets `client.cookieAuth = true`. Serverpod refuses to boot if `authCookie` is set without `allowedOrigins` |
-| `SERVERPOD_WEB_SERVER_STATIC_CACHE_CONTROL` | Optional | Static files under `/web/` default to `public, immutable, max-age=1 year` |
+| Env var                                                                             | Required      | Value                                                                                                                                                                                                                         |
+| ----------------------------------------------------------------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SERVERPOD_API_SERVER_PUBLIC_HOST`                                                | Yes           | `<api-host>`                                                                                                                                                                                                                |
+| `SERVERPOD_WEB_SERVER_PUBLIC_HOST`                                                | Yes           | `<web-host>`. Also used to build legal URLs and server-generated share links                                                                                                                                                |
+| `SERVERPOD_INSIGHTS_SERVER_PUBLIC_HOST`                                           | Optional      | Insights host (keep it private if possible)                                                                                                                                                                                   |
+| `SERVERPOD_DATABASE_HOST`, `_PORT`, `_NAME`, `_USER`, `_REQUIRE_SSL`      | Host required | Managed Postgres (YAML defaults: port 5432, name`fieldnote`, user `postgres`, SSL on)                                                                                                                                     |
+| `SERVERPOD_REDIS_HOST`, `_PORT`, `_USER`, `_REQUIRE_SSL`, `_ENABLED`      | Host required | Redis is**enabled** in both files (A-8); see section 5                                                                                                                                                                  |
+| `SERVERPOD_ALLOWED_ORIGINS`                                                       | Yes           | `https://<web-host>` (comma-separated). The YAML placeholder `https://localhost` rejects real browsers' WebSockets until this is set. Native apps send no `Origin` and are unaffected                                   |
+| `SERVERPOD_AUTH_COOKIE_DOMAIN`, `_SECURE`, `_SAME_SITE`, `_NAME`, `_PATH` | Optional      | `authCookie` is configured (`sameSite: lax`, `secure: true`). The web app keeps bearer tokens until it sets `client.cookieAuth = true`. Serverpod refuses to boot if `authCookie` is set without `allowedOrigins` |
+| `SERVERPOD_WEB_SERVER_STATIC_CACHE_CONTROL`                                       | Optional      | Static files under`/web/` default to `public, immutable, max-age=1 year`                                                                                                                                                  |
 
 FieldNote's own non-secret settings (read by `lib/src/fieldnotes/services/fieldnote_config.dart`):
 
-| Env var | Required | Value |
-|---|---|---|
-| `FIELDNOTE_ANDROID_PACKAGE` | For App Links / share page | Android application ID (`<app-id>`). Used in the share page's `intent://` link and `assetlinks.json`; the page omits the intent when unset |
-| `FIELDNOTE_ANDROID_SHA256_CERT_FINGERPRINTS` | For App Links | Comma-separated `AA:BB:…` SHA-256 fingerprints (Play app-signing key, optionally upload key) |
-| `FIELDNOTE_IOS_APP_ID` | For Universal Links | `<TEAM_ID>.<app-id>` |
-| `FIELDNOTE_PLAY_STORE_URL` | Optional | Store link on the share page; defaults to `https://play.google.com/store/apps/details?id=<FIELDNOTE_ANDROID_PACKAGE>` |
-| `FIELDNOTE_APP_STORE_URL` | Optional | App Store link on the share page |
-| `FIELDNOTE_LINK_BASE_URL` | Optional | `https://<link-host>` when share/legal links must not use the web server's public host |
-| `FIELDNOTE_GEMINI_MODEL` | Optional | Gemini model when the `geminiModel` password is unset |
+| Env var                                        | Required                   | Value                                                                                                                                            |
+| ---------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `FIELDNOTE_ANDROID_PACKAGE`                  | For App Links / share page | Android application ID (`<app-id>`). Used in the share page's `intent://` link and `assetlinks.json`; the page omits the intent when unset |
+| `FIELDNOTE_ANDROID_SHA256_CERT_FINGERPRINTS` | For App Links              | Comma-separated`AA:BB:…` SHA-256 fingerprints (Play app-signing key, optionally upload key)                                                   |
+| `FIELDNOTE_IOS_APP_ID`                       | For Universal Links        | `<TEAM_ID>.<app-id>`                                                                                                                           |
+| `FIELDNOTE_PLAY_STORE_URL`                   | Optional                   | Store link on the share page; defaults to`https://play.google.com/store/apps/details?id=<FIELDNOTE_ANDROID_PACKAGE>`                           |
+| `FIELDNOTE_APP_STORE_URL`                    | Optional                   | App Store link on the share page                                                                                                                 |
+| `FIELDNOTE_LINK_BASE_URL`                    | Optional                   | `https://<link-host>` when share/legal links must not use the web server's public host                                                         |
+| `FIELDNOTE_GEMINI_MODEL`                     | Optional                   | Gemini model when the`geminiModel` password is unset                                                                                           |
 
 `config/development.yaml` uses `localhost` for every host. To test on a phone
 or through a tunnel, set `SERVERPOD_API_SERVER_PUBLIC_HOST` (and `_PORT`,
@@ -272,10 +272,10 @@ take up to about a day to apply. Check it with
 Drafts live in `fieldnotes_server/web/static/legal/`. **Both need legal review**
 (see the HTML comment at the top of each), with every `[PLACEHOLDER]` replaced.
 
-| Document | URL | Version constant |
-|---|---|---|
-| Privacy Policy | `https://<web-host>/legal/privacy` | `FieldnoteEndpoint.privacyPolicyVersion` (`2026-09-22`) |
-| Terms of Service | `https://<web-host>/legal/terms` | `FieldnoteEndpoint.termsVersion` (`2026-09-22`) |
+| Document         | URL                                  | Version constant                                            |
+| ---------------- | ------------------------------------ | ----------------------------------------------------------- |
+| Privacy Policy   | `https://<web-host>/legal/privacy` | `FieldnoteEndpoint.privacyPolicyVersion` (`2026-09-22`) |
+| Terms of Service | `https://<web-host>/legal/terms`   | `FieldnoteEndpoint.termsVersion` (`2026-09-22`)         |
 
 `/legal/privacy` and `/legal/terms` serve the same files with
 `Cache-Control: public, max-age=300`, so updates reach clients within five
@@ -533,12 +533,12 @@ in `pubspec.yaml`.
 
 Not yet migrated (follow-up):
 
-| Area | Files |
-| --- | --- |
-| Sponsor | `lib/ui/features/sponsor/sponsor_views.dart` (largest), `campaign_readiness_view.dart`, `campaign_pin_picker.dart`, `campaign_volunteer_reach_view.dart`, `payout_view.dart`, `campaign_map_view.dart`, `sponsor_checkout.dart`, `payment_history_view.dart`, `campaign_post_dialog.dart`, `sponsor_formatting.dart` |
-| View-model messages | `fieldnote_view_model.dart` stores English `userMessageFor(error)` strings (`errorMessage`, `lastError`, `impactErrors`). To localize them, store the `UserError` (or the error) and word it in the view with `messageIn(context.l10n)`; until then views can pass stored text through `localizeStoredMessage`. The `accountDeletionSignInMessage`/`sessionExpiredMessage` notices on the sign-in screen are English for the same reason. |
-| Volunteer leftovers | The saved-area labels `Chosen map area`/`Current GPS area` in `volunteer_views.dart` are stored as the availability `locationLabel` and stay English. `formatMinutes` keeps 24-hour `HH:mm`. |
-| Data export PDF in Hindi/Tamil | Needs a PDF renderer with Indic shaping (see above); labels stay English until then. |
+| Area                           | Files                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sponsor                        | `lib/ui/features/sponsor/sponsor_views.dart` (largest), `campaign_readiness_view.dart`, `campaign_pin_picker.dart`, `campaign_volunteer_reach_view.dart`, `payout_view.dart`, `campaign_map_view.dart`, `sponsor_checkout.dart`, `payment_history_view.dart`, `campaign_post_dialog.dart`, `sponsor_formatting.dart`                                                                                                                      |
+| View-model messages            | `fieldnote_view_model.dart` stores English `userMessageFor(error)` strings (`errorMessage`, `lastError`, `impactErrors`). To localize them, store the `UserError` (or the error) and word it in the view with `messageIn(context.l10n)`; until then views can pass stored text through `localizeStoredMessage`. The `accountDeletionSignInMessage`/`sessionExpiredMessage` notices on the sign-in screen are English for the same reason. |
+| Volunteer leftovers            | The saved-area labels`Chosen map area`/`Current GPS area` in `volunteer_views.dart` are stored as the availability `locationLabel` and stay English. `formatMinutes` keeps 24-hour `HH:mm`.                                                                                                                                                                                                                                                       |
+| Data export PDF in Hindi/Tamil | Needs a PDF renderer with Indic shaping (see above); labels stay English until then.                                                                                                                                                                                                                                                                                                                                                                          |
 
 How to migrate a file:
 
@@ -569,5 +569,5 @@ How to migrate a file:
 - [ ] Database backups and PITR on; restore rehearsed
 - [ ] Account deletion exercised end to end on staging (P0-6); Play web deletion URL published
 - [ ] SMTP verified for notifications (send a test cancel on staging)
-- [x] Launcher icons generated (section 10)
+- [X] Launcher icons generated (section 10)
 - [ ] Hindi and Tamil strings reviewed by native speakers; sponsor/volunteer screens localized (section 11)
