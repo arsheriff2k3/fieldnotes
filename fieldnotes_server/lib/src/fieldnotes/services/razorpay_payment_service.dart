@@ -150,7 +150,8 @@ abstract interface class RazorpayGateway {
     required String orderId,
   });
 
-  /// `POST /v1/payments/{paymentId}/refund`
+  /// `POST /v1/payments/{paymentId}/refund` with `amount`, `speed`,
+  /// `receipt` and `notes` only.
   Future<RazorpayRefundRecord> createRefund({
     required RazorpayCredentials credentials,
     required String paymentId,
@@ -252,8 +253,9 @@ class RazorpayPaymentService implements RazorpayGateway {
         '$apiBase/payments/${Uri.encodeComponent(paymentId)}/refund',
       ),
       credentials: credentials,
-      // Razorpay de-duplicates refund requests carrying the same key.
-      extraHeaders: {'X-Refund-Idempotency': receipt},
+      // Only the documented body fields. Razorpay documents no idempotency
+      // header for this API; RefundService de-duplicates retries by listing
+      // the payment's refunds for this receipt/notes before creating one.
       body: {
         'amount': amountPaise,
         'speed': 'normal',

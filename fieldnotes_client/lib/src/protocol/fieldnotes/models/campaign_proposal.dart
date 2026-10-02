@@ -24,6 +24,7 @@ abstract class CampaignProposal
     required this.volunteerCapacity,
     this.minimumVolunteers,
     required this.fundingGoal,
+    this.fundingGoalPaise,
     required this.requiredSkills,
     required this.checklist,
     required this.evidenceInstructions,
@@ -40,6 +41,7 @@ abstract class CampaignProposal
     required int volunteerCapacity,
     int? minimumVolunteers,
     required double fundingGoal,
+    int? fundingGoalPaise,
     required List<String> requiredSkills,
     required List<String> checklist,
     required String evidenceInstructions,
@@ -59,6 +61,7 @@ abstract class CampaignProposal
       volunteerCapacity: jsonSerialization['volunteerCapacity'] as int,
       minimumVolunteers: jsonSerialization['minimumVolunteers'] as int?,
       fundingGoal: (jsonSerialization['fundingGoal'] as num).toDouble(),
+      fundingGoalPaise: jsonSerialization['fundingGoalPaise'] as int?,
       requiredSkills: _imuhbzep.Protocol().deserialize<List<String>>(
         jsonSerialization['requiredSkills'],
       ),
@@ -89,6 +92,8 @@ abstract class CampaignProposal
 
   double fundingGoal;
 
+  int? fundingGoalPaise;
+
   List<String> requiredSkills;
 
   List<String> checklist;
@@ -111,6 +116,7 @@ abstract class CampaignProposal
     int? volunteerCapacity,
     int? minimumVolunteers,
     double? fundingGoal,
+    int? fundingGoalPaise,
     List<String>? requiredSkills,
     List<String>? checklist,
     String? evidenceInstructions,
@@ -129,6 +135,7 @@ abstract class CampaignProposal
       'volunteerCapacity': volunteerCapacity,
       if (minimumVolunteers != null) 'minimumVolunteers': minimumVolunteers,
       'fundingGoal': fundingGoal,
+      if (fundingGoalPaise != null) 'fundingGoalPaise': fundingGoalPaise,
       'requiredSkills': requiredSkills.toJson(),
       'checklist': checklist.toJson(),
       'evidenceInstructions': evidenceInstructions,
@@ -149,6 +156,7 @@ abstract class CampaignProposal
       'volunteerCapacity': volunteerCapacity,
       if (minimumVolunteers != null) 'minimumVolunteers': minimumVolunteers,
       'fundingGoal': fundingGoal,
+      if (fundingGoalPaise != null) 'fundingGoalPaise': fundingGoalPaise,
       'requiredSkills': requiredSkills.toJson(),
       'checklist': checklist.toJson(),
       'evidenceInstructions': evidenceInstructions,
@@ -175,6 +183,7 @@ class _CampaignProposalImpl extends CampaignProposal {
     required int volunteerCapacity,
     int? minimumVolunteers,
     required double fundingGoal,
+    int? fundingGoalPaise,
     required List<String> requiredSkills,
     required List<String> checklist,
     required String evidenceInstructions,
@@ -189,6 +198,7 @@ class _CampaignProposalImpl extends CampaignProposal {
          volunteerCapacity: volunteerCapacity,
          minimumVolunteers: minimumVolunteers,
          fundingGoal: fundingGoal,
+         fundingGoalPaise: fundingGoalPaise,
          requiredSkills: requiredSkills,
          checklist: checklist,
          evidenceInstructions: evidenceInstructions,
@@ -209,6 +219,7 @@ class _CampaignProposalImpl extends CampaignProposal {
     int? volunteerCapacity,
     Object? minimumVolunteers = _Undefined,
     double? fundingGoal,
+    Object? fundingGoalPaise = _Undefined,
     List<String>? requiredSkills,
     List<String>? checklist,
     String? evidenceInstructions,
@@ -226,6 +237,9 @@ class _CampaignProposalImpl extends CampaignProposal {
           ? minimumVolunteers
           : this.minimumVolunteers,
       fundingGoal: fundingGoal ?? this.fundingGoal,
+      fundingGoalPaise: fundingGoalPaise is int?
+          ? fundingGoalPaise
+          : this.fundingGoalPaise,
       requiredSkills:
           requiredSkills ?? this.requiredSkills.map((e0) => e0).toList(),
       checklist: checklist ?? this.checklist.map((e0) => e0).toList(),

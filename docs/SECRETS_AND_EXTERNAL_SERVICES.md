@@ -141,7 +141,9 @@ Subscribe to `payment.captured`, `order.paid`, `payment.failed`, `refund.process
 The `campaign-readiness-sweep` future call runs every 5 minutes and needs only `razorpayKeyId`/`razorpayKeySecret`:
 
 - Unpaid orders older than 5 minutes are checked with `GET /v1/orders/{id}/payments`. A captured payment is credited; an order with no payment after 30 minutes is marked `expired` and stops reserving campaign balance.
-- Refunds are queued when a campaign is cancelled or expires, and for any captured payment that could not be credited (`verified_uncredited`). The worker calls `POST /v1/payments/{id}/refund` with receipt `fn_refund_<rowId>`, header `X-Refund-Idempotency`, and note `fieldnote_refund_id`. Failures retry with exponential backoff, up to 6 attempts.
+- Refunds are queued when a campaign is cancelled or expires, and for any captured payment that could not be credited (`verified_uncredited`). The worker calls `POST /v1/payments/{id}/refund` with only the documented body fields: `amount` (paise), `speed: normal`, receipt `fn_refund_<rowId>` and note `fieldnote_refund_id`. No idempotency header is sent, because Razorpay documents none for this API. Before any retry, the worker lists `GET /v1/payments/{id}/refunds` and adopts a non-failed refund that carries that receipt or note, so a lost response never refunds twice. Failures retry with exponential backoff, up to 6 attempts.
+- When a refund of a credited payment is processed (by the worker or the `refund.processed` webhook), its amount comes off the campaign's `sponsoredAmountPaise` and is added to `refundedAmountPaise`. This happens once per refund row (`fundingReversedAt`), under the campaign row lock. Uncredited captures never counted toward the campaign, so their refunds leave the funded amount unchanged.
+- Creator payouts are never sent through Razorpay (no RazorpayX/Route integration). See "Payouts" in `DEPLOYMENT.md`.
 - With `rzp_test_` keys every refund runs in Razorpay Test Mode and moves no real money. Refund rows record `testMode`.
 
 ### Google Maps Platform

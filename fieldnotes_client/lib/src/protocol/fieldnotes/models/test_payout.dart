@@ -20,10 +20,12 @@ abstract class TestPayout
     required this.sponsorshipId,
     required this.creatorAuthUserId,
     required this.amount,
+    int? amountPaise,
     required this.sourcePaymentId,
     String? status,
     DateTime? simulatedAt,
-  }) : status = status ?? 'simulated',
+  }) : amountPaise = amountPaise ?? 0,
+       status = status ?? 'simulated',
        simulatedAt = simulatedAt ?? DateTime.now();
 
   factory TestPayout({
@@ -32,6 +34,7 @@ abstract class TestPayout
     required int sponsorshipId,
     required _isc.UuidValue creatorAuthUserId,
     required double amount,
+    int? amountPaise,
     required String sourcePaymentId,
     String? status,
     DateTime? simulatedAt,
@@ -46,6 +49,7 @@ abstract class TestPayout
         jsonSerialization['creatorAuthUserId'],
       ),
       amount: (jsonSerialization['amount'] as num).toDouble(),
+      amountPaise: jsonSerialization['amountPaise'] as int?,
       sourcePaymentId: jsonSerialization['sourcePaymentId'] as String,
       status: jsonSerialization['status'] as String?,
       simulatedAt: jsonSerialization['simulatedAt'] == null
@@ -69,6 +73,8 @@ abstract class TestPayout
 
   double amount;
 
+  int amountPaise;
+
   String sourcePaymentId;
 
   String status;
@@ -84,6 +90,7 @@ abstract class TestPayout
     int? sponsorshipId,
     _isc.UuidValue? creatorAuthUserId,
     double? amount,
+    int? amountPaise,
     String? sourcePaymentId,
     String? status,
     DateTime? simulatedAt,
@@ -97,6 +104,7 @@ abstract class TestPayout
       'sponsorshipId': sponsorshipId,
       'creatorAuthUserId': creatorAuthUserId.toJson(),
       'amount': amount,
+      'amountPaise': amountPaise,
       'sourcePaymentId': sourcePaymentId,
       'status': status,
       'simulatedAt': simulatedAt.toJson(),
@@ -112,6 +120,7 @@ abstract class TestPayout
       'sponsorshipId': sponsorshipId,
       'creatorAuthUserId': creatorAuthUserId.toJson(),
       'amount': amount,
+      'amountPaise': amountPaise,
       'sourcePaymentId': sourcePaymentId,
       'status': status,
       'simulatedAt': simulatedAt.toJson(),
@@ -133,6 +142,7 @@ class _TestPayoutImpl extends TestPayout {
     required int sponsorshipId,
     required _isc.UuidValue creatorAuthUserId,
     required double amount,
+    int? amountPaise,
     required String sourcePaymentId,
     String? status,
     DateTime? simulatedAt,
@@ -142,6 +152,7 @@ class _TestPayoutImpl extends TestPayout {
          sponsorshipId: sponsorshipId,
          creatorAuthUserId: creatorAuthUserId,
          amount: amount,
+         amountPaise: amountPaise,
          sourcePaymentId: sourcePaymentId,
          status: status,
          simulatedAt: simulatedAt,
@@ -157,6 +168,7 @@ class _TestPayoutImpl extends TestPayout {
     int? sponsorshipId,
     _isc.UuidValue? creatorAuthUserId,
     double? amount,
+    int? amountPaise,
     String? sourcePaymentId,
     String? status,
     DateTime? simulatedAt,
@@ -167,6 +179,7 @@ class _TestPayoutImpl extends TestPayout {
       sponsorshipId: sponsorshipId ?? this.sponsorshipId,
       creatorAuthUserId: creatorAuthUserId ?? this.creatorAuthUserId,
       amount: amount ?? this.amount,
+      amountPaise: amountPaise ?? this.amountPaise,
       sourcePaymentId: sourcePaymentId ?? this.sourcePaymentId,
       status: status ?? this.status,
       simulatedAt: simulatedAt ?? this.simulatedAt,

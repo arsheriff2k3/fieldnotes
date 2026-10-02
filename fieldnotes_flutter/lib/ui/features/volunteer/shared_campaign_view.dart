@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../data/services/campaign_link_service.dart';
+import '../../../l10n/l10n.dart';
 import '../../core/error_messages.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/widgets.dart';
@@ -22,6 +23,7 @@ Future<void> openSharedCampaignLink(
 ) async {
   final messenger = ScaffoldMessenger.of(context);
   final navigator = Navigator.of(context);
+  final l10n = context.l10n;
   Campaign? campaign;
   try {
     campaign = await viewModel.campaignForLink(target);
@@ -29,10 +31,9 @@ Future<void> openSharedCampaignLink(
     messenger.showSnackBar(
       SnackBar(
         content: Text(
-          userMessageFor(
+          UserError.from(
             error,
-            fallback: 'Could not open the campaign link. Try again.',
-          ),
+          ).messageIn(l10n, fallback: l10n.volunteerLinkOpenFailed),
         ),
       ),
     );
@@ -43,16 +44,12 @@ Future<void> openSharedCampaignLink(
     if (joinedId != null) {
       viewModel.selectSection(1);
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text(
-            'This campaign has started. Your place is in My work.',
-          ),
-        ),
+        SnackBar(content: Text(l10n.volunteerLinkStartedInMyWork)),
       );
       return;
     }
     messenger.showSnackBar(
-      const SnackBar(content: Text('This campaign is no longer open.')),
+      SnackBar(content: Text(l10n.volunteerLinkNoLongerOpen)),
     );
     return;
   }
@@ -109,7 +106,9 @@ class _SharedCampaignViewState extends State<SharedCampaignView> {
       await widget.viewModel.join(widget.campaign);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('You joined ${widget.campaign.name}.')),
+        SnackBar(
+          content: Text(context.l10n.volunteerJoined(widget.campaign.name)),
+        ),
       );
       Navigator.of(context).pop();
       widget.viewModel.selectSection(1);
@@ -118,7 +117,11 @@ class _SharedCampaignViewState extends State<SharedCampaignView> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            userMessageFor(error, fallback: 'Could not join this campaign.'),
+            userMessageFor(
+              error,
+              fallback: context.l10n.volunteerJoinFailed,
+              context: context,
+            ),
           ),
         ),
       );
@@ -133,12 +136,13 @@ class _SharedCampaignViewState extends State<SharedCampaignView> {
     final joined = holdsPlace(
       widget.viewModel.participationFor(campaign.id!),
     );
+    final l10n = context.l10n;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Campaign invitation'),
+        title: Text(l10n.volunteerInvitationTitle),
         actions: [
           IconButton(
-            tooltip: 'Share campaign',
+            tooltip: l10n.volunteerShareCampaign,
             onPressed: () => shareCampaign(context, campaign),
             icon: const Icon(Icons.share_outlined),
           ),
@@ -151,10 +155,10 @@ class _SharedCampaignViewState extends State<SharedCampaignView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'FIELDNOTE CAMPAIGN',
+                Text(
+                  l10n.volunteerInvitationEyebrow,
                   style: TextStyle(
-                    color: FieldnoteColors.clay,
+                    color: context.fieldnoteColors.clay,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.5,
                   ),
@@ -180,9 +184,9 @@ class _SharedCampaignViewState extends State<SharedCampaignView> {
                     const Icon(Icons.event_outlined, size: 20),
                     const SizedBox(width: 10),
                     Text(
-                      DateFormat('EEE, d MMM · h:mm a').format(
-                        campaign.startsAt.toLocal(),
-                      ),
+                      DateFormat.MMMEd(
+                        dateLocale(context.localeTag),
+                      ).add_jm().format(campaign.startsAt.toLocal()),
                     ),
                   ],
                 ),
@@ -202,17 +206,15 @@ class _SharedCampaignViewState extends State<SharedCampaignView> {
                       icon: Icon(joined ? Icons.hiking : Icons.groups_outlined),
                       label: Text(
                         _joining
-                            ? 'Joining…'
+                            ? l10n.volunteerJoining
                             : joined
-                            ? 'View my work'
-                            : 'Join campaign',
+                            ? l10n.volunteerViewMyWork
+                            : l10n.volunteerJoinCampaign,
                       ),
                     ),
                   )
                 else
-                  const Text(
-                    'Sign in with a volunteer account to join this campaign.',
-                  ),
+                  Text(l10n.volunteerSignInToJoin),
               ],
             ),
           ),

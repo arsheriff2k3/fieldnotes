@@ -4,11 +4,12 @@ Audit date: 2026-10-01. Scope: `fieldnotes_server`, `fieldnotes_flutter`, config
 
 ## Remediation status (2026-10-02)
 
-**Verified:** server `dart analyze` clean, `dart test` 85/85; app `flutter analyze` clean, `flutter test` 51/51. Nothing has been run against a live server or on a device yet.
+**Verified (final):** server `dart analyze` clean, `dart test` 105/105. App `flutter analyze` clean, `flutter test` 85/85, and `flutter build web --release` succeeds. Nothing has been run against a live server or on a device yet.
 
 **Migrations:**
 - `20261001084803764-money-lifecycle`
 - `20261001143105843-compliance-notifications`: hand-edited `migration.sql` to backfill `shareSlug`.
+- `20261002062415263-money-paise-idempotency`: destructive (drops six unused tables); hand-edited `migration.sql` to backfill paise and reverse refunds that were already processed.
 
 **Fixed:**
 - **P0:** P0-1 through P0-11.
@@ -23,18 +24,35 @@ Audit date: 2026-10-01. Scope: `fieldnotes_server`, `fieldnotes_flutter`, config
 - **Platform:** R-1 through R-6. R-7 only has logging hooks; you chose no crash-reporting vendor.
 - **P2:** most items, including authz on the stream, posts and readiness; length caps; indexes; pagination; slug share links; `/.well-known/*`; timezone matching; "help today" expiry; full-campaign handling; form fixes; and removal of the Greeting template.
 
+**Fixed in server pass 3** (migration `20261002062415263-money-paise-idempotency`):
+- A-4: money is stored as integer `*Paise` columns, with the rupee doubles kept for old clients.
+- Processed refunds reduce `sponsoredAmountPaise` once per refund.
+- Publish and checkout take a `clientRequestId`.
+- Refund idempotency uses a receipt/notes lookup; the undocumented header was removed.
+- The six unused tables were dropped.
+- Timezones are DST-aware (IANA, `package:timezone`).
+- Live mode reports `payouts_manual` and operations settle payouts by hand; RazorpayX is not integrated.
+**Fixed in the final app pass:**
+- The app now uses the `*Paise` fields for all money maths and display (₹ with Indian grouping), and shows refunded amounts.
+- Publish and checkout send a `clientRequestId` (UUID v4) and reuse it on retry.
+- The app sends the device's IANA zone via `flutter_timezone`.
+- The payout view shows the manual-settlement message when the server reports live mode.
+- Dark theme (`ThemeMode.system`, WCAG AA contrast), brand launcher icons on every platform.
+- en/hi/ta localization across every screen; errors map to codes so their messages can be translated.
+- Noto Sans Devanagari bundled for Hindi text in the PDF data export.
+
 **Still open:**
-- **Data:** A-4, money is still stored as `double` (all maths uses integer paise).
-- **Payments:**
-  - Refunds don't reduce `sponsoredAmount`.
-  - Payouts are still a manual test simulation.
-  - Publishing has no idempotency key.
-  - The Razorpay refund idempotency header name needs checking against Razorpay's docs.
-- **Database:** the six unused tables haven't been dropped.
+- **Payments:** automated creator payouts would need RazorpayX, which is out of scope. Operations settle payouts by hand (`docs/DEPLOYMENT.md` §7).
 - **App:**
-  - No dark theme, no localization, stock icons.
-  - Timezones use the UTC offset only, with no DST rules.
+  - The hi/ta translations are partial drafts that need native-speaker review; anything missing falls back to English.
+  - Some text stays English:
+    - view-model error strings (`lastError`, `impactErrors`)
+    - match and integrity reasons written by the server
+    - Google route step text
+    - the PDF report labels in hi/ta (the `pdf` package can't shape Indic scripts)
+  - Native splash screens are still the template.
 - **Not reviewed:** `lib/src/auth/verification_email_sender.dart` (permission settings blocked reading it).
+- **Before release:** run the destructive migration on staging after a backup, and do a manual run of both user flows on a device.
 
 **Before release you must:**
 1. Set the app ID, signing keys and link host (`android/key.properties`, `ios/Flutter/AppIdentity.local.xcconfig`).
@@ -267,8 +285,8 @@ Audit date: 2026-10-01. Scope: `fieldnotes_server`, `fieldnotes_flutter`, config
 - The dev `publicHost` is a Cloudflare tunnel URL (`config/development.yaml:12`).
 - DB passwords are committed in `docker-compose.yaml` and the CI workflow (dev/test values only).
 - CI doesn't analyze, test or build the Flutter app.
-- Branding is still the template: stock icons, "Fieldnotes Flutter", "A new Flutter project".
-- No localization, no dark mode, and thin accessibility (18 semantics labels; the fixed 62px hero text may clip at large text sizes).
+- Branding: brand launcher icons are generated (`docs/DEPLOYMENT.md` section 10); the native splash screens still use the template.
+- Dark mode and partial localization are done (see above). Accessibility is still thin (18 semantics labels; the fixed 62px hero text may clip at large text sizes).
 - Portrait is forced even on tablets and web, despite the wide layout.
 - The READMEs are stubs, and `AGENTS.md` is out of date (seeding, `hackathon_ai_service.dart`).
 

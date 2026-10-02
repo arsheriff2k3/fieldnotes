@@ -2,6 +2,7 @@ import 'package:fieldnotes_client/fieldnotes_client.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../core/error_messages.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/widgets.dart';
@@ -54,27 +55,36 @@ class _VolunteerHistoryScreenState extends State<VolunteerHistoryScreen> {
     final approved = history
         .where((e) => e.evidence?.reviewState == ReviewState.approved)
         .length;
+    final l10n = context.l10n;
+    final number = NumberFormat.decimalPattern(context.localeTag);
     return Scaffold(
-      appBar: AppBar(title: const Text('My impact')),
+      appBar: AppBar(title: Text(l10n.volunteerHistoryAppBar)),
       body: RefreshIndicator(
         onRefresh: _load,
         child: FieldnotePageList(
           children: [
-            const SectionHeading(
-              eyebrow: 'Your record',
-              title: 'Impact & history',
-              description:
-                  'Every campaign you joined, what happened, and how your '
-                  'evidence was reviewed.',
+            SectionHeading(
+              eyebrow: l10n.volunteerHistoryEyebrow,
+              title: l10n.volunteerHistoryTitle,
+              description: l10n.volunteerHistoryDescription,
             ),
             const SizedBox(height: 16),
             Wrap(
               spacing: 12,
               runSpacing: 12,
               children: [
-                _Stat(label: 'Campaigns joined', value: '${history.length}'),
-                _Stat(label: 'Evidence submitted', value: '$completed'),
-                _Stat(label: 'Approved by sponsors', value: '$approved'),
+                _Stat(
+                  label: l10n.volunteerHistoryStatJoined,
+                  value: number.format(history.length),
+                ),
+                _Stat(
+                  label: l10n.volunteerHistoryStatSubmitted,
+                  value: number.format(completed),
+                ),
+                _Stat(
+                  label: l10n.volunteerHistoryStatApproved,
+                  value: number.format(approved),
+                ),
               ],
             ),
             const SizedBox(height: 20),
@@ -86,10 +96,10 @@ class _VolunteerHistoryScreenState extends State<VolunteerHistoryScreen> {
                 ),
               )
             else if (history.isEmpty)
-              const EmptyPanel(
+              EmptyPanel(
                 icon: Icons.history,
-                title: 'No history yet',
-                message: 'Campaigns you join will appear here.',
+                title: l10n.volunteerHistoryEmptyTitle,
+                message: l10n.volunteerHistoryEmptyMessage,
               )
             else
               for (final entry in history)
@@ -139,10 +149,16 @@ class _HistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final display = participationDisplay(entry.participation, entry.campaign);
+    final l10n = context.l10n;
+    final locale = context.localeTag;
+    final display = participationDisplay(
+      entry.participation,
+      entry.campaign,
+      l10n: l10n,
+    );
     final evidence = entry.evidence;
-    final date = DateFormat(
-      'EEE, d MMM yyyy',
+    final date = DateFormat.yMMMEd(
+      dateLocale(locale),
     ).format(entry.campaign.startsAt.toLocal());
     return SurfaceCard(
       child: Column(
@@ -179,14 +195,18 @@ class _HistoryCard extends StatelessWidget {
                 Icon(
                   _reviewIcon(evidence.reviewState),
                   size: 18,
-                  color: _reviewColor(evidence.reviewState),
+                  color: context.fieldnoteColors.adapt(
+                    _reviewColor(evidence.reviewState),
+                  ),
                 ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    reviewStateLabel(evidence.reviewState),
+                    reviewStateLabel(evidence.reviewState, l10n: l10n),
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: _reviewColor(evidence.reviewState),
+                      color: context.fieldnoteColors.adapt(
+                        _reviewColor(evidence.reviewState),
+                      ),
                     ),
                   ),
                 ),
@@ -194,14 +214,23 @@ class _HistoryCard extends StatelessWidget {
             ),
             if (evidence.reviewNote?.trim().isNotEmpty == true) ...[
               const SizedBox(height: 6),
-              Text('Sponsor note: ${evidence.reviewNote!.trim()}'),
+              Text(l10n.volunteerSponsorNote(evidence.reviewNote!.trim())),
             ],
             const SizedBox(height: 8),
             Text(evidence.confirmedSummary),
             const SizedBox(height: 4),
             Text(
-              'Submitted ${DateFormat('d MMM, HH:mm').format(evidence.submittedAt.toLocal())}'
-              '${evidence.aiGenerated ? ' · AI-assisted summary' : ''}',
+              evidence.aiGenerated
+                  ? l10n.volunteerSubmittedAtAi(
+                      DateFormat.MMMd(
+                        dateLocale(locale),
+                      ).add_Hm().format(evidence.submittedAt.toLocal()),
+                    )
+                  : l10n.volunteerSubmittedAt(
+                      DateFormat.MMMd(
+                        dateLocale(locale),
+                      ).add_Hm().format(evidence.submittedAt.toLocal()),
+                    ),
               style: Theme.of(context).textTheme.bodySmall,
             ),
             if (evidence.photographPath != null && evidence.id != null) ...[
@@ -209,7 +238,7 @@ class _HistoryCard extends StatelessWidget {
               TextButton.icon(
                 onPressed: () => _showPhoto(context, evidence.id!),
                 icon: const Icon(Icons.photo_outlined),
-                label: const Text('View my evidence photo'),
+                label: Text(l10n.volunteerViewEvidencePhoto),
               ),
             ],
           ],
@@ -234,7 +263,8 @@ class _HistoryCard extends StatelessWidget {
                 child: Text(
                   userMessageFor(
                     snapshot.error!,
-                    fallback: 'Could not load the photo.',
+                    fallback: context.l10n.volunteerPhotoLoadFailed,
+                    context: context,
                   ),
                 ),
               );
@@ -248,9 +278,9 @@ class _HistoryCard extends StatelessWidget {
                 child: Image.network(
                   snapshot.data!,
                   fit: BoxFit.contain,
-                  errorBuilder: (_, _, _) => const Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Text('Could not load the photo.'),
+                  errorBuilder: (context, _, _) => Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(context.l10n.volunteerPhotoLoadFailed),
                   ),
                 ),
               );
@@ -263,7 +293,7 @@ class _HistoryCard extends StatelessWidget {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () => Navigator.pop(dialogContext),
-                    child: const Text('Close'),
+                    child: Text(context.l10n.commonClose),
                   ),
                 ),
               ],

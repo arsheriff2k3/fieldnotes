@@ -3,12 +3,12 @@ class CampaignReadinessPolicy {
   const CampaignReadinessPolicy();
 
   String evaluate({
-    required double fundingGoal,
-    required double sponsoredAmount,
+    required int fundingGoalPaise,
+    required int sponsoredPaise,
     required int minimumVolunteers,
     required int joinedVolunteers,
   }) {
-    final fundingReady = sponsoredAmount + 0.001 >= fundingGoal;
+    final fundingReady = sponsoredPaise >= fundingGoalPaise;
     final volunteersReady = joinedVolunteers >= minimumVolunteers;
     if (fundingReady && volunteersReady) return 'confirmed';
     if (!fundingReady && volunteersReady) return 'fundingShort';

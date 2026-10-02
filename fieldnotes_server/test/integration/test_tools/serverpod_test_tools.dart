@@ -1211,6 +1211,7 @@ class _FieldnoteEndpoint {
     _ist.TestSessionBuilder sessionBuilder,
     String prompt, {
     int? utcOffsetMinutes,
+    String? timezone,
   }) async {
     return _ist.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
@@ -1226,6 +1227,7 @@ class _FieldnoteEndpoint {
           parameters: _ist.testObjectToJson({
             'prompt': prompt,
             'utcOffsetMinutes': utcOffsetMinutes,
+            'timezone': timezone,
           }),
           serializationManager: _serializationManager,
         );
@@ -1248,8 +1250,9 @@ class _FieldnoteEndpoint {
     double latitude,
     double longitude,
     String? locationName,
-    double? geofenceMeters,
-  ) async {
+    double? geofenceMeters, {
+    String? clientRequestId,
+  }) async {
     return _ist.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
           (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
@@ -1267,6 +1270,7 @@ class _FieldnoteEndpoint {
             'longitude': longitude,
             'locationName': locationName,
             'geofenceMeters': geofenceMeters,
+            'clientRequestId': clientRequestId,
           }),
           serializationManager: _serializationManager,
         );
@@ -1482,8 +1486,9 @@ class _FieldnoteEndpoint {
     int campaignId,
     double fundingGoal,
     int minimumVolunteers,
-    String description,
-  ) async {
+    String description, {
+    int? fundingGoalPaise,
+  }) async {
     return _ist.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
           (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
@@ -1500,6 +1505,7 @@ class _FieldnoteEndpoint {
             'fundingGoal': fundingGoal,
             'minimumVolunteers': minimumVolunteers,
             'description': description,
+            'fundingGoalPaise': fundingGoalPaise,
           }),
           serializationManager: _serializationManager,
         );
@@ -2153,8 +2159,10 @@ class _FieldnoteEndpoint {
     _ist.TestSessionBuilder sessionBuilder,
     int campaignId,
     double amount,
-    String? message,
-  ) async {
+    String? message, {
+    int? amountPaise,
+    String? clientRequestId,
+  }) async {
     return _ist.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
           (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
@@ -2170,6 +2178,8 @@ class _FieldnoteEndpoint {
             'campaignId': campaignId,
             'amount': amount,
             'message': message,
+            'amountPaise': amountPaise,
+            'clientRequestId': clientRequestId,
           }),
           serializationManager: _serializationManager,
         );
@@ -2288,6 +2298,36 @@ class _FieldnoteEndpoint {
                   _localCallContext.arguments,
                 )
                 as _ida.Future<List<_iwnubjux.Sponsorship>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<bool> isPayoutSimulationAvailable(
+    _ist.TestSessionBuilder sessionBuilder,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'isPayoutSimulationAvailable',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'isPayoutSimulationAvailable',
+          parameters: _ist.testObjectToJson({}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<bool>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();

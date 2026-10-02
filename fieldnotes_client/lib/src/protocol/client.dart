@@ -574,18 +574,21 @@ class EndpointFieldnote extends _isc.EndpointRef {
     },
   );
 
-  /// Drafts a campaign from a brief. [utcOffsetMinutes] is the sponsor
-  /// device's offset (`DateTime.now().timeZoneOffset.inMinutes`) so relative
-  /// dates such as "this Saturday 8am" resolve in the sponsor's time zone.
+  /// Drafts a campaign from a brief. Relative dates such as "this Saturday
+  /// 8am" resolve in the sponsor's time zone: the IANA [timezone]
+  /// (`Asia/Kolkata`, DST-aware) when given and known, else
+  /// [utcOffsetMinutes] (`DateTime.now().timeZoneOffset.inMinutes`), else IST.
   _ida.Future<_i9wpoa9q.CampaignProposal> proposeCampaign(
     String prompt, {
     int? utcOffsetMinutes,
+    String? timezone,
   }) => caller.callServerEndpoint<_i9wpoa9q.CampaignProposal>(
     'fieldnote',
     'proposeCampaign',
     {
       'prompt': prompt,
       'utcOffsetMinutes': utcOffsetMinutes,
+      'timezone': timezone,
     },
   );
 
@@ -594,13 +597,19 @@ class EndpointFieldnote extends _isc.EndpointRef {
   /// [locationName] and [geofenceMeters] come from the sponsor's map: the pin
   /// can be dragged anywhere and named from Places, so the published campaign
   /// is no longer tied to where the sponsor's own device happened to be.
+  ///
+  /// The goal is `proposal.fundingGoalPaise` when sent, else the rupee
+  /// `proposal.fundingGoal`. [clientRequestId] makes publishing idempotent:
+  /// a retry with the same id (per creator) returns the campaign created by
+  /// the first call instead of a duplicate.
   _ida.Future<_i6ar8a32.Campaign> createCampaignFromProposal(
     _i9wpoa9q.CampaignProposal proposal,
     double latitude,
     double longitude,
     String? locationName,
-    double? geofenceMeters,
-  ) => caller.callServerEndpoint<_i6ar8a32.Campaign>(
+    double? geofenceMeters, {
+    String? clientRequestId,
+  }) => caller.callServerEndpoint<_i6ar8a32.Campaign>(
     'fieldnote',
     'createCampaignFromProposal',
     {
@@ -609,6 +618,7 @@ class EndpointFieldnote extends _isc.EndpointRef {
       'longitude': longitude,
       'locationName': locationName,
       'geofenceMeters': geofenceMeters,
+      'clientRequestId': clientRequestId,
     },
   );
 
@@ -678,8 +688,9 @@ class EndpointFieldnote extends _isc.EndpointRef {
     int campaignId,
     double fundingGoal,
     int minimumVolunteers,
-    String description,
-  ) => caller.callServerEndpoint<_i6ar8a32.Campaign>(
+    String description, {
+    int? fundingGoalPaise,
+  }) => caller.callServerEndpoint<_i6ar8a32.Campaign>(
     'fieldnote',
     'reviseCampaignScope',
     {
@@ -687,6 +698,7 @@ class EndpointFieldnote extends _isc.EndpointRef {
       'fundingGoal': fundingGoal,
       'minimumVolunteers': minimumVolunteers,
       'description': description,
+      'fundingGoalPaise': fundingGoalPaise,
     },
   );
 
@@ -920,17 +932,25 @@ class EndpointFieldnote extends _isc.EndpointRef {
   /// The balance check runs under the campaign row lock and counts unpaid
   /// orders from the last [PaymentReconciliationService.orderTtl] as reserved,
   /// so parallel checkouts cannot oversubscribe the goal (S6).
+  ///
+  /// [amountPaise] is preferred over the rupee [amount] when sent. A retry
+  /// with the same [clientRequestId] (per sponsor) returns the order created
+  /// by the first call while it is still awaiting payment.
   _ida.Future<_ieclxo3s.RazorpayCheckoutOrder> createRazorpayOrder(
     int campaignId,
     double amount,
-    String? message,
-  ) => caller.callServerEndpoint<_ieclxo3s.RazorpayCheckoutOrder>(
+    String? message, {
+    int? amountPaise,
+    String? clientRequestId,
+  }) => caller.callServerEndpoint<_ieclxo3s.RazorpayCheckoutOrder>(
     'fieldnote',
     'createRazorpayOrder',
     {
       'campaignId': campaignId,
       'amount': amount,
       'message': message,
+      'amountPaise': amountPaise,
+      'clientRequestId': clientRequestId,
     },
   );
 
@@ -973,6 +993,18 @@ class EndpointFieldnote extends _isc.EndpointRef {
       'offset': offset,
     },
   );
+
+  /// Whether [simulateCampaignTestPayout] can run: Razorpay keys are
+  /// configured and are Test Mode (`rzp_test_`) keys. When false in live
+  /// mode, creator payouts are settled manually by FieldNote operations
+  /// (docs/DEPLOYMENT.md) and the app should say so instead of offering a
+  /// simulation.
+  _ida.Future<bool> isPayoutSimulationAvailable() =>
+      caller.callServerEndpoint<bool>(
+        'fieldnote',
+        'isPayoutSimulationAvailable',
+        {},
+      );
 
   /// Creator-only demonstration ledger. These rows never initiate a bank
   /// transfer or call Razorpay Route.

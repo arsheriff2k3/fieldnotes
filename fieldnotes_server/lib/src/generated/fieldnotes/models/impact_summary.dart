@@ -20,17 +20,25 @@ abstract class ImpactSummary
     required this.campaignId,
     required this.sponsorshipTotal,
     required this.fundingGoal,
+    int? sponsorshipTotalPaise,
+    int? fundingGoalPaise,
+    int? refundedPaise,
     required this.joinedVolunteers,
     required this.completedVolunteers,
     required this.evidenceCount,
     required this.summary,
     required this.recentEvidence,
-  });
+  }) : sponsorshipTotalPaise = sponsorshipTotalPaise ?? 0,
+       fundingGoalPaise = fundingGoalPaise ?? 0,
+       refundedPaise = refundedPaise ?? 0;
 
   factory ImpactSummary({
     required int campaignId,
     required double sponsorshipTotal,
     required double fundingGoal,
+    int? sponsorshipTotalPaise,
+    int? fundingGoalPaise,
+    int? refundedPaise,
     required int joinedVolunteers,
     required int completedVolunteers,
     required int evidenceCount,
@@ -44,6 +52,9 @@ abstract class ImpactSummary
       sponsorshipTotal: (jsonSerialization['sponsorshipTotal'] as num)
           .toDouble(),
       fundingGoal: (jsonSerialization['fundingGoal'] as num).toDouble(),
+      sponsorshipTotalPaise: jsonSerialization['sponsorshipTotalPaise'] as int?,
+      fundingGoalPaise: jsonSerialization['fundingGoalPaise'] as int?,
+      refundedPaise: jsonSerialization['refundedPaise'] as int?,
       joinedVolunteers: jsonSerialization['joinedVolunteers'] as int,
       completedVolunteers: jsonSerialization['completedVolunteers'] as int,
       evidenceCount: jsonSerialization['evidenceCount'] as int,
@@ -60,6 +71,12 @@ abstract class ImpactSummary
   double sponsorshipTotal;
 
   double fundingGoal;
+
+  int sponsorshipTotalPaise;
+
+  int fundingGoalPaise;
+
+  int refundedPaise;
 
   int joinedVolunteers;
 
@@ -78,6 +95,9 @@ abstract class ImpactSummary
     int? campaignId,
     double? sponsorshipTotal,
     double? fundingGoal,
+    int? sponsorshipTotalPaise,
+    int? fundingGoalPaise,
+    int? refundedPaise,
     int? joinedVolunteers,
     int? completedVolunteers,
     int? evidenceCount,
@@ -91,6 +111,9 @@ abstract class ImpactSummary
       'campaignId': campaignId,
       'sponsorshipTotal': sponsorshipTotal,
       'fundingGoal': fundingGoal,
+      'sponsorshipTotalPaise': sponsorshipTotalPaise,
+      'fundingGoalPaise': fundingGoalPaise,
+      'refundedPaise': refundedPaise,
       'joinedVolunteers': joinedVolunteers,
       'completedVolunteers': completedVolunteers,
       'evidenceCount': evidenceCount,
@@ -106,6 +129,9 @@ abstract class ImpactSummary
       'campaignId': campaignId,
       'sponsorshipTotal': sponsorshipTotal,
       'fundingGoal': fundingGoal,
+      'sponsorshipTotalPaise': sponsorshipTotalPaise,
+      'fundingGoalPaise': fundingGoalPaise,
+      'refundedPaise': refundedPaise,
       'joinedVolunteers': joinedVolunteers,
       'completedVolunteers': completedVolunteers,
       'evidenceCount': evidenceCount,
@@ -127,6 +153,9 @@ class _ImpactSummaryImpl extends ImpactSummary {
     required int campaignId,
     required double sponsorshipTotal,
     required double fundingGoal,
+    int? sponsorshipTotalPaise,
+    int? fundingGoalPaise,
+    int? refundedPaise,
     required int joinedVolunteers,
     required int completedVolunteers,
     required int evidenceCount,
@@ -136,6 +165,9 @@ class _ImpactSummaryImpl extends ImpactSummary {
          campaignId: campaignId,
          sponsorshipTotal: sponsorshipTotal,
          fundingGoal: fundingGoal,
+         sponsorshipTotalPaise: sponsorshipTotalPaise,
+         fundingGoalPaise: fundingGoalPaise,
+         refundedPaise: refundedPaise,
          joinedVolunteers: joinedVolunteers,
          completedVolunteers: completedVolunteers,
          evidenceCount: evidenceCount,
@@ -151,6 +183,9 @@ class _ImpactSummaryImpl extends ImpactSummary {
     int? campaignId,
     double? sponsorshipTotal,
     double? fundingGoal,
+    int? sponsorshipTotalPaise,
+    int? fundingGoalPaise,
+    int? refundedPaise,
     int? joinedVolunteers,
     int? completedVolunteers,
     int? evidenceCount,
@@ -161,6 +196,10 @@ class _ImpactSummaryImpl extends ImpactSummary {
       campaignId: campaignId ?? this.campaignId,
       sponsorshipTotal: sponsorshipTotal ?? this.sponsorshipTotal,
       fundingGoal: fundingGoal ?? this.fundingGoal,
+      sponsorshipTotalPaise:
+          sponsorshipTotalPaise ?? this.sponsorshipTotalPaise,
+      fundingGoalPaise: fundingGoalPaise ?? this.fundingGoalPaise,
+      refundedPaise: refundedPaise ?? this.refundedPaise,
       joinedVolunteers: joinedVolunteers ?? this.joinedVolunteers,
       completedVolunteers: completedVolunteers ?? this.completedVolunteers,
       evidenceCount: evidenceCount ?? this.evidenceCount,

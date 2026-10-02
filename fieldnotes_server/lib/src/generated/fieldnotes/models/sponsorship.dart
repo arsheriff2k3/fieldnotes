@@ -19,6 +19,7 @@ abstract class Sponsorship
     required this.campaignId,
     required this.sponsorAuthUserId,
     required this.amount,
+    int? amountPaise,
     this.message,
     String? paymentProvider,
     String? paymentStatus,
@@ -29,8 +30,10 @@ abstract class Sponsorship
     int? reconcileAttempts,
     this.lastReconciledAt,
     this.updatedAt,
+    this.clientRequestId,
     DateTime? createdAt,
-  }) : paymentProvider = paymentProvider ?? 'razorpay',
+  }) : amountPaise = amountPaise ?? 0,
+       paymentProvider = paymentProvider ?? 'razorpay',
        paymentStatus = paymentStatus ?? 'created',
        reconcileAttempts = reconcileAttempts ?? 0,
        createdAt = createdAt ?? DateTime.now();
@@ -40,6 +43,7 @@ abstract class Sponsorship
     required int campaignId,
     required _is.UuidValue sponsorAuthUserId,
     required double amount,
+    int? amountPaise,
     String? message,
     String? paymentProvider,
     String? paymentStatus,
@@ -50,6 +54,7 @@ abstract class Sponsorship
     int? reconcileAttempts,
     DateTime? lastReconciledAt,
     DateTime? updatedAt,
+    String? clientRequestId,
     DateTime? createdAt,
   }) = _SponsorshipImpl;
 
@@ -61,6 +66,7 @@ abstract class Sponsorship
         jsonSerialization['sponsorAuthUserId'],
       ),
       amount: (jsonSerialization['amount'] as num).toDouble(),
+      amountPaise: jsonSerialization['amountPaise'] as int?,
       message: jsonSerialization['message'] as String?,
       paymentProvider: jsonSerialization['paymentProvider'] as String?,
       paymentStatus: jsonSerialization['paymentStatus'] as String?,
@@ -79,6 +85,7 @@ abstract class Sponsorship
       updatedAt: jsonSerialization['updatedAt'] == null
           ? null
           : _is.DateTimeJsonExtension.fromJson(jsonSerialization['updatedAt']),
+      clientRequestId: jsonSerialization['clientRequestId'] as String?,
       createdAt: jsonSerialization['createdAt'] == null
           ? null
           : _is.DateTimeJsonExtension.fromJson(jsonSerialization['createdAt']),
@@ -97,6 +104,8 @@ abstract class Sponsorship
   _is.UuidValue sponsorAuthUserId;
 
   double amount;
+
+  int amountPaise;
 
   String? message;
 
@@ -118,6 +127,8 @@ abstract class Sponsorship
 
   DateTime? updatedAt;
 
+  String? clientRequestId;
+
   DateTime createdAt;
 
   @override
@@ -131,6 +142,7 @@ abstract class Sponsorship
     int? campaignId,
     _is.UuidValue? sponsorAuthUserId,
     double? amount,
+    int? amountPaise,
     String? message,
     String? paymentProvider,
     String? paymentStatus,
@@ -141,6 +153,7 @@ abstract class Sponsorship
     int? reconcileAttempts,
     DateTime? lastReconciledAt,
     DateTime? updatedAt,
+    String? clientRequestId,
     DateTime? createdAt,
   });
   @override
@@ -151,6 +164,7 @@ abstract class Sponsorship
       'campaignId': campaignId,
       'sponsorAuthUserId': sponsorAuthUserId.toJson(),
       'amount': amount,
+      'amountPaise': amountPaise,
       if (message != null) 'message': message,
       'paymentProvider': paymentProvider,
       'paymentStatus': paymentStatus,
@@ -162,6 +176,7 @@ abstract class Sponsorship
       if (lastReconciledAt != null)
         'lastReconciledAt': lastReconciledAt?.toJson(),
       if (updatedAt != null) 'updatedAt': updatedAt?.toJson(),
+      if (clientRequestId != null) 'clientRequestId': clientRequestId,
       'createdAt': createdAt.toJson(),
     };
   }
@@ -174,6 +189,7 @@ abstract class Sponsorship
       'campaignId': campaignId,
       'sponsorAuthUserId': sponsorAuthUserId.toJson(),
       'amount': amount,
+      'amountPaise': amountPaise,
       if (message != null) 'message': message,
       'paymentProvider': paymentProvider,
       'paymentStatus': paymentStatus,
@@ -185,6 +201,7 @@ abstract class Sponsorship
       if (lastReconciledAt != null)
         'lastReconciledAt': lastReconciledAt?.toJson(),
       if (updatedAt != null) 'updatedAt': updatedAt?.toJson(),
+      if (clientRequestId != null) 'clientRequestId': clientRequestId,
       'createdAt': createdAt.toJson(),
     };
   }
@@ -225,6 +242,7 @@ class _SponsorshipImpl extends Sponsorship {
     required int campaignId,
     required _is.UuidValue sponsorAuthUserId,
     required double amount,
+    int? amountPaise,
     String? message,
     String? paymentProvider,
     String? paymentStatus,
@@ -235,12 +253,14 @@ class _SponsorshipImpl extends Sponsorship {
     int? reconcileAttempts,
     DateTime? lastReconciledAt,
     DateTime? updatedAt,
+    String? clientRequestId,
     DateTime? createdAt,
   }) : super._(
          id: id,
          campaignId: campaignId,
          sponsorAuthUserId: sponsorAuthUserId,
          amount: amount,
+         amountPaise: amountPaise,
          message: message,
          paymentProvider: paymentProvider,
          paymentStatus: paymentStatus,
@@ -251,6 +271,7 @@ class _SponsorshipImpl extends Sponsorship {
          reconcileAttempts: reconcileAttempts,
          lastReconciledAt: lastReconciledAt,
          updatedAt: updatedAt,
+         clientRequestId: clientRequestId,
          createdAt: createdAt,
        );
 
@@ -263,6 +284,7 @@ class _SponsorshipImpl extends Sponsorship {
     int? campaignId,
     _is.UuidValue? sponsorAuthUserId,
     double? amount,
+    int? amountPaise,
     Object? message = _Undefined,
     String? paymentProvider,
     String? paymentStatus,
@@ -273,6 +295,7 @@ class _SponsorshipImpl extends Sponsorship {
     int? reconcileAttempts,
     Object? lastReconciledAt = _Undefined,
     Object? updatedAt = _Undefined,
+    Object? clientRequestId = _Undefined,
     DateTime? createdAt,
   }) {
     return Sponsorship(
@@ -280,6 +303,7 @@ class _SponsorshipImpl extends Sponsorship {
       campaignId: campaignId ?? this.campaignId,
       sponsorAuthUserId: sponsorAuthUserId ?? this.sponsorAuthUserId,
       amount: amount ?? this.amount,
+      amountPaise: amountPaise ?? this.amountPaise,
       message: message is String? ? message : this.message,
       paymentProvider: paymentProvider ?? this.paymentProvider,
       paymentStatus: paymentStatus ?? this.paymentStatus,
@@ -298,6 +322,9 @@ class _SponsorshipImpl extends Sponsorship {
           ? lastReconciledAt
           : this.lastReconciledAt,
       updatedAt: updatedAt is DateTime? ? updatedAt : this.updatedAt,
+      clientRequestId: clientRequestId is String?
+          ? clientRequestId
+          : this.clientRequestId,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -320,6 +347,11 @@ class SponsorshipUpdateTable extends _is.UpdateTable<SponsorshipTable> {
 
   _is.ColumnValue<double, double> amount(double value) => _is.ColumnValue(
     table.amount,
+    value,
+  );
+
+  _is.ColumnValue<int, int> amountPaise(int value) => _is.ColumnValue(
+    table.amountPaise,
     value,
   );
 
@@ -381,6 +413,12 @@ class SponsorshipUpdateTable extends _is.UpdateTable<SponsorshipTable> {
         value,
       );
 
+  _is.ColumnValue<String, String> clientRequestId(String? value) =>
+      _is.ColumnValue(
+        table.clientRequestId,
+        value,
+      );
+
   _is.ColumnValue<DateTime, DateTime> createdAt(DateTime value) =>
       _is.ColumnValue(
         table.createdAt,
@@ -403,6 +441,11 @@ class SponsorshipTable extends _is.Table<int?> {
     amount = _is.ColumnDouble(
       'amount',
       this,
+    );
+    amountPaise = _is.ColumnInt(
+      'amountPaise',
+      this,
+      hasDefault: true,
     );
     message = _is.ColumnString(
       'message',
@@ -447,6 +490,10 @@ class SponsorshipTable extends _is.Table<int?> {
       'updatedAt',
       this,
     );
+    clientRequestId = _is.ColumnString(
+      'clientRequestId',
+      this,
+    );
     createdAt = _is.ColumnDateTime(
       'createdAt',
       this,
@@ -461,6 +508,8 @@ class SponsorshipTable extends _is.Table<int?> {
   late final _is.ColumnUuid sponsorAuthUserId;
 
   late final _is.ColumnDouble amount;
+
+  late final _is.ColumnInt amountPaise;
 
   late final _is.ColumnString message;
 
@@ -482,6 +531,8 @@ class SponsorshipTable extends _is.Table<int?> {
 
   late final _is.ColumnDateTime updatedAt;
 
+  late final _is.ColumnString clientRequestId;
+
   late final _is.ColumnDateTime createdAt;
 
   @override
@@ -490,6 +541,7 @@ class SponsorshipTable extends _is.Table<int?> {
     campaignId,
     sponsorAuthUserId,
     amount,
+    amountPaise,
     message,
     paymentProvider,
     paymentStatus,
@@ -500,6 +552,7 @@ class SponsorshipTable extends _is.Table<int?> {
     reconcileAttempts,
     lastReconciledAt,
     updatedAt,
+    clientRequestId,
     createdAt,
   ];
 }

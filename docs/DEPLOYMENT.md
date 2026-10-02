@@ -66,7 +66,7 @@ configures (`JwtConfigFromPasswords`, `EmailIdpConfigFromPasswords`).
 | `smtpUsername` | Yes | Sender account for verification/password-reset email (`lib/src/auth/verification_email_sender.dart`) and transactional notifications (`NotificationService`) |
 | `smtpAppPassword` | Yes | SMTP app password for that account |
 | `smtpHost`, `smtpPort` | Optional | Notifications only: any STARTTLS provider instead of Gmail (port defaults to 587). Without SMTP passwords notifications are marked `skipped`, never fail the action |
-| `razorpayKeyId` | Yes | Razorpay key ID. Live keys start `rzp_live_`. Payout simulation is refused unless the key starts `rzp_test_` |
+| `razorpayKeyId` | Yes | Razorpay key ID. Live keys start `rzp_live_`. Payout simulation runs only with `rzp_test_` keys; with live keys it answers `payouts_manual` (section 7) |
 | `razorpayKeySecret` | Yes | Razorpay order creation and checkout-signature verification |
 | `razorpayWebhookSecret` | Yes | Verifies `X-Razorpay-Signature` on the web-server route `/webhooks/razorpay` (P0-2) |
 | `geminiApiKey` | One of Gemini/Groq is required (P0-8) | Campaign drafting, evidence summaries, dictation transcription |
@@ -350,10 +350,59 @@ set up SPF, DKIM and DMARC for the sending domain.
    - Secret: a new random value, stored as **`razorpayWebhookSecret`**
    - Events: at least `payment.captured`, `payment.failed`, `order.paid`,
      `refund.processed`, `refund.failed`
-4. Do not go live until P0-1 to P0-4 (web retry, webhook and reconciliation,
-   refunds, expiry refunds) are closed. `TestPayout`/`TestRefund` are simulations only.
+4. P0-1 to P0-4 (web retry, webhook and reconciliation, refunds, expiry
+   refunds) are closed in code. `TestRefund` rows are real Razorpay refunds in
+   live mode (the class name is historical). `TestPayout` rows are a
+   Test Mode simulation only.
 5. In the web build, `index.html` loads `https://checkout.razorpay.com/v1/checkout.js`.
    Allow it in any Content-Security-Policy.
+
+### Money storage (A-4)
+
+All money is stored as integer paise in `*Paise` columns: `Campaign.fundingGoalPaise`,
+`sponsoredAmountPaise` (net of refunds) and `refundedAmountPaise`; `Sponsorship.amountPaise`;
+`TestRefund.amountPaise`; and `TestPayout.amountPaise`. These columns are the source of truth.
+For clients older than this release, the server keeps writing the old rupee `double` fields as
+`paise / 100`. Migration `20261002062415263-money-paise-idempotency` backfills the paise
+columns. It also takes refunds that were processed before this release off their campaign's
+funded amount.
+
+### Payouts: manual settlement in live mode
+
+**Who is paid.** Sponsors pay into a campaign through Razorpay Checkout.
+Once a campaign is `completed`, its verified, non-refunded sponsorships are
+due to the **campaign creator**: the sponsor who organised the campaign
+(`Campaign.createdBy`, `TestPayout.creatorAuthUserId`). That creator runs the
+volunteer event.
+
+**What the code does.** `simulateCampaignTestPayout` writes `TestPayout`
+ledger rows, one per verified sponsorship that has no refund. It runs only with `rzp_test_`
+keys. With live keys it throws `FieldnoteException` code `payouts_manual`
+("Payouts are settled manually by FieldNote operations."). Clients call
+`isPayoutSimulationAvailable()` (false in live mode or without keys) to show
+that message instead of a simulate button. Automated payouts need a RazorpayX
+account (Payouts/Route) with its own KYC and contracts. They are deliberately
+not integrated.
+
+**Manual settlement process (operations):**
+
+1. Each day, list completed campaigns that are due:
+   `SELECT id, name, "createdBy", "sponsoredAmountPaise" FROM fieldnote_campaign WHERE status = 'completed'`
+   (`status` stores the enum name).
+   For each one, sum its `fieldnote_sponsorship` rows with `"paymentStatus" = 'verified'`
+   that have no `fieldnote_test_refund` row. That sum, in paise, is the amount owed.
+2. Check the matching captured payments and settlements in the Razorpay
+   dashboard (Transactions > Payments / Settlements). Razorpay settles
+   captured funds to FieldNote's bank account, net of its fees.
+3. Verify the creator's payee details out of band: bank account or UPI, plus KYC
+   documents as your agreement requires. Never collect them in the app.
+4. Transfer the amount from FieldNote's bank account (NEFT/IMPS/UPI), less any
+   platform fee in the creator agreement, and keep the bank reference.
+5. Record the payout in your accounting ledger with campaign id, sponsorship
+   ids, amount in paise and bank reference, then email the creator. No FieldNote table is
+   written in live mode. Add an operations table before automating this.
+6. Never pay out a campaign that is cancelled or expired, or a sponsorship that has a
+   refund row. Those funds go back to sponsors through the refund worker.
 
 ## 8. Database and storage backups
 
@@ -401,33 +450,103 @@ set up SPF, DKIM and DMARC for the sending domain.
   recognition are in `Info.plist` and must stay accurate.
 - Crash reporting is intentionally not included in this release (R-7 deferred).
 
-## 10. Branding and icons (TODO)
+## 10. Branding and icons
 
-Display names are set to "FieldNote" on Android, iOS and web. Launcher icons
-and the web favicon/PWA icons are still the Flutter template. When final artwork
-exists, add `flutter_launcher_icons` as a **dev** dependency (not added yet) and
-a config like the one below in `fieldnotes_flutter/pubspec.yaml`, then run
-`dart run flutter_launcher_icons`:
+Display names are set to "FieldNote" on Android, iOS and web. The launcher
+icon (a lime map pin holding a field note on brand forest green) is generated
+for Android (legacy + adaptive), iOS, web (favicon, PWA and maskable icons,
+manifest colours) and macOS.
 
-```yaml
-# dev_dependencies:
-#   flutter_launcher_icons: ^0.14.0
-#
-# flutter_launcher_icons:
-#   image_path: "assets/branding/icon.png"          # 1024x1024, no transparency for iOS
-#   android: true
-#   adaptive_icon_background: "#FFFFFF"
-#   adaptive_icon_foreground: "assets/branding/icon_foreground.png"
-#   ios: true
-#   remove_alpha_ios: true
-#   web:
-#     generate: true
-#     image_path: "assets/branding/icon.png"
-#     background_color: "#FFFFFF"
-#     theme_color: "#0175C2"
-```
+- Source artwork: `fieldnotes_flutter/assets/branding/icon.svg`.
+- PNGs (`icon.png` full-bleed 1024px, `icon_foreground.png` transparent
+  adaptive foreground, `icon_macos.png` rounded tile) are rendered from the
+  same geometry by `flutter test tool/render_icon_test.dart` (no SVG tool
+  needed).
+- Config: the `flutter_launcher_icons:` block in `fieldnotes_flutter/pubspec.yaml`
+  (adaptive background `#1D4B3B`, `remove_alpha_ios: true`). Regenerate with
+  `dart run flutter_launcher_icons`.
+- After regenerating, check `ios/Runner.xcodeproj/project.pbxproj`:
+  flutter_launcher_icons 0.14.x rewrites
+  `ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES` to
+  `= AppIcon`; set it back to `YES`.
 
-Also update `web/manifest.json` colours and the launch screens to match the brand.
+Still to do: the native launch/splash screens use the template background.
+
+## 11. Localization and dark mode
+
+The app follows the system theme (`ThemeMode.system`). Colours come from the
+`FieldnoteColorsTheme` extension in `lib/ui/core/fieldnote_theme.dart`
+(`context.fieldnoteColors`); add new colours there with light and dark values
+rather than hardcoding `Colors.white` or `FieldnoteColors.*`. Google Map tiles
+keep Google's default light style, so map overlays (geofence rings, routes,
+legend dots) keep the light brand colours on purpose.
+
+Strings use Flutter gen-l10n (`fieldnotes_flutter/l10n.yaml`, ARB files in
+`lib/l10n/`, generated `AppLocalizations`, accessed via `context.l10n`).
+Supported locales: English (`en`, complete template), Hindi (`hi`) and Tamil
+(`ta`). Material/Cupertino framework strings are translated by Flutter.
+`app_hi.arb` and `app_ta.arb` cover short UI labels only and **need
+native-speaker review before release**; any missing key falls back to English,
+and `build/l10n_untranslated.json` lists them after each build. See
+`lib/l10n/README.md`.
+
+Migrated to ARB so far: sign-in, app shell/navigation, onboarding, Trust
+(consent gate, Trust & safety, account deletion, the data-export screen),
+profile and `lib/ui/core/legal.dart`. Dates and numbers in those files are
+formatted with `intl` in the current locale.
+
+Also migrated: every volunteer screen (`lib/ui/features/volunteer/**`:
+matches, map, invitations, My work, check-in, evidence sheet, availability,
+history, shared campaign links, the area map), the core maps
+(`fieldnote_map.dart`, `location_picker.dart`, `in_app_maps.dart`; route
+step instructions come from Google and stay in Google's language) and the
+data-export record text. Pure volunteer helpers (`participationDisplay`,
+`reviewStateLabel`, `checkInOpensLabel`, `accuracyMessage`,
+`availabilityWindowProblem`, `distanceLabel`) take an optional
+`AppLocalizations` and default to English. `widgets.dart` has no literals of
+its own. Match reasons and integrity reasons are written by the server and
+stay English.
+
+Errors: `lib/ui/core/error_messages.dart` maps every error to a `UserError`
+(kind, server `code`, `retryAfterSeconds`, server text, location issue).
+`userMessageFor(error, {fallback})` keeps returning English for view models
+(which compare it with `sessionExpiredMessage`/`offlineMessage`);
+`userMessageFor(error, fallback: …, context: context)` or
+`UserError.from(error).messageIn(l10n)` word it in the current locale. In
+English the server's text wins; in other locales known codes (`rate_limited`,
+`deletion_blocked_*`, `campaign_*`, `payouts_*`, `invalid_*`,
+`input_too_long`, `client_request_id_reused`, `duplicate_payment_request`,
+`forbidden`, `upload_failed`, location issues, offline, session expired) use
+the `coreError…` keys and unknown codes fall back to the server text.
+`localizeStoredMessage(context, message)` re-words a stored
+`sessionExpiredMessage`/`offlineMessage`.
+
+Data export PDF: labels and dates follow the app locale for English. The
+`pdf` package shapes only Latin and Arabic text, so Hindi and Tamil labels
+would be drawn with misplaced vowel signs and no conjuncts; the PDF
+therefore keeps English labels for `hi`/`ta`, while the on-screen records
+are localized. User-entered text is embedded with Noto Sans Tamil and,
+when bundled, Noto Sans Devanagari (`assets/fonts/NotoSansDevanagari.ttf`,
+SIL OFL 1.1, licence in `NotoSansDevanagari-OFL.txt`). The font is loaded
+optionally and is only included once it is listed under `flutter: assets:`
+in `pubspec.yaml`.
+
+Not yet migrated (follow-up):
+
+| Area | Files |
+| --- | --- |
+| Sponsor | `lib/ui/features/sponsor/sponsor_views.dart` (largest), `campaign_readiness_view.dart`, `campaign_pin_picker.dart`, `campaign_volunteer_reach_view.dart`, `payout_view.dart`, `campaign_map_view.dart`, `sponsor_checkout.dart`, `payment_history_view.dart`, `campaign_post_dialog.dart`, `sponsor_formatting.dart` |
+| View-model messages | `fieldnote_view_model.dart` stores English `userMessageFor(error)` strings (`errorMessage`, `lastError`, `impactErrors`). To localize them, store the `UserError` (or the error) and word it in the view with `messageIn(context.l10n)`; until then views can pass stored text through `localizeStoredMessage`. The `accountDeletionSignInMessage`/`sessionExpiredMessage` notices on the sign-in screen are English for the same reason. |
+| Volunteer leftovers | The saved-area labels `Chosen map area`/`Current GPS area` in `volunteer_views.dart` are stored as the availability `locationLabel` and stay English. `formatMinutes` keeps 24-hour `HH:mm`. |
+| Data export PDF in Hindi/Tamil | Needs a PDF renderer with Indic shaping (see above); labels stay English until then. |
+
+How to migrate a file:
+
+1. Add `import '<relative>/l10n/l10n.dart';` and read `final l10n = context.l10n;` in `build` (or in the helper that has a context).
+2. Move each user-facing literal into `lib/l10n/app_en.arb` with a prefixed key (`sponsor…`, `volunteer…`); use `{placeholders}` for values and ICU `plural` for counts. Never put stored values (sponsor types, interest/skill tags, statuses sent to the server) in ARB; map them to labels instead.
+3. Replace `DateFormat('…')`/`NumberFormat` without a locale with locale-aware ones, e.g. `DateFormat.yMMMd(context.localeTag)`. Keep money formatting in sync with the integer-paise rules in `lib/ui/features/sponsor/sponsor_formatting.dart`.
+4. Run `flutter gen-l10n` (or `flutter pub get`), `flutter analyze` and `flutter test`. Tests that use `find.text` with English keep working because `context.l10n` falls back to English when no delegate is present.
+5. Add translations to `app_hi.arb` / `app_ta.arb` only when they have been reviewed.
 
 ---
 
@@ -445,7 +564,10 @@ Also update `web/manifest.json` colours and the launch screens to match the bran
 - [ ] Redis enabled for multi-instance deployments
 - [ ] SMTP sender verified (SPF/DKIM/DMARC); codes not logged
 - [ ] Razorpay live keys, webhook URL `/webhooks/razorpay` and `razorpayWebhookSecret` configured; P0-1 to P0-4 closed
+- [ ] Manual creator-payout process (section 7, "Payouts") owned by operations; app shows "Payouts are settled manually" when `isPayoutSimulationAvailable()` is false
+- [ ] Migration `20261002062415263-money-paise-idempotency` reviewed: it **drops** six unused tables (`fieldnote_asset`, `fieldnote_observation`, `fieldnote_observation_media`, `fieldnote_follow_up_task`, `fieldnote_organization_member`, `fieldnote_review_decision`); back up first
 - [ ] Database backups and PITR on; restore rehearsed
 - [ ] Account deletion exercised end to end on staging (P0-6); Play web deletion URL published
 - [ ] SMTP verified for notifications (send a test cancel on staging)
-- [ ] Final icons generated
+- [x] Launcher icons generated (section 10)
+- [ ] Hindi and Tamil strings reviewed by native speakers; sponsor/volunteer screens localized (section 11)

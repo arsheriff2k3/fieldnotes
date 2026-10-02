@@ -91,20 +91,21 @@ class _FieldnoteNoticeState extends State<_FieldnoteNotice>
 
   @override
   Widget build(BuildContext context) {
+    final c = context.fieldnoteColors;
     final (color, background, icon) = switch (widget.kind) {
       FieldnoteNoticeKind.success => (
-        FieldnoteColors.forest,
-        const Color(0xFFF1F8F3),
+        c.forest,
+        c.successSurface,
         Icons.check_circle_rounded,
       ),
       FieldnoteNoticeKind.error => (
-        const Color(0xFF9D352F),
-        const Color(0xFFFFF1EF),
+        c.errorAccent,
+        c.errorSurface,
         Icons.error_rounded,
       ),
       FieldnoteNoticeKind.info => (
-        FieldnoteColors.ink,
-        const Color(0xFFF4F1E8),
+        c.ink,
+        c.infoSurface,
         Icons.info_rounded,
       ),
     };
@@ -143,7 +144,7 @@ class _FieldnoteNoticeState extends State<_FieldnoteNotice>
                         border: Border.all(color: color.withValues(alpha: .2)),
                         boxShadow: [
                           BoxShadow(
-                            color: FieldnoteColors.ink.withValues(alpha: .18),
+                            color: c.shadow.withValues(alpha: .18),
                             blurRadius: 28,
                             offset: const Offset(0, 12),
                           ),
@@ -184,7 +185,7 @@ class _FieldnoteNoticeState extends State<_FieldnoteNotice>
                                     widget.message,
                                     style: Theme.of(context).textTheme.bodySmall
                                         ?.copyWith(
-                                          color: FieldnoteColors.ink,
+                                          color: c.ink,
                                           height: 1.35,
                                         ),
                                   ),
@@ -192,7 +193,9 @@ class _FieldnoteNoticeState extends State<_FieldnoteNotice>
                               ),
                             ),
                             IconButton(
-                              tooltip: 'Dismiss',
+                              tooltip: MaterialLocalizations.of(
+                                context,
+                              ).closeButtonTooltip,
                               onPressed: _dismiss,
                               visualDensity: VisualDensity.compact,
                               icon: Icon(Icons.close, color: color, size: 20),
@@ -249,12 +252,13 @@ class FieldnoteSectionTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.fieldnoteColors;
     return Padding(
       padding: EdgeInsets.symmetric(
         horizontal: FieldnoteSpacing.pageGutter(context),
       ),
       child: Material(
-        color: FieldnoteColors.mist,
+        color: c.mist,
         borderRadius: BorderRadius.circular(compact ? 14 : 18),
         clipBehavior: Clip.antiAlias,
         child: TabBar(
@@ -262,12 +266,12 @@ class FieldnoteSectionTabs extends StatelessWidget {
           indicatorSize: TabBarIndicatorSize.tab,
           indicatorPadding: const EdgeInsets.all(3),
           indicator: BoxDecoration(
-            color: FieldnoteColors.forest,
+            color: c.forestFill,
             borderRadius: BorderRadius.circular(compact ? 11 : 15),
           ),
           dividerColor: Colors.transparent,
-          labelColor: Colors.white,
-          unselectedLabelColor: FieldnoteColors.ink,
+          labelColor: c.onFill,
+          unselectedLabelColor: c.ink,
           labelStyle: const TextStyle(
             fontSize: 12,
             height: 1,
@@ -422,14 +426,15 @@ class SurfaceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.fieldnoteColors;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: color ?? FieldnoteColors.paper,
+        color: color ?? c.paper,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: FieldnoteColors.ink.withValues(alpha: .08)),
+        border: Border.all(color: c.ink.withValues(alpha: .08)),
         boxShadow: [
           BoxShadow(
-            color: FieldnoteColors.ink.withValues(alpha: .05),
+            color: c.shadow.withValues(alpha: .05),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -467,7 +472,7 @@ class SectionHeading extends StatelessWidget {
         Text(
           eyebrow.toUpperCase(),
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: FieldnoteColors.clay,
+            color: context.fieldnoteColors.clay,
             fontWeight: FontWeight.w900,
             letterSpacing: 1.4,
           ),
@@ -519,6 +524,9 @@ class StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Callers pass light brand constants (often from pure helpers); map them
+    // to the active brightness here.
+    final color = context.fieldnoteColors.adapt(this.color);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -566,7 +574,7 @@ class EmptyPanel extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 34, color: FieldnoteColors.moss),
+              Icon(icon, size: 34, color: context.fieldnoteColors.moss),
               const SizedBox(height: 14),
               Text(title, style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 6),

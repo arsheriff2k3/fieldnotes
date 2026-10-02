@@ -5,6 +5,7 @@ import 'package:serverpod_auth_idp_server/providers/email.dart';
 import 'package:serverpod_cloud_storage/serverpod_cloud_storage.dart';
 
 import 'src/cache_busting.dart';
+import 'src/fieldnotes/services/fieldnote_time.dart';
 import 'src/auth/verification_email_sender.dart';
 import 'src/generated/serverpod.dart';
 import 'src/web/routes/app_config_route.dart';
@@ -14,6 +15,9 @@ import 'src/web/routes/well_known_routes.dart';
 
 /// The starting point of the Serverpod server.
 void run(List<String> args) async {
+  // Load the IANA tz database once for DST-aware volunteer times.
+  FieldnoteTime.ensureInitialized();
+
   // Initialize Serverpod. The generated Serverpod class is already connected
   // with your project's generated code.
   final pod = Serverpod(args);

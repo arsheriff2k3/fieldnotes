@@ -1,14 +1,18 @@
+import 'dart:math' as math;
+
 import 'package:fieldnotes_client/fieldnotes_client.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../l10n/l10n.dart';
+import '../../core/error_messages.dart';
 import '../../core/fieldnote_theme.dart';
 
 /// Client copies of the server's campaign bounds (`campaign_validation.dart`)
 /// so a sponsor sees the problem before a round trip.
 abstract final class CampaignLimits {
-  static const minimumGoal = 100.0;
-  static const maximumGoal = 1000000.0;
+  static const minimumGoalPaise = 10000;
+  static const maximumGoalPaise = 100000000;
   static const minimumDurationMinutes = 15;
   static const maximumDurationMinutes = 1440;
   static const minimumCapacity = 1;
@@ -29,16 +33,82 @@ abstract final class CampaignLimits {
   static const reviewNoteMax = 1000;
 }
 
-/// Parses a rupee amount typed by a person: "25,000", "25 000", "₹25000.50".
-/// Returns null for anything that is not a plain non-negative number with at
-/// most two decimals.
-double? parseRupees(String input) {
+/// English strings for helpers called without a [BuildContext] (tests and
+/// pure functions); views pass `context.l10n`.
+AppLocalizations get _english => lookupAppLocalizations(const Locale('en'));
+
+// ---------------------------------------------------------------------------
+// Money. Integer paise are the source of truth (server `money.dart`). Rupee
+// doubles are only read as a fallback for rows written before paise existed,
+// and only ever for display; never do arithmetic on them.
+
+/// Paise for a legacy rupee value.
+int rupeesToPaise(double rupees) =>
+    rupees.isFinite ? (rupees * 100).round() : 0;
+
+/// [paise] when set, else the legacy rupee [fallbackRupees] in paise.
+int paiseOr(int? paise, double? fallbackRupees) {
+  if (paise != null && paise != 0) return paise;
+  return fallbackRupees == null ? 0 : rupeesToPaise(fallbackRupees);
+}
+
+int campaignGoalPaise(Campaign campaign) =>
+    paiseOr(campaign.fundingGoalPaise, campaign.fundingGoal);
+
+/// Funded amount net of refunds.
+int campaignSponsoredPaise(Campaign campaign) =>
+    paiseOr(campaign.sponsoredAmountPaise, campaign.sponsoredAmount);
+
+int campaignRefundedPaise(Campaign campaign) => campaign.refundedAmountPaise;
+
+/// What is still needed to reach the goal (never negative).
+int campaignRemainingPaise(Campaign campaign) => math.max(
+  0,
+  campaignGoalPaise(campaign) - campaignSponsoredPaise(campaign),
+);
+
+/// Funded share of the goal in 0..1.
+double campaignFundingProgress(Campaign campaign) => fundingProgress(
+  campaignSponsoredPaise(campaign),
+  campaignGoalPaise(campaign),
+);
+
+double fundingProgress(int fundedPaise, int goalPaise) =>
+    goalPaise <= 0 ? 0 : (fundedPaise / goalPaise).clamp(0.0, 1.0).toDouble();
+
+int proposalGoalPaise(CampaignProposal proposal) =>
+    paiseOr(proposal.fundingGoalPaise, proposal.fundingGoal);
+
+int sponsorshipPaise(Sponsorship sponsorship) =>
+    paiseOr(sponsorship.amountPaise, sponsorship.amount);
+
+int refundPaise(TestRefund refund) =>
+    paiseOr(refund.amountPaise, refund.amount);
+
+int payoutPaise(TestPayout payout) =>
+    paiseOr(payout.amountPaise, payout.amount);
+
+int impactSponsoredPaise(ImpactSummary impact) =>
+    paiseOr(impact.sponsorshipTotalPaise, impact.sponsorshipTotal);
+
+int impactGoalPaise(ImpactSummary impact) =>
+    paiseOr(impact.fundingGoalPaise, impact.fundingGoal);
+
+/// Parses a rupee amount typed by a person ("25,000", "25 000",
+/// "₹25000.50", "Rs. 500") into exact integer paise, without going through a
+/// double. Returns null for anything that is not a plain non-negative number
+/// with at most two decimals.
+int? parseRupeesToPaise(String input) {
   final cleaned = input
       .replaceAll(RegExp(r'[\s,_₹]'), '')
       .replaceFirst(RegExp(r'^(rs\.?|inr)', caseSensitive: false), '');
-  if (!RegExp(r'^\d+(\.\d{1,2})?$').hasMatch(cleaned)) return null;
-  final value = double.tryParse(cleaned);
-  return value == null || !value.isFinite ? null : value;
+  final match = RegExp(r'^(\d+)(?:\.(\d{1,2}))?$').firstMatch(cleaned);
+  if (match == null) return null;
+  final whole = match.group(1)!;
+  // Anything this long is far beyond the goal bounds; avoid int overflow.
+  if (whole.length > 15) return null;
+  final fraction = (match.group(2) ?? '').padRight(2, '0');
+  return int.parse(whole) * 100 + int.parse(fraction);
 }
 
 /// Parses a whole number that may contain grouping commas or spaces.
@@ -48,11 +118,46 @@ int? parseWholeNumber(String input) {
   return int.tryParse(cleaned);
 }
 
-String formatRupees(double amount) => NumberFormat.currency(
-  locale: 'en_IN',
-  symbol: '₹',
-  decimalDigits: amount == amount.roundToDouble() ? 0 : 2,
-).format(amount);
+/// The `intl` locale for rupee amounts: Indian digit grouping
+/// (12,34,567) in English, Hindi and Tamil.
+String moneyLocale(String? localeTag) {
+  final language = (localeTag ?? 'en').split(RegExp('[-_]')).first;
+  return switch (language) {
+    'hi' => 'hi',
+    'ta' => 'ta',
+    _ => 'en_IN',
+  };
+}
+
+/// "₹25,000" or "₹1,250.50", with Indian grouping in [localeTag].
+String formatPaise(int paise, {String? localeTag}) {
+  final whole = paise % 100 == 0;
+  return NumberFormat.currency(
+    locale: moneyLocale(localeTag),
+    symbol: '₹',
+    decimalDigits: whole ? 0 : 2,
+  ).format(whole ? paise ~/ 100 : paise / 100);
+}
+
+/// Short form for cards: "₹25K", "₹2.5L" ("₹25 हज़ार" in Hindi).
+String formatPaiseCompact(int paise, {String? localeTag}) =>
+    NumberFormat.compactCurrency(
+      locale: moneyLocale(localeTag),
+      symbol: '₹',
+      decimalDigits: paise % 100000 == 0 ? 0 : 1,
+    ).format(paise / 100);
+
+/// The amount as a plain number for an editable field ("25000",
+/// "1250.50"), without grouping so it parses back exactly.
+String paiseInputText(int paise) => paise % 100 == 0
+    ? '${paise ~/ 100}'
+    : '${paise ~/ 100}.${(paise % 100).toString().padLeft(2, '0')}';
+
+String _goalRange(AppLocalizations l10n, String? localeTag) =>
+    l10n.sponsorGoalRange(
+      formatPaise(CampaignLimits.minimumGoalPaise, localeTag: localeTag),
+      formatPaise(CampaignLimits.maximumGoalPaise, localeTag: localeTag),
+    );
 
 /// Field keys used by [validateCampaignForm].
 abstract final class CampaignField {
@@ -85,68 +190,79 @@ Map<String, String> validateCampaignForm({
   required List<String> tags,
   required String evidence,
   DateTime? now,
+  AppLocalizations? l10n,
+  String? localeTag,
 }) {
+  final strings = l10n ?? _english;
   final errors = <String, String>{};
   final t = title.trim();
   final d = description.trim();
   if (t.length < CampaignLimits.titleMin ||
       t.length > CampaignLimits.titleMax) {
-    errors[CampaignField.title] =
-        'Use ${CampaignLimits.titleMin}–${CampaignLimits.titleMax} characters.';
+    errors[CampaignField.title] = strings.sponsorValidationTitle(
+      CampaignLimits.titleMin,
+      CampaignLimits.titleMax,
+    );
   }
   if (d.length < CampaignLimits.descriptionMin ||
       d.length > CampaignLimits.descriptionMax) {
-    errors[CampaignField.description] =
-        'Describe the work in ${CampaignLimits.descriptionMin}–'
-        '${CampaignLimits.descriptionMax} characters.';
+    errors[CampaignField.description] = strings.sponsorValidationDescription(
+      CampaignLimits.descriptionMin,
+      CampaignLimits.descriptionMax,
+    );
   }
   if (locationName.trim().isEmpty) {
-    errors[CampaignField.location] = 'Name the location.';
+    errors[CampaignField.location] = strings.sponsorValidationLocation;
   }
   if (!startsAt.isAfter(now ?? DateTime.now())) {
-    errors[CampaignField.startsAt] =
-        'This time has passed. Choose a start date and time in the future.';
+    errors[CampaignField.startsAt] = strings.sponsorValidationStartsAt;
   }
   final minutes = parseWholeNumber(duration);
   if (minutes == null ||
       minutes < CampaignLimits.minimumDurationMinutes ||
       minutes > CampaignLimits.maximumDurationMinutes) {
-    errors[CampaignField.duration] =
-        '${CampaignLimits.minimumDurationMinutes}–'
-        '${CampaignLimits.maximumDurationMinutes} minutes.';
+    errors[CampaignField.duration] = strings.sponsorValidationDuration(
+      CampaignLimits.minimumDurationMinutes,
+      CampaignLimits.maximumDurationMinutes,
+    );
   }
   final places = parseWholeNumber(capacity);
   if (places == null ||
       places < CampaignLimits.minimumCapacity ||
       places > CampaignLimits.maximumCapacity) {
-    errors[CampaignField.capacity] =
-        '${CampaignLimits.minimumCapacity}–${CampaignLimits.maximumCapacity} places.';
+    errors[CampaignField.capacity] = strings.sponsorValidationCapacity(
+      CampaignLimits.minimumCapacity,
+      CampaignLimits.maximumCapacity,
+    );
   }
   final team = parseWholeNumber(minimum);
   if (team == null || team < 1 || (places != null && team > places)) {
-    errors[CampaignField.minimum] = 'Between 1 and the volunteer places.';
+    errors[CampaignField.minimum] = strings.sponsorValidationMinimum;
   }
-  final goal = parseRupees(funding);
+  final goal = parseRupeesToPaise(funding);
   if (goal == null ||
-      goal < CampaignLimits.minimumGoal ||
-      goal > CampaignLimits.maximumGoal) {
-    errors[CampaignField.funding] = '₹100 to ₹10,00,000.';
+      goal < CampaignLimits.minimumGoalPaise ||
+      goal > CampaignLimits.maximumGoalPaise) {
+    errors[CampaignField.funding] = _goalRange(strings, localeTag);
   }
   if (checklist.isEmpty) {
-    errors[CampaignField.checklist] = 'Add at least one checklist task.';
+    errors[CampaignField.checklist] = strings.sponsorValidationChecklist;
   }
   final evidenceText = evidence.trim();
   if (evidenceText.length < 10 ||
       evidenceText.length > CampaignLimits.descriptionMax) {
-    errors[CampaignField.evidence] =
-        'Describe the evidence volunteers submit (10–4000 characters).';
+    errors[CampaignField.evidence] = strings.sponsorValidationEvidence(
+      10,
+      CampaignLimits.descriptionMax,
+    );
   }
   for (final list in [checklist, skills, tags]) {
     if (list.length > CampaignLimits.listMaxItems ||
         list.any((item) => item.length > CampaignLimits.listItemMaxLength)) {
-      errors[CampaignField.lists] =
-          'Keep checklists, skills and tags to ${CampaignLimits.listMaxItems} '
-          'items of up to ${CampaignLimits.listItemMaxLength} characters.';
+      errors[CampaignField.lists] = strings.sponsorValidationLists(
+        CampaignLimits.listMaxItems,
+        CampaignLimits.listItemMaxLength,
+      );
       break;
     }
   }
@@ -159,24 +275,55 @@ String? validateScopeRevision({
   required String minimum,
   required String description,
   required int volunteerCapacity,
+  AppLocalizations? l10n,
+  String? localeTag,
 }) {
-  final amount = parseRupees(goal);
+  final strings = l10n ?? _english;
+  final amount = parseRupeesToPaise(goal);
   if (amount == null ||
-      amount < CampaignLimits.minimumGoal ||
-      amount > CampaignLimits.maximumGoal) {
-    return 'Choose a funding goal between ₹100 and ₹10,00,000.';
+      amount < CampaignLimits.minimumGoalPaise ||
+      amount > CampaignLimits.maximumGoalPaise) {
+    return strings.sponsorValidationScopeGoal(_goalRange(strings, localeTag));
   }
   final team = parseWholeNumber(minimum);
   if (team == null || team < 1 || team > volunteerCapacity) {
-    return 'Choose a minimum team between 1 and $volunteerCapacity.';
+    return strings.sponsorValidationScopeMinimum(volunteerCapacity);
   }
   final length = description.trim().length;
   if (length < CampaignLimits.scopeNoteMin ||
       length > CampaignLimits.scopeNoteMax) {
-    return 'Describe the revised work in ${CampaignLimits.scopeNoteMin}–'
-        '${CampaignLimits.scopeNoteMax} characters.';
+    return strings.sponsorValidationScopeDescription(
+      CampaignLimits.scopeNoteMin,
+      CampaignLimits.scopeNoteMax,
+    );
   }
   return null;
+}
+
+/// Sponsor-specific messages for idempotency and payout codes; everything
+/// else goes through the shared [userMessageFor].
+///
+/// Pass [context] to word the shared messages in the current locale too.
+String sponsorErrorMessage(
+  Object error, {
+  AppLocalizations? l10n,
+  String? fallback,
+  BuildContext? context,
+}) {
+  final strings = l10n ?? context?.l10n ?? _english;
+  if (error is FieldnoteException) {
+    switch (error.code) {
+      case 'payouts_manual':
+        return strings.sponsorPayoutsManual;
+      case 'client_request_id_reused':
+        return strings.sponsorErrorRequestReused;
+      case 'invalid_client_request_id':
+        return strings.sponsorErrorRequestInvalid;
+      case 'duplicate_payment_request':
+        return strings.sponsorErrorDuplicatePayment;
+    }
+  }
+  return userMessageFor(error, fallback: fallback, context: context);
 }
 
 /// Where a campaign is in its life, as a sponsor sees it.
@@ -234,136 +381,153 @@ bool campaignIsEditable(Campaign campaign, {DateTime? now}) {
 
 typedef StatusStyle = ({String label, Color color, IconData icon});
 
-StatusStyle campaignPhaseStyle(CampaignPhase phase) => switch (phase) {
-  CampaignPhase.draft => (
-    label: 'Draft',
-    color: FieldnoteColors.clay,
-    icon: Icons.edit_note,
-  ),
-  CampaignPhase.planning => (
-    label: 'Planning',
-    color: FieldnoteColors.moss,
-    icon: Icons.circle,
-  ),
-  CampaignPhase.needsDecision => (
-    label: 'Needs a decision',
-    color: FieldnoteColors.clay,
-    icon: Icons.error_outline,
-  ),
-  CampaignPhase.postponed => (
-    label: 'Postponed',
-    color: FieldnoteColors.clay,
-    icon: Icons.event_repeat_outlined,
-  ),
-  CampaignPhase.confirmed => (
-    label: 'Confirmed',
-    color: FieldnoteColors.forest,
-    icon: Icons.verified_outlined,
-  ),
-  CampaignPhase.inProgress => (
-    label: 'In progress',
-    color: FieldnoteColors.forest,
-    icon: Icons.directions_run,
-  ),
-  CampaignPhase.completed => (
-    label: 'Completed',
-    color: FieldnoteColors.forest,
-    icon: Icons.task_alt,
-  ),
-  CampaignPhase.cancelled => (
-    label: 'Cancelled',
-    color: FieldnoteColors.danger,
-    icon: Icons.cancel_outlined,
-  ),
-  CampaignPhase.expired => (
-    label: 'Expired',
-    color: FieldnoteColors.danger,
-    icon: Icons.event_busy_outlined,
-  ),
-};
+StatusStyle campaignPhaseStyle(CampaignPhase phase, {AppLocalizations? l10n}) {
+  final l = l10n ?? _english;
+  return switch (phase) {
+    CampaignPhase.draft => (
+      label: l.sponsorPhaseDraft,
+      color: FieldnoteColors.clay,
+      icon: Icons.edit_note,
+    ),
+    CampaignPhase.planning => (
+      label: l.sponsorPhasePlanning,
+      color: FieldnoteColors.moss,
+      icon: Icons.circle,
+    ),
+    CampaignPhase.needsDecision => (
+      label: l.sponsorPhaseNeedsDecision,
+      color: FieldnoteColors.clay,
+      icon: Icons.error_outline,
+    ),
+    CampaignPhase.postponed => (
+      label: l.sponsorPhasePostponed,
+      color: FieldnoteColors.clay,
+      icon: Icons.event_repeat_outlined,
+    ),
+    CampaignPhase.confirmed => (
+      label: l.sponsorPhaseConfirmed,
+      color: FieldnoteColors.forest,
+      icon: Icons.verified_outlined,
+    ),
+    CampaignPhase.inProgress => (
+      label: l.sponsorPhaseInProgress,
+      color: FieldnoteColors.forest,
+      icon: Icons.directions_run,
+    ),
+    CampaignPhase.completed => (
+      label: l.sponsorPhaseCompleted,
+      color: FieldnoteColors.forest,
+      icon: Icons.task_alt,
+    ),
+    CampaignPhase.cancelled => (
+      label: l.sponsorPhaseCancelled,
+      color: FieldnoteColors.danger,
+      icon: Icons.cancel_outlined,
+    ),
+    CampaignPhase.expired => (
+      label: l.sponsorPhaseExpired,
+      color: FieldnoteColors.danger,
+      icon: Icons.event_busy_outlined,
+    ),
+  };
+}
 
 /// Status chip for one payment-history row. A refund, when present, wins
 /// because it is the most recent thing that happened to the money.
-StatusStyle paymentStatusStyle(String paymentStatus, {TestRefund? refund}) {
-  if (refund != null) return refundStatusStyle(refund.status);
+StatusStyle paymentStatusStyle(
+  String paymentStatus, {
+  TestRefund? refund,
+  AppLocalizations? l10n,
+}) {
+  if (refund != null) return refundStatusStyle(refund.status, l10n: l10n);
+  final l = l10n ?? _english;
   return switch (paymentStatus) {
     'verified' => (
-      label: 'Verified',
+      label: l.sponsorPaymentVerified,
       color: FieldnoteColors.forest,
       icon: Icons.verified_outlined,
     ),
     'verified_uncredited' => (
-      label: 'Refund queued',
+      label: l.sponsorPaymentRefundQueued,
       color: FieldnoteColors.clay,
       icon: Icons.undo,
     ),
     'failed' || 'verification_failed' => (
-      label: 'Failed',
+      label: l.sponsorPaymentFailed,
       color: FieldnoteColors.danger,
       icon: Icons.error_outline,
     ),
     'expired' => (
-      label: 'Not completed',
+      label: l.sponsorPaymentNotCompleted,
       color: FieldnoteColors.moss,
       icon: Icons.timer_off_outlined,
     ),
     _ => (
-      label: 'Pending',
+      label: l.sponsorPaymentPending,
       color: FieldnoteColors.clay,
       icon: Icons.hourglass_empty,
     ),
   };
 }
 
-StatusStyle refundStatusStyle(String status) => switch (status) {
-  'processed' => (
-    label: 'Refunded',
-    color: FieldnoteColors.forest,
-    icon: Icons.check_circle_outline,
-  ),
-  'processing' => (
-    label: 'Refund processing',
-    color: FieldnoteColors.clay,
-    icon: Icons.sync,
-  ),
-  'failed' => (
-    label: 'Refund failed',
-    color: FieldnoteColors.danger,
-    icon: Icons.error_outline,
-  ),
-  _ => (
-    label: 'Refund pending',
-    color: FieldnoteColors.clay,
-    icon: Icons.hourglass_empty,
-  ),
-};
+StatusStyle refundStatusStyle(String status, {AppLocalizations? l10n}) {
+  final l = l10n ?? _english;
+  return switch (status) {
+    'processed' => (
+      label: l.sponsorRefundProcessed,
+      color: FieldnoteColors.forest,
+      icon: Icons.check_circle_outline,
+    ),
+    'processing' => (
+      label: l.sponsorRefundProcessing,
+      color: FieldnoteColors.clay,
+      icon: Icons.sync,
+    ),
+    'failed' => (
+      label: l.sponsorRefundFailed,
+      color: FieldnoteColors.danger,
+      icon: Icons.error_outline,
+    ),
+    _ => (
+      label: l.sponsorRefundPending,
+      color: FieldnoteColors.clay,
+      icon: Icons.hourglass_empty,
+    ),
+  };
+}
 
-String refundReasonLabel(String reason) => switch (reason) {
-  'campaign_cancelled' => 'Campaign cancelled',
-  'campaign_expired' => 'Campaign expired',
-  'uncredited' => 'Payment could not be credited',
-  _ => reason,
-};
+String refundReasonLabel(String reason, {AppLocalizations? l10n}) {
+  final l = l10n ?? _english;
+  return switch (reason) {
+    'campaign_cancelled' => l.sponsorRefundReasonCancelled,
+    'campaign_expired' => l.sponsorRefundReasonExpired,
+    'uncredited' => l.sponsorRefundReasonUncredited,
+    _ => reason,
+  };
+}
 
-StatusStyle reviewStateStyle(ReviewState state) => switch (state) {
-  ReviewState.approved => (
-    label: 'Approved',
-    color: FieldnoteColors.forest,
-    icon: Icons.thumb_up_alt_outlined,
-  ),
-  ReviewState.rejected => (
-    label: 'Rejected',
-    color: FieldnoteColors.danger,
-    icon: Icons.thumb_down_alt_outlined,
-  ),
-  ReviewState.changesRequested => (
-    label: 'Changes requested',
-    color: FieldnoteColors.clay,
-    icon: Icons.edit_note,
-  ),
-  ReviewState.awaitingReview => (
-    label: 'Awaiting review',
-    color: FieldnoteColors.clay,
-    icon: Icons.rate_review_outlined,
-  ),
-};
+StatusStyle reviewStateStyle(ReviewState state, {AppLocalizations? l10n}) {
+  final l = l10n ?? _english;
+  return switch (state) {
+    ReviewState.approved => (
+      label: l.sponsorReviewApproved,
+      color: FieldnoteColors.forest,
+      icon: Icons.thumb_up_alt_outlined,
+    ),
+    ReviewState.rejected => (
+      label: l.sponsorReviewRejected,
+      color: FieldnoteColors.danger,
+      icon: Icons.thumb_down_alt_outlined,
+    ),
+    ReviewState.changesRequested => (
+      label: l.sponsorReviewChangesRequested,
+      color: FieldnoteColors.clay,
+      icon: Icons.edit_note,
+    ),
+    ReviewState.awaitingReview => (
+      label: l.sponsorReviewAwaiting,
+      color: FieldnoteColors.clay,
+      icon: Icons.rate_review_outlined,
+    ),
+  };
+}

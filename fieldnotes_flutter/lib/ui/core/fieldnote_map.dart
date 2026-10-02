@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../data/services/map_config_service.dart';
+import '../../l10n/l10n.dart';
 import 'fieldnote_theme.dart';
 
 export 'package:google_maps_flutter/google_maps_flutter.dart'
@@ -181,7 +182,7 @@ class _FieldnoteMapState extends State<FieldnoteMap> {
           TextButton.icon(
             onPressed: () => setState(() => _showFallback = false),
             icon: const Icon(Icons.refresh),
-            label: const Text('Retry map'),
+            label: Text(context.l10n.coreMapRetry),
           ),
         ],
       );
@@ -247,7 +248,7 @@ class _FieldnoteMapState extends State<FieldnoteMap> {
                 color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(12),
                 child: IconButton(
-                  tooltip: 'Map not loading? Show location details',
+                  tooltip: context.l10n.coreMapShowDetails,
                   onPressed: () => setState(() {
                     _controller = null;
                     _showFallback = true;
@@ -271,22 +272,22 @@ class MapUnavailableNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.fieldnoteColors;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
       decoration: BoxDecoration(
-        color: FieldnoteColors.mist.withValues(alpha: .45),
+        color: c.mapFallback.withValues(alpha: c.isDark ? 1 : .45),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: FieldnoteColors.ink.withValues(alpha: .08)),
+        border: Border.all(color: c.ink.withValues(alpha: .08)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.map_outlined, color: FieldnoteColors.moss),
+          Icon(Icons.map_outlined, color: c.moss),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              message ??
-                  'Map preview is unavailable. Location details are still shown below.',
+              message ?? context.l10n.coreMapUnavailable,
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),

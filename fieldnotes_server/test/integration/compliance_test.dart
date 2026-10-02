@@ -138,7 +138,8 @@ void main() {
         longitude,
         'Pune area',
         utcOffsetMinutes: utcOffsetMinutes,
-        timezone: utcOffsetMinutes == null ? null : 'Asia/Kolkata',
+        // The IANA zone wins over the offset, so only send it when they agree.
+        timezone: utcOffsetMinutes == 330 ? 'Asia/Kolkata' : null,
       );
       await endpoints.fieldnote.acceptLegalConsent(account, true, true, true);
       return profile;
@@ -734,6 +735,89 @@ void main() {
         await const NotificationService().deliverDue(session);
         expect(mailer.sent, hasLength(1));
       });
+
+      test('email times use each volunteer\'s own time zone', () async {
+        // Saturday 2026-07-04 12:00 UTC: 08:00 EDT, 17:30 IST.
+        final published = await publish();
+        final campaign = await Campaign.db.updateRow(
+          sessionBuilder.build(),
+          published.copyWith(startsAt: DateTime.utc(2026, 7, 4, 12)),
+        );
+        final ny = as('770e8400-e29b-41d4-a716-446655440041');
+        final ist = as('770e8400-e29b-41d4-a716-446655440042');
+        await volunteerProfile(ny, name: 'Nia Volunteer');
+        await volunteerProfile(ist, name: 'Isha Volunteer');
+        await endpoints.fieldnote.updateAvailability(
+          ny,
+          true,
+          false,
+          [1, 2, 3, 4, 5, 6, 7],
+          0,
+          1440,
+          10,
+          _siteLatitude,
+          _siteLongitude,
+          'Pune area',
+          timezone: 'America/New_York',
+          utcOffsetMinutes: -300,
+        );
+        final session = sessionBuilder.build();
+        for (final account in [ny, ist]) {
+          final id = (await endpoints.fieldnote.getMyProfile(
+            account,
+          ))!.authUserId;
+          await CampaignParticipation.db.insertRow(
+            session,
+            CampaignParticipation(
+              campaignId: campaign.id!,
+              volunteerAuthUserId: id,
+              status: ParticipationStatus.joined,
+            ),
+          );
+        }
+        await const NotificationService().campaignChanged(
+          session,
+          campaign,
+          NotificationKind.campaignConfirmed,
+        );
+        final rows = await NotificationOutbox.db.find(
+          session,
+          orderBy: (t) => t.id,
+        );
+        expect(rows, hasLength(2));
+        expect(rows[0].bodyText, contains('2026-07-04 08:00 EDT'));
+        expect(rows[1].bodyText, contains('2026-07-04 17:30 IST'));
+      });
+
+      test(
+        'availability accepts IANA zones and ignores abbreviations',
+        () async {
+          final account = as('770e8400-e29b-41d4-a716-446655440043');
+          await volunteerProfile(account);
+          Future<VolunteerAvailability> save(String? zone) =>
+              endpoints.fieldnote.updateAvailability(
+                account,
+                true,
+                false,
+                [6],
+                480,
+                720,
+                10,
+                _siteLatitude,
+                _siteLongitude,
+                'Pune area',
+                timezone: zone,
+                utcOffsetMinutes: -300,
+              );
+          expect((await save('America/New_York')).timezone, 'America/New_York');
+          // An old client's abbreviation keeps the saved zone.
+          expect((await save('EDT')).timezone, 'America/New_York');
+          await expectLater(
+            save('Mars/Olympus_Mons'),
+            _throwsCode('invalid_timezone'),
+          );
+        },
+      );
 
       test('opt-out and missing SMTP skip without failing', () async {
         final userId = await authUser('opt@example.com');

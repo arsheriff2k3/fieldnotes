@@ -59,6 +59,7 @@ fieldnote:
   - verifyRazorpayPayment:
   - recordRazorpayFailure:
   - listMySponsorships:
+  - isPayoutSimulationAvailable:
   - listCampaignTestPayouts:
   - simulateCampaignTestPayout:
   - getCampaignMatches:

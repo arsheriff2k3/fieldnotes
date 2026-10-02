@@ -15,19 +15,40 @@ abstract final class CampaignValidation {
   static const listItemMaxLength = 200;
   static const listMaxItems = 20;
 
+  static const minimumGoalPaise = 10000;
+  static const maximumGoalPaise = Money.maximumPaise;
+
   static void fundingGoal(double goal) {
-    if (!goal.isFinite || goal < minimumGoal || goal > maximumGoal) {
-      _fail(
-        'Choose a funding goal between ₹${minimumGoal.toStringAsFixed(0)} and ₹10,00,000.',
-        'invalid_funding_goal',
-      );
-    }
+    if (!goal.isFinite) _invalidGoal();
+    fundingGoalPaise(Money.toPaise(goal));
   }
+
+  /// Validates a goal in paise and returns it.
+  static int fundingGoalPaise(int? paise) {
+    if (paise == null || paise < minimumGoalPaise || paise > maximumGoalPaise) {
+      _invalidGoal();
+    }
+    return paise;
+  }
+
+  /// The goal of [proposal] in paise: `fundingGoalPaise` when the client
+  /// sent it, else the legacy rupee `fundingGoal`.
+  static int proposalGoalPaise(CampaignProposal proposal) => fundingGoalPaise(
+    Money.fromInput(
+      paise: proposal.fundingGoalPaise,
+      rupees: proposal.fundingGoal,
+    ),
+  );
+
+  static Never _invalidGoal() => _fail(
+    'Choose a funding goal between ₹${minimumGoal.toStringAsFixed(0)} and ₹10,00,000.',
+    'invalid_funding_goal',
+  );
 
   static void proposal(CampaignProposal proposal) {
     _length(proposal.title, titleLength, 'title');
     _length(proposal.description, descriptionLength, 'description');
-    fundingGoal(proposal.fundingGoal);
+    proposalGoalPaise(proposal);
     if (proposal.durationMinutes < minimumDurationMinutes ||
         proposal.durationMinutes > maximumDurationMinutes) {
       _fail(

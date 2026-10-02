@@ -3,6 +3,10 @@ fields:
   campaignId: int
   sponsorshipTotal: double
   fundingGoal: double
+  # A-4: integer paise; sponsorshipTotalPaise is net of refunds.
+  sponsorshipTotalPaise: int, default=0
+  fundingGoalPaise: int, default=0
+  refundedPaise: int, default=0
   joinedVolunteers: int
   completedVolunteers: int
   evidenceCount: int

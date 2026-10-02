@@ -104,9 +104,8 @@ class PaymentCreditService {
     sponsorship.updatedAt = sponsorship.verifiedAt;
     if (campaign.status != CampaignStatus.active ||
         const {'cancelled', 'expired'}.contains(campaign.readinessState) ||
-        Money.toPaise(campaign.sponsoredAmount) +
-                Money.toPaise(sponsorship.amount) >
-            Money.toPaise(campaign.fundingGoal)) {
+        campaign.sponsoredAmountPaise + sponsorship.amountPaise >
+            campaign.fundingGoalPaise) {
       sponsorship.paymentStatus = 'verified_uncredited';
       final updated = await Sponsorship.db.updateRow(
         session,
@@ -133,9 +132,8 @@ class PaymentCreditService {
       sponsorship,
       transaction: transaction,
     );
-    campaign.sponsoredAmount = Money.add(
-      campaign.sponsoredAmount,
-      sponsorship.amount,
+    campaign.setSponsoredPaise(
+      campaign.sponsoredAmountPaise + sponsorship.amountPaise,
     );
     campaign.updatedAt = DateTime.now().toUtc();
     await Campaign.db.updateRow(session, campaign, transaction: transaction);

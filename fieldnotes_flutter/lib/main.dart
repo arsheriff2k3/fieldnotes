@@ -5,10 +5,12 @@ import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'client.dart';
 import 'data/services/map_config_service.dart';
 import 'data/services/campaign_link_service.dart';
+import 'l10n/app_localizations.dart';
 import 'screens/sign_in_screen.dart';
 import 'ui/core/fieldnote_theme.dart';
 import 'ui/features/shell/app_shell.dart';
@@ -117,8 +119,17 @@ class _MyAppState extends State<MyApp> {
       title: 'FieldNote Teams AI',
       debugShowCheckedModeBanner: false,
       theme: buildFieldnoteTheme(),
-      // The design system has light tokens only; keep the theme explicit.
-      themeMode: ThemeMode.light,
+      darkTheme: buildFieldnoteDarkTheme(),
+      themeMode: ThemeMode.system,
+      // App strings come from lib/l10n/*.arb; the global delegates translate
+      // framework strings (dialog buttons, tooltips, date pickers).
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
       builder: (context, child) =>
           OrientationPolicy(child: child ?? const SizedBox.shrink()),
       home: SignInScreen(
