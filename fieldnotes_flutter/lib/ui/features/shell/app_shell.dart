@@ -7,6 +7,7 @@ import '../../../data/services/campaign_link_service.dart';
 import '../../core/error_messages.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/widgets.dart';
+import '../../../l10n/l10n.dart';
 import '../onboarding/onboarding_view.dart';
 import '../volunteer/shared_campaign_view.dart';
 import '../profile/profile_view.dart';
@@ -61,7 +62,9 @@ class _AppShellState extends State<AppShell> {
       final offline = message == offlineMessage;
       showFieldnoteNotice(
         context,
-        title: offline ? "You're offline" : 'Something went wrong',
+        title: offline
+            ? context.l10n.shellOfflineTitle
+            : context.l10n.shellErrorTitle,
         message: message,
         kind: FieldnoteNoticeKind.error,
       );
@@ -143,40 +146,61 @@ class _AppShellState extends State<AppShell> {
           return LegalConsentGate(viewModel: _viewModel);
         }
 
+        final l10n = context.l10n;
         final destinations = _viewModel.isSponsor
-            ? const [
-                _Destination('Discover', Icons.explore_outlined, Icons.explore),
+            ? [
                 _Destination(
-                  'Create',
+                  l10n.navDiscover,
+                  Icons.explore_outlined,
+                  Icons.explore,
+                ),
+                _Destination(
+                  l10n.navCreate,
                   Icons.auto_awesome_outlined,
                   Icons.auto_awesome,
                 ),
-                _Destination('Impact', Icons.insights_outlined, Icons.insights),
                 _Destination(
-                  'Trust',
+                  l10n.navImpact,
+                  Icons.insights_outlined,
+                  Icons.insights,
+                ),
+                _Destination(
+                  l10n.navTrust,
                   Icons.shield_outlined,
                   Icons.shield,
                 ),
-                _Destination('Profile', Icons.person_outline, Icons.person),
-              ]
-            : const [
                 _Destination(
-                  'Matches',
+                  l10n.navProfile,
+                  Icons.person_outline,
+                  Icons.person,
+                ),
+              ]
+            : [
+                _Destination(
+                  l10n.navMatches,
                   Icons.travel_explore_outlined,
                   Icons.travel_explore,
                 ),
-                _Destination('My work', Icons.hiking_outlined, Icons.hiking),
                 _Destination(
-                  'Availability',
+                  l10n.navMyWork,
+                  Icons.hiking_outlined,
+                  Icons.hiking,
+                ),
+                _Destination(
+                  l10n.navAvailability,
                   Icons.event_available_outlined,
                   Icons.event_available,
                 ),
                 _Destination(
-                  'Trust',
+                  l10n.navTrust,
                   Icons.shield_outlined,
                   Icons.shield,
                 ),
-                _Destination('Profile', Icons.person_outline, Icons.person),
+                _Destination(
+                  l10n.navProfile,
+                  Icons.person_outline,
+                  Icons.person,
+                ),
               ];
         final pages = _viewModel.isSponsor
             ? <Widget>[
@@ -330,6 +354,8 @@ class _SponsorBottomBarState extends State<_SponsorBottomBar>
 
   @override
   Widget build(BuildContext context) {
+    final c = context.fieldnoteColors;
+    final l10n = context.l10n;
     return SizedBox(
       height: 92,
       child: Stack(
@@ -347,6 +373,7 @@ class _SponsorBottomBarState extends State<_SponsorBottomBar>
                   painter: _VoiceSemicirclePainter(
                     progress: _wave.value,
                     visible: widget.controller.captureActive,
+                    color: c.clay,
                   ),
                 ),
               ),
@@ -355,7 +382,7 @@ class _SponsorBottomBarState extends State<_SponsorBottomBar>
           Positioned.fill(
             child: BottomAppBar(
               elevation: 12,
-              color: FieldnoteColors.mist,
+              color: c.mist,
               shape: const CircularNotchedRectangle(),
               notchMargin: 9,
               padding: EdgeInsets.zero,
@@ -363,11 +390,31 @@ class _SponsorBottomBarState extends State<_SponsorBottomBar>
                 top: false,
                 child: Row(
                   children: [
-                    _item(0, Icons.explore_outlined, Icons.explore, 'Discover'),
-                    _item(2, Icons.insights_outlined, Icons.insights, 'Impact'),
+                    _item(
+                      0,
+                      Icons.explore_outlined,
+                      Icons.explore,
+                      l10n.navDiscover,
+                    ),
+                    _item(
+                      2,
+                      Icons.insights_outlined,
+                      Icons.insights,
+                      l10n.navImpact,
+                    ),
                     const SizedBox(width: 70),
-                    _item(3, Icons.shield_outlined, Icons.shield, 'Trust'),
-                    _item(4, Icons.person_outline, Icons.person, 'Profile'),
+                    _item(
+                      3,
+                      Icons.shield_outlined,
+                      Icons.shield,
+                      l10n.navTrust,
+                    ),
+                    _item(
+                      4,
+                      Icons.person_outline,
+                      Icons.person,
+                      l10n.navProfile,
+                    ),
                   ],
                 ),
               ),
@@ -380,6 +427,7 @@ class _SponsorBottomBarState extends State<_SponsorBottomBar>
 
   Widget _item(int index, IconData icon, IconData selectedIcon, String label) {
     final selected = widget.selectedIndex == index;
+    final c = context.fieldnoteColors;
     return Expanded(
       child: InkResponse(
         onTap: () => widget.onSelected(index),
@@ -400,9 +448,7 @@ class _SponsorBottomBarState extends State<_SponsorBottomBar>
                   child: Icon(
                     selected ? selectedIcon : icon,
                     size: 21,
-                    color: selected
-                        ? FieldnoteColors.forest
-                        : FieldnoteColors.ink.withValues(alpha: .68),
+                    color: selected ? c.forest : c.ink.withValues(alpha: .68),
                   ),
                 ),
                 const SizedBox(height: 1),
@@ -412,9 +458,7 @@ class _SponsorBottomBarState extends State<_SponsorBottomBar>
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                    color: selected
-                        ? FieldnoteColors.forest
-                        : FieldnoteColors.ink.withValues(alpha: .68),
+                    color: selected ? c.forest : c.ink.withValues(alpha: .68),
                   ),
                   child: Text(label, maxLines: 1),
                 ),
@@ -495,17 +539,18 @@ class _SponsorVoiceButtonState extends State<_SponsorVoiceButton>
     final icon = widget.controller.recording
         ? Icons.stop_rounded
         : Icons.mic_rounded;
-    final idleColor = processing
-        ? FieldnoteColors.moss
-        : FieldnoteColors.forest;
+    final c = context.fieldnoteColors;
+    final l10n = context.l10n;
+    // Solid fills behind a white icon: keep the brand fills in dark mode.
+    final idleColor = processing ? FieldnoteColors.moss : c.forestFill;
     return Semantics(
       button: true,
       enabled: enabled,
       label: widget.controller.recording
-          ? 'Recording. Release to finish.'
+          ? l10n.voiceRecordingLabel
           : processing
-          ? 'Campaign generation in progress'
-          : 'Hold to record a campaign brief',
+          ? l10n.voiceProcessingLabel
+          : l10n.voiceHoldLabel,
       child: Listener(
         behavior: HitTestBehavior.opaque,
         onPointerDown: enabled ? (_) => _pressStart() : null,
@@ -522,7 +567,7 @@ class _SponsorVoiceButtonState extends State<_SponsorVoiceButton>
                 shape: BoxShape.circle,
                 color: active ? FieldnoteColors.clay : idleColor,
                 border: Border.all(
-                  color: FieldnoteColors.paper,
+                  color: c.paper,
                   width: 5,
                 ),
                 boxShadow: [
@@ -534,7 +579,7 @@ class _SponsorVoiceButtonState extends State<_SponsorVoiceButton>
                   ),
                 ],
               ),
-              child: Icon(icon, color: Colors.white, size: 27),
+              child: Icon(icon, color: c.onFill, size: 27),
             ),
           ),
         ),
@@ -547,10 +592,12 @@ class _VoiceSemicirclePainter extends CustomPainter {
   const _VoiceSemicirclePainter({
     required this.progress,
     required this.visible,
+    required this.color,
   });
 
   final double progress;
   final bool visible;
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -560,7 +607,7 @@ class _VoiceSemicirclePainter extends CustomPainter {
       final phase = (progress + (index * .22)).clamp(0.0, 1.0);
       final radius = 52 + (phase * size.width * .42);
       final paint = Paint()
-        ..color = FieldnoteColors.clay.withValues(
+        ..color = color.withValues(
           alpha: (1 - phase) * (.17 - (index * .035)),
         )
         ..style = PaintingStyle.fill;
@@ -576,7 +623,9 @@ class _VoiceSemicirclePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_VoiceSemicirclePainter oldDelegate) =>
-      oldDelegate.progress != progress || oldDelegate.visible != visible;
+      oldDelegate.progress != progress ||
+      oldDelegate.visible != visible ||
+      oldDelegate.color != color;
 }
 
 class _DesktopNavigation extends StatelessWidget {
@@ -590,21 +639,22 @@ class _DesktopNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.fieldnoteColors;
     return Container(
       width: 250,
-      color: FieldnoteColors.ink,
+      color: c.inkFill,
       padding: const EdgeInsets.fromLTRB(18, 28, 18, 22),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.eco, color: FieldnoteColors.acid),
-              SizedBox(width: 9),
+              Icon(Icons.eco, color: c.acid),
+              const SizedBox(width: 9),
               Text(
                 'FIELDNOTE',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: c.onFill,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 1.4,
                 ),
@@ -613,9 +663,11 @@ class _DesktopNavigation extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            viewModel.isSponsor ? 'SPONSOR WORKSPACE' : 'VOLUNTEER WORKSPACE',
+            viewModel.isSponsor
+                ? context.l10n.shellSponsorWorkspace
+                : context.l10n.shellVolunteerWorkspace,
             style: TextStyle(
-              color: FieldnoteColors.acid.withValues(alpha: .72),
+              color: c.acid.withValues(alpha: .72),
               fontSize: 10,
               fontWeight: FontWeight.w800,
               letterSpacing: 1.2,
@@ -630,14 +682,14 @@ class _DesktopNavigation extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 8),
               child: Material(
                 color: selected
-                    ? FieldnoteColors.acid.withValues(alpha: .14)
+                    ? c.acid.withValues(alpha: .14)
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(14),
                 child: ListTile(
                   selected: selected,
-                  selectedColor: FieldnoteColors.acid,
-                  textColor: Colors.white70,
-                  iconColor: Colors.white54,
+                  selectedColor: c.acid,
+                  textColor: c.onFill.withValues(alpha: .7),
+                  iconColor: c.onFill.withValues(alpha: .54),
                   leading: Icon(selected ? item.selectedIcon : item.icon),
                   title: Text(item.label),
                   shape: RoundedRectangleBorder(
@@ -652,8 +704,8 @@ class _DesktopNavigation extends StatelessWidget {
           Row(
             children: [
               CircleAvatar(
-                backgroundColor: FieldnoteColors.acid,
-                foregroundColor: FieldnoteColors.ink,
+                backgroundColor: c.acid,
+                foregroundColor: c.onAcid,
                 child: Text(
                   viewModel.profile!.displayName.characters.first.toUpperCase(),
                 ),
@@ -667,8 +719,8 @@ class _DesktopNavigation extends StatelessWidget {
                       viewModel.profile!.displayName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: c.onFill,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -679,8 +731,8 @@ class _DesktopNavigation extends StatelessWidget {
                           : viewModel.profile!.city,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white54,
+                      style: TextStyle(
+                        color: c.onFill.withValues(alpha: .54),
                         fontSize: 12,
                       ),
                     ),
@@ -704,10 +756,10 @@ class _LoadingView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.eco, size: 44, color: FieldnoteColors.forest),
+          Icon(Icons.eco, size: 44, color: context.fieldnoteColors.forest),
           const SizedBox(height: 18),
           Text(
-            'Preparing your impact workspace…',
+            context.l10n.shellLoading,
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 14),
@@ -737,15 +789,15 @@ class _ErrorView extends StatelessWidget {
               EmptyPanel(
                 icon: Icons.cloud_off_outlined,
                 title: message == offlineMessage
-                    ? "Can't reach FieldNote"
-                    : 'FieldNote could not load',
+                    ? context.l10n.shellCantReach
+                    : context.l10n.shellCouldNotLoad,
                 message: message,
               ),
               const SizedBox(height: 12),
               FilledButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh),
-                label: const Text('Try again'),
+                label: Text(context.l10n.commonTryAgain),
               ),
             ],
           ),

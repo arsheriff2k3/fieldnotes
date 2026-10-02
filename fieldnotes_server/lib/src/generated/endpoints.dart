@@ -817,6 +817,11 @@ class Endpoints extends _is.EndpointDispatch {
               type: _is.getType<int?>(),
               nullable: true,
             ),
+            'timezone': _is.ParameterDescription(
+              name: 'timezone',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
           },
           call:
               (
@@ -827,6 +832,7 @@ class Endpoints extends _is.EndpointDispatch {
                     session,
                     params['prompt'],
                     utcOffsetMinutes: params['utcOffsetMinutes'],
+                    timezone: params['timezone'],
                   ),
         ),
         'createCampaignFromProposal': _is.MethodConnector(
@@ -857,6 +863,11 @@ class Endpoints extends _is.EndpointDispatch {
               type: _is.getType<double?>(),
               nullable: true,
             ),
+            'clientRequestId': _is.ParameterDescription(
+              name: 'clientRequestId',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
           },
           call:
               (
@@ -870,6 +881,7 @@ class Endpoints extends _is.EndpointDispatch {
                     params['longitude'],
                     params['locationName'],
                     params['geofenceMeters'],
+                    clientRequestId: params['clientRequestId'],
                   ),
         ),
         'listCampaigns': _is.MethodConnector(
@@ -1021,6 +1033,11 @@ class Endpoints extends _is.EndpointDispatch {
               type: _is.getType<String>(),
               nullable: false,
             ),
+            'fundingGoalPaise': _is.ParameterDescription(
+              name: 'fundingGoalPaise',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
           },
           call:
               (
@@ -1033,6 +1050,7 @@ class Endpoints extends _is.EndpointDispatch {
                     params['fundingGoal'],
                     params['minimumVolunteers'],
                     params['description'],
+                    fundingGoalPaise: params['fundingGoalPaise'],
                   ),
         ),
         'postponeCampaign': _is.MethodConnector(
@@ -1474,6 +1492,16 @@ class Endpoints extends _is.EndpointDispatch {
               type: _is.getType<String?>(),
               nullable: true,
             ),
+            'amountPaise': _is.ParameterDescription(
+              name: 'amountPaise',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+            'clientRequestId': _is.ParameterDescription(
+              name: 'clientRequestId',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
           },
           call:
               (
@@ -1485,6 +1513,8 @@ class Endpoints extends _is.EndpointDispatch {
                     params['campaignId'],
                     params['amount'],
                     params['message'],
+                    amountPaise: params['amountPaise'],
+                    clientRequestId: params['clientRequestId'],
                   ),
         ),
         'verifyRazorpayPayment': _is.MethodConnector(
@@ -1573,6 +1603,16 @@ class Endpoints extends _is.EndpointDispatch {
                     limit: params['limit'],
                     offset: params['offset'],
                   ),
+        ),
+        'isPayoutSimulationAvailable': _is.MethodConnector(
+          name: 'isPayoutSimulationAvailable',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .isPayoutSimulationAvailable(session),
         ),
         'listCampaignTestPayouts': _is.MethodConnector(
           name: 'listCampaignTestPayouts',

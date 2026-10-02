@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:fieldnotes_client/fieldnotes_client.dart';
@@ -6,6 +7,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../../data/repositories/fieldnote_repository.dart';
 import '../../../data/services/campaign_link_service.dart';
+import '../../../data/services/client_request_id.dart';
 import '../../../data/services/pending_role_service.dart';
 import '../../core/error_messages.dart';
 
@@ -68,6 +70,11 @@ class FieldnoteViewModel extends ChangeNotifier {
 
   /// True once the session was rejected and the user was signed out.
   bool sessionExpired = false;
+
+  /// Idempotency keys: one per publish attempt-flow and one per checkout
+  /// order attempt. Retries of the same request reuse the key.
+  final ClientRequestIdTracker publishRequests = ClientRequestIdTracker();
+  final ClientRequestIdTracker checkoutRequests = ClientRequestIdTracker();
 
   bool _disposed = false;
   final Map<int, StreamSubscription<CampaignLiveUpdate>> _liveSubscriptions =
@@ -344,13 +351,42 @@ class FieldnoteViewModel extends ChangeNotifier {
   Future<String> campaignShareLink(int campaignId) =>
       _action(() => _repository.campaignShareLink(campaignId));
 
+  /// Creates a Razorpay order for [amountPaise]. A retry of the same
+  /// campaign, amount and message after a failure reuses the request id, so
+  /// the server returns the first order instead of opening a second one.
   Future<RazorpayCheckoutOrder> createPaymentOrder(
     Campaign campaign,
-    double amount,
+    int amountPaise,
     String? message,
-  ) => _action(
-    () => _repository.createRazorpayOrder(campaign.id!, amount, message),
+  ) => _idempotent(
+    checkoutRequests,
+    '${campaign.id}|$amountPaise|${message ?? ''}',
+    (requestId) => _repository.createRazorpayOrder(
+      campaign.id!,
+      amountPaise,
+      message,
+      clientRequestId: requestId,
+    ),
   );
+
+  /// Runs [run] with [tracker]'s id for [fingerprint]. Success starts a new
+  /// attempt; a rejected id is discarded; any other failure keeps the id so
+  /// the retry is deduplicated by the server.
+  Future<T> _idempotent<T>(
+    ClientRequestIdTracker tracker,
+    Object fingerprint,
+    Future<T> Function(String requestId) run,
+  ) async {
+    final requestId = tracker.idFor(fingerprint);
+    try {
+      final result = await _action(() => run(requestId));
+      tracker.complete();
+      return result;
+    } on FieldnoteException catch (error) {
+      if (ClientRequestErrors.all.contains(error.code)) tracker.discard();
+      rethrow;
+    }
+  }
 
   Future<void> verifyPayment(
     RazorpayCheckoutOrder order, {
@@ -368,6 +404,9 @@ class FieldnoteViewModel extends ChangeNotifier {
     );
   }
 
+  /// Publishes [proposal] (goal in `fundingGoalPaise`). Retrying the same
+  /// draft at the same pin reuses the request id, so a lost response never
+  /// creates a duplicate campaign; an edited draft gets a new id.
   Future<Campaign> publishCampaign(
     CampaignProposal proposal,
     double latitude,
@@ -375,18 +414,33 @@ class FieldnoteViewModel extends ChangeNotifier {
     String? locationName,
     double? geofenceMeters,
   }) async {
-    final campaign = await _action(
-      () => _repository.createCampaign(
+    final fingerprint = jsonEncode({
+      'proposal': proposal.toJson(),
+      'latitude': latitude,
+      'longitude': longitude,
+      'locationName': locationName,
+      'geofenceMeters': geofenceMeters,
+    });
+    final campaign = await _idempotent(
+      publishRequests,
+      fingerprint,
+      (requestId) => _repository.createCampaign(
         proposal,
         latitude,
         longitude,
         locationName: locationName,
         geofenceMeters: geofenceMeters,
+        clientRequestId: requestId,
       ),
     );
     await refresh();
     return campaign;
   }
+
+  /// Whether the payout screen may offer a Test Mode simulation. False in
+  /// live mode, where FieldNote operations settle payouts manually.
+  Future<bool> payoutSimulationAvailable() =>
+      _action(_repository.isPayoutSimulationAvailable);
 
   Future<void> join(Campaign campaign) async {
     await _action(() => _repository.join(campaign.id!));
@@ -676,6 +730,8 @@ class FieldnoteViewModel extends ChangeNotifier {
     selectedIndex = 0;
     errorMessage = null;
     lastError = null;
+    publishRequests.complete();
+    checkoutRequests.complete();
   }
 
   void _notify() {

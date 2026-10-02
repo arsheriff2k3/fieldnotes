@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- FieldNote app icon: a lime map pin holding a field note.
+     Full-bleed square; each platform applies its own corner mask.
+     Rendered to PNG by `flutter test tool/render_icon_test.dart`, which uses
+     the same geometry. Colours: forest #1D4B3B, acid #DDF7A2, ink #17352C,
+     paper #F4F1E8, clay #C86B49 (lib/ui/core/fieldnote_theme.dart). -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" fill="#1D4B3B"/>
+  <g id="mark">
+    <!-- Pin: circle r=250 at (512,417) with tangents to the tip (512,857). -->
+    <path d="M512 857 L717.8 559 A250 250 0 1 0 306.2 559 Z" fill="#DDF7A2"/>
+    <circle cx="512" cy="417" r="180" fill="#17352C"/>
+    <!-- Note card with a folded corner. -->
+    <path d="M444 312 H562 L602 352 V500 Q602 522 580 522 H444 Q422 522 422 500 V334 Q422 312 444 312 Z" fill="#F4F1E8"/>
+    <path d="M562 312 V352 H602 Z" fill="#C86B49"/>
+    <g stroke="#1D4B3B" stroke-width="20" stroke-linecap="round">
+      <line x1="457" y1="385" x2="567" y2="385"/>
+      <line x1="457" y1="430" x2="567" y2="430"/>
+      <line x1="457" y1="475" x2="527" y2="475"/>
+    </g>
+  </g>
+</svg>

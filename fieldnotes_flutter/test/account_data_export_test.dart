@@ -1,6 +1,8 @@
 import 'dart:convert';
 
+import 'package:fieldnotes_flutter/l10n/app_localizations.dart';
 import 'package:fieldnotes_flutter/ui/features/trust/account_data_export_view.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -43,5 +45,14 @@ void main() {
     final bytes = await buildAccountDataPdf(raw);
     expect(ascii.decode(bytes.take(4).toList()), '%PDF');
     expect(bytes.length, greaterThan(1000));
+
+    // Hindi users get a report too (labels stay English; see
+    // buildAccountDataPdf), with Devanagari user text embedded.
+    final hindi = await buildAccountDataPdf(
+      raw.replaceAll('Tree planting', 'पेड़ लगाना'),
+      l10n: lookupAppLocalizations(const Locale('hi')),
+      locale: 'hi',
+    );
+    expect(ascii.decode(hindi.take(4).toList()), '%PDF');
   });
 }

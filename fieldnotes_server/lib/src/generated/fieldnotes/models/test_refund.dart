@@ -19,6 +19,7 @@ abstract class TestRefund
     required this.campaignId,
     required this.sponsorshipId,
     required this.amount,
+    int? amountPaise,
     String? status,
     String? reason,
     bool? testMode,
@@ -27,12 +28,16 @@ abstract class TestRefund
     this.lastError,
     this.nextAttemptAt,
     this.processedAt,
+    this.fundingReversedAt,
+    int? fundingReversedPaise,
     DateTime? createdAt,
     DateTime? updatedAt,
-  }) : status = status ?? 'pending',
+  }) : amountPaise = amountPaise ?? 0,
+       status = status ?? 'pending',
        reason = reason ?? 'campaign_cancelled',
        testMode = testMode ?? true,
        attempts = attempts ?? 0,
+       fundingReversedPaise = fundingReversedPaise ?? 0,
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
 
@@ -41,6 +46,7 @@ abstract class TestRefund
     required int campaignId,
     required int sponsorshipId,
     required double amount,
+    int? amountPaise,
     String? status,
     String? reason,
     bool? testMode,
@@ -49,6 +55,8 @@ abstract class TestRefund
     String? lastError,
     DateTime? nextAttemptAt,
     DateTime? processedAt,
+    DateTime? fundingReversedAt,
+    int? fundingReversedPaise,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) = _TestRefundImpl;
@@ -59,6 +67,7 @@ abstract class TestRefund
       campaignId: jsonSerialization['campaignId'] as int,
       sponsorshipId: jsonSerialization['sponsorshipId'] as int,
       amount: (jsonSerialization['amount'] as num).toDouble(),
+      amountPaise: jsonSerialization['amountPaise'] as int?,
       status: jsonSerialization['status'] as String?,
       reason: jsonSerialization['reason'] as String?,
       testMode: jsonSerialization['testMode'] == null
@@ -77,6 +86,12 @@ abstract class TestRefund
           : _is.DateTimeJsonExtension.fromJson(
               jsonSerialization['processedAt'],
             ),
+      fundingReversedAt: jsonSerialization['fundingReversedAt'] == null
+          ? null
+          : _is.DateTimeJsonExtension.fromJson(
+              jsonSerialization['fundingReversedAt'],
+            ),
+      fundingReversedPaise: jsonSerialization['fundingReversedPaise'] as int?,
       createdAt: jsonSerialization['createdAt'] == null
           ? null
           : _is.DateTimeJsonExtension.fromJson(jsonSerialization['createdAt']),
@@ -99,6 +114,8 @@ abstract class TestRefund
 
   double amount;
 
+  int amountPaise;
+
   String status;
 
   String reason;
@@ -115,6 +132,10 @@ abstract class TestRefund
 
   DateTime? processedAt;
 
+  DateTime? fundingReversedAt;
+
+  int fundingReversedPaise;
+
   DateTime createdAt;
 
   DateTime updatedAt;
@@ -130,6 +151,7 @@ abstract class TestRefund
     int? campaignId,
     int? sponsorshipId,
     double? amount,
+    int? amountPaise,
     String? status,
     String? reason,
     bool? testMode,
@@ -138,6 +160,8 @@ abstract class TestRefund
     String? lastError,
     DateTime? nextAttemptAt,
     DateTime? processedAt,
+    DateTime? fundingReversedAt,
+    int? fundingReversedPaise,
     DateTime? createdAt,
     DateTime? updatedAt,
   });
@@ -149,6 +173,7 @@ abstract class TestRefund
       'campaignId': campaignId,
       'sponsorshipId': sponsorshipId,
       'amount': amount,
+      'amountPaise': amountPaise,
       'status': status,
       'reason': reason,
       'testMode': testMode,
@@ -157,6 +182,9 @@ abstract class TestRefund
       if (lastError != null) 'lastError': lastError,
       if (nextAttemptAt != null) 'nextAttemptAt': nextAttemptAt?.toJson(),
       if (processedAt != null) 'processedAt': processedAt?.toJson(),
+      if (fundingReversedAt != null)
+        'fundingReversedAt': fundingReversedAt?.toJson(),
+      'fundingReversedPaise': fundingReversedPaise,
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
     };
@@ -170,6 +198,7 @@ abstract class TestRefund
       'campaignId': campaignId,
       'sponsorshipId': sponsorshipId,
       'amount': amount,
+      'amountPaise': amountPaise,
       'status': status,
       'reason': reason,
       'testMode': testMode,
@@ -178,6 +207,9 @@ abstract class TestRefund
       if (lastError != null) 'lastError': lastError,
       if (nextAttemptAt != null) 'nextAttemptAt': nextAttemptAt?.toJson(),
       if (processedAt != null) 'processedAt': processedAt?.toJson(),
+      if (fundingReversedAt != null)
+        'fundingReversedAt': fundingReversedAt?.toJson(),
+      'fundingReversedPaise': fundingReversedPaise,
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
     };
@@ -219,6 +251,7 @@ class _TestRefundImpl extends TestRefund {
     required int campaignId,
     required int sponsorshipId,
     required double amount,
+    int? amountPaise,
     String? status,
     String? reason,
     bool? testMode,
@@ -227,6 +260,8 @@ class _TestRefundImpl extends TestRefund {
     String? lastError,
     DateTime? nextAttemptAt,
     DateTime? processedAt,
+    DateTime? fundingReversedAt,
+    int? fundingReversedPaise,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : super._(
@@ -234,6 +269,7 @@ class _TestRefundImpl extends TestRefund {
          campaignId: campaignId,
          sponsorshipId: sponsorshipId,
          amount: amount,
+         amountPaise: amountPaise,
          status: status,
          reason: reason,
          testMode: testMode,
@@ -242,6 +278,8 @@ class _TestRefundImpl extends TestRefund {
          lastError: lastError,
          nextAttemptAt: nextAttemptAt,
          processedAt: processedAt,
+         fundingReversedAt: fundingReversedAt,
+         fundingReversedPaise: fundingReversedPaise,
          createdAt: createdAt,
          updatedAt: updatedAt,
        );
@@ -255,6 +293,7 @@ class _TestRefundImpl extends TestRefund {
     int? campaignId,
     int? sponsorshipId,
     double? amount,
+    int? amountPaise,
     String? status,
     String? reason,
     bool? testMode,
@@ -263,6 +302,8 @@ class _TestRefundImpl extends TestRefund {
     Object? lastError = _Undefined,
     Object? nextAttemptAt = _Undefined,
     Object? processedAt = _Undefined,
+    Object? fundingReversedAt = _Undefined,
+    int? fundingReversedPaise,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -271,6 +312,7 @@ class _TestRefundImpl extends TestRefund {
       campaignId: campaignId ?? this.campaignId,
       sponsorshipId: sponsorshipId ?? this.sponsorshipId,
       amount: amount ?? this.amount,
+      amountPaise: amountPaise ?? this.amountPaise,
       status: status ?? this.status,
       reason: reason ?? this.reason,
       testMode: testMode ?? this.testMode,
@@ -283,6 +325,10 @@ class _TestRefundImpl extends TestRefund {
           ? nextAttemptAt
           : this.nextAttemptAt,
       processedAt: processedAt is DateTime? ? processedAt : this.processedAt,
+      fundingReversedAt: fundingReversedAt is DateTime?
+          ? fundingReversedAt
+          : this.fundingReversedAt,
+      fundingReversedPaise: fundingReversedPaise ?? this.fundingReversedPaise,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -304,6 +350,11 @@ class TestRefundUpdateTable extends _is.UpdateTable<TestRefundTable> {
 
   _is.ColumnValue<double, double> amount(double value) => _is.ColumnValue(
     table.amount,
+    value,
+  );
+
+  _is.ColumnValue<int, int> amountPaise(int value) => _is.ColumnValue(
+    table.amountPaise,
     value,
   );
 
@@ -350,6 +401,17 @@ class TestRefundUpdateTable extends _is.UpdateTable<TestRefundTable> {
         value,
       );
 
+  _is.ColumnValue<DateTime, DateTime> fundingReversedAt(DateTime? value) =>
+      _is.ColumnValue(
+        table.fundingReversedAt,
+        value,
+      );
+
+  _is.ColumnValue<int, int> fundingReversedPaise(int value) => _is.ColumnValue(
+    table.fundingReversedPaise,
+    value,
+  );
+
   _is.ColumnValue<DateTime, DateTime> createdAt(DateTime value) =>
       _is.ColumnValue(
         table.createdAt,
@@ -378,6 +440,11 @@ class TestRefundTable extends _is.Table<int?> {
     amount = _is.ColumnDouble(
       'amount',
       this,
+    );
+    amountPaise = _is.ColumnInt(
+      'amountPaise',
+      this,
+      hasDefault: true,
     );
     status = _is.ColumnString(
       'status',
@@ -415,6 +482,15 @@ class TestRefundTable extends _is.Table<int?> {
       'processedAt',
       this,
     );
+    fundingReversedAt = _is.ColumnDateTime(
+      'fundingReversedAt',
+      this,
+    );
+    fundingReversedPaise = _is.ColumnInt(
+      'fundingReversedPaise',
+      this,
+      hasDefault: true,
+    );
     createdAt = _is.ColumnDateTime(
       'createdAt',
       this,
@@ -435,6 +511,8 @@ class TestRefundTable extends _is.Table<int?> {
 
   late final _is.ColumnDouble amount;
 
+  late final _is.ColumnInt amountPaise;
+
   late final _is.ColumnString status;
 
   late final _is.ColumnString reason;
@@ -451,6 +529,10 @@ class TestRefundTable extends _is.Table<int?> {
 
   late final _is.ColumnDateTime processedAt;
 
+  late final _is.ColumnDateTime fundingReversedAt;
+
+  late final _is.ColumnInt fundingReversedPaise;
+
   late final _is.ColumnDateTime createdAt;
 
   late final _is.ColumnDateTime updatedAt;
@@ -461,6 +543,7 @@ class TestRefundTable extends _is.Table<int?> {
     campaignId,
     sponsorshipId,
     amount,
+    amountPaise,
     status,
     reason,
     testMode,
@@ -469,6 +552,8 @@ class TestRefundTable extends _is.Table<int?> {
     lastError,
     nextAttemptAt,
     processedAt,
+    fundingReversedAt,
+    fundingReversedPaise,
     createdAt,
     updatedAt,
   ];

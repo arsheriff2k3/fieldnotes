@@ -20,10 +20,12 @@ abstract class TestPayout
     required this.sponsorshipId,
     required this.creatorAuthUserId,
     required this.amount,
+    int? amountPaise,
     required this.sourcePaymentId,
     String? status,
     DateTime? simulatedAt,
-  }) : status = status ?? 'simulated',
+  }) : amountPaise = amountPaise ?? 0,
+       status = status ?? 'simulated',
        simulatedAt = simulatedAt ?? DateTime.now();
 
   factory TestPayout({
@@ -32,6 +34,7 @@ abstract class TestPayout
     required int sponsorshipId,
     required _is.UuidValue creatorAuthUserId,
     required double amount,
+    int? amountPaise,
     required String sourcePaymentId,
     String? status,
     DateTime? simulatedAt,
@@ -46,6 +49,7 @@ abstract class TestPayout
         jsonSerialization['creatorAuthUserId'],
       ),
       amount: (jsonSerialization['amount'] as num).toDouble(),
+      amountPaise: jsonSerialization['amountPaise'] as int?,
       sourcePaymentId: jsonSerialization['sourcePaymentId'] as String,
       status: jsonSerialization['status'] as String?,
       simulatedAt: jsonSerialization['simulatedAt'] == null
@@ -71,6 +75,8 @@ abstract class TestPayout
 
   double amount;
 
+  int amountPaise;
+
   String sourcePaymentId;
 
   String status;
@@ -89,6 +95,7 @@ abstract class TestPayout
     int? sponsorshipId,
     _is.UuidValue? creatorAuthUserId,
     double? amount,
+    int? amountPaise,
     String? sourcePaymentId,
     String? status,
     DateTime? simulatedAt,
@@ -102,6 +109,7 @@ abstract class TestPayout
       'sponsorshipId': sponsorshipId,
       'creatorAuthUserId': creatorAuthUserId.toJson(),
       'amount': amount,
+      'amountPaise': amountPaise,
       'sourcePaymentId': sourcePaymentId,
       'status': status,
       'simulatedAt': simulatedAt.toJson(),
@@ -117,6 +125,7 @@ abstract class TestPayout
       'sponsorshipId': sponsorshipId,
       'creatorAuthUserId': creatorAuthUserId.toJson(),
       'amount': amount,
+      'amountPaise': amountPaise,
       'sourcePaymentId': sourcePaymentId,
       'status': status,
       'simulatedAt': simulatedAt.toJson(),
@@ -160,6 +169,7 @@ class _TestPayoutImpl extends TestPayout {
     required int sponsorshipId,
     required _is.UuidValue creatorAuthUserId,
     required double amount,
+    int? amountPaise,
     required String sourcePaymentId,
     String? status,
     DateTime? simulatedAt,
@@ -169,6 +179,7 @@ class _TestPayoutImpl extends TestPayout {
          sponsorshipId: sponsorshipId,
          creatorAuthUserId: creatorAuthUserId,
          amount: amount,
+         amountPaise: amountPaise,
          sourcePaymentId: sourcePaymentId,
          status: status,
          simulatedAt: simulatedAt,
@@ -184,6 +195,7 @@ class _TestPayoutImpl extends TestPayout {
     int? sponsorshipId,
     _is.UuidValue? creatorAuthUserId,
     double? amount,
+    int? amountPaise,
     String? sourcePaymentId,
     String? status,
     DateTime? simulatedAt,
@@ -194,6 +206,7 @@ class _TestPayoutImpl extends TestPayout {
       sponsorshipId: sponsorshipId ?? this.sponsorshipId,
       creatorAuthUserId: creatorAuthUserId ?? this.creatorAuthUserId,
       amount: amount ?? this.amount,
+      amountPaise: amountPaise ?? this.amountPaise,
       sourcePaymentId: sourcePaymentId ?? this.sourcePaymentId,
       status: status ?? this.status,
       simulatedAt: simulatedAt ?? this.simulatedAt,
@@ -223,6 +236,11 @@ class TestPayoutUpdateTable extends _is.UpdateTable<TestPayoutTable> {
 
   _is.ColumnValue<double, double> amount(double value) => _is.ColumnValue(
     table.amount,
+    value,
+  );
+
+  _is.ColumnValue<int, int> amountPaise(int value) => _is.ColumnValue(
+    table.amountPaise,
     value,
   );
 
@@ -264,6 +282,11 @@ class TestPayoutTable extends _is.Table<int?> {
       'amount',
       this,
     );
+    amountPaise = _is.ColumnInt(
+      'amountPaise',
+      this,
+      hasDefault: true,
+    );
     sourcePaymentId = _is.ColumnString(
       'sourcePaymentId',
       this,
@@ -290,6 +313,8 @@ class TestPayoutTable extends _is.Table<int?> {
 
   late final _is.ColumnDouble amount;
 
+  late final _is.ColumnInt amountPaise;
+
   late final _is.ColumnString sourcePaymentId;
 
   late final _is.ColumnString status;
@@ -303,6 +328,7 @@ class TestPayoutTable extends _is.Table<int?> {
     sponsorshipId,
     creatorAuthUserId,
     amount,
+    amountPaise,
     sourcePaymentId,
     status,
     simulatedAt,

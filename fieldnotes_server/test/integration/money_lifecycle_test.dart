@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:fieldnotes_server/src/fieldnotes/services/campaign_lifecycle_service.dart';
 import 'package:fieldnotes_server/src/fieldnotes/services/campaign_validation.dart';
+import 'package:fieldnotes_server/src/fieldnotes/services/money.dart';
 import 'package:fieldnotes_server/src/fieldnotes/services/payment_credit_service.dart';
 import 'package:fieldnotes_server/src/fieldnotes/services/payment_reconciliation_service.dart';
 import 'package:fieldnotes_server/src/fieldnotes/services/razorpay_payment_service.dart';
@@ -31,6 +32,13 @@ class FakeRazorpayGateway implements RazorpayGateway {
   var createRefundCalls = 0;
   var fetchOrderCalls = 0;
   var failRefunds = false;
+
+  /// Status Razorpay reports for a newly created refund.
+  var refundStatus = 'processed';
+
+  /// Razorpay accepts the next refund but the response never arrives.
+  var loseNextRefundResponse = false;
+  final refundReceipts = <String>[];
   var _orders = 0;
 
   @override
@@ -67,15 +75,20 @@ class FakeRazorpayGateway implements RazorpayGateway {
     if (failRefunds) {
       throw const RazorpayPaymentException('Gateway down', statusCode: 502);
     }
+    refundReceipts.add(receipt);
     final record = RazorpayRefundRecord(
       id: 'rfnd_fake$createRefundCalls',
       paymentId: paymentId,
-      status: 'processed',
+      status: refundStatus,
       amountPaise: amountPaise,
       receipt: receipt,
       notes: notes,
     );
     (refundsByPayment[paymentId] ??= []).add(record);
+    if (loseNextRefundResponse) {
+      loseNextRefundResponse = false;
+      throw const RazorpayPaymentException('Razorpay timed out.');
+    }
     return record;
   }
 
@@ -128,6 +141,29 @@ String _capturedEvent({
         'status': event == 'payment.failed' ? 'failed' : 'captured',
         'amount': amountPaise,
         'error_description': event == 'payment.failed' ? 'Card declined' : null,
+      },
+    },
+  },
+});
+
+String _refundEvent({
+  required String event,
+  required String refundId,
+  required String paymentId,
+  required int amountPaise,
+  required int fieldnoteRefundId,
+}) => jsonEncode({
+  'entity': 'event',
+  'event': event,
+  'payload': {
+    'refund': {
+      'entity': {
+        'id': refundId,
+        'payment_id': paymentId,
+        'amount': amountPaise,
+        'receipt': RefundService.receiptFor(fieldnoteRefundId),
+        'notes': {'fieldnote_refund_id': '$fieldnoteRefundId'},
+        'status': event == 'refund.processed' ? 'processed' : 'failed',
       },
     },
   },
@@ -221,6 +257,7 @@ void main() {
         campaignId: campaignId,
         sponsorAuthUserId: UuidValue.withValidation(sponsorId),
         amount: amount,
+        amountPaise: Money.toPaise(amount),
         paymentStatus: status,
         providerOrderId: orderId,
         providerPaymentId: paymentId,
@@ -491,7 +528,7 @@ void main() {
         'cancellation queues a refund that the worker executes once',
         () async {
           final campaign = await publish();
-          await update(campaign.id!, (c) => c.sponsoredAmount = 4000);
+          await update(campaign.id!, (c) => c.setSponsoredPaise(400000));
           final paid = await sponsorshipRow(
             campaign.id!,
             status: 'verified',
@@ -572,7 +609,7 @@ void main() {
           campaign.id!,
         );
         await update(campaign.id!, (c) {
-          c.sponsoredAmount = 2000;
+          c.setSponsoredPaise(200000);
           c.startsAt = DateTime.now().toUtc().subtract(
             const Duration(minutes: 5),
           );
@@ -753,6 +790,7 @@ void main() {
             sponsorshipId: paid.id!,
             creatorAuthUserId: UuidValue.withValidation(_sponsorId),
             amount: 1000,
+            amountPaise: 100000,
             sourcePaymentId: 'pay_payout',
           ),
         );
@@ -1036,6 +1074,469 @@ void main() {
             audit.recentEvents.map((e) => e.event),
             contains('evidenceReviewed'),
           );
+        },
+      );
+    });
+
+    /// A payment credited through the real locked path.
+    Future<Sponsorship> credited(
+      int campaignId,
+      int paise, {
+      required String orderId,
+      required String paymentId,
+    }) async {
+      final row = await sponsorshipRow(
+        campaignId,
+        status: 'created',
+        amount: Money.fromPaise(paise),
+        orderId: orderId,
+      );
+      final result = await const PaymentCreditService().credit(
+        sessionBuilder.build(),
+        sponsorshipId: row.id!,
+        campaignId: campaignId,
+        sponsorAuthUserId: row.sponsorAuthUserId,
+        orderId: orderId,
+        paymentId: paymentId,
+      );
+      expect(result.uncredited, isFalse);
+      return result.sponsorship;
+    }
+
+    group('integer paise (A-4)', () {
+      test('paise inputs win over rupee doubles and both are stored', () async {
+        await sponsorProfile(sponsor, 'Asha Sponsor');
+        final campaign = await endpoints.fieldnote.createCampaignFromProposal(
+          sponsor,
+          _proposal().copyWith(fundingGoal: 1, fundingGoalPaise: 2500050),
+          _siteLatitude,
+          _siteLongitude,
+          null,
+          null,
+        );
+        expect(campaign.fundingGoalPaise, 2500050);
+        expect(campaign.fundingGoal, 25000.5);
+        expect(campaign.sponsoredAmountPaise, 0);
+
+        // A legacy client sending only rupees is converted once.
+        final legacy = await endpoints.fieldnote.createCampaignFromProposal(
+          sponsor,
+          _proposal().copyWith(fundingGoal: 1234.565),
+          _siteLatitude,
+          _siteLongitude,
+          null,
+          null,
+        );
+        expect(legacy.fundingGoalPaise, 123457);
+        expect(legacy.fundingGoal, 1234.57);
+
+        final order = await endpoints.fieldnote.createRazorpayOrder(
+          sponsor,
+          campaign.id!,
+          0,
+          null,
+          amountPaise: 12345,
+        );
+        expect(order.amountPaise, 12345);
+        final row = await Sponsorship.db.findById(
+          sessionBuilder.build(),
+          order.sponsorshipId,
+        );
+        expect(row!.amountPaise, 12345);
+        expect(row.amount, 123.45);
+
+        final revised = await endpoints.fieldnote.reviseCampaignScope(
+          sponsor,
+          campaign.id!,
+          1,
+          1,
+          'A wider stretch of the riverbank with more volunteers.',
+          fundingGoalPaise: 3000099,
+        );
+        expect(revised.fundingGoalPaise, 3000099);
+        expect(revised.fundingGoal, 30000.99);
+
+        final impact = await endpoints.fieldnote.getImpact(
+          sponsor,
+          campaign.id!,
+        );
+        expect(impact.fundingGoalPaise, 3000099);
+        expect(impact.sponsorshipTotalPaise, 0);
+      });
+
+      test('crediting adds exact paise and mirrors the double', () async {
+        final campaign = await publish();
+        await credited(campaign.id!, 10001, orderId: 'o_a', paymentId: 'p_a');
+        await credited(campaign.id!, 20002, orderId: 'o_b', paymentId: 'p_b');
+        final funded = (await Campaign.db.findById(
+          sessionBuilder.build(),
+          campaign.id!,
+        ))!;
+        expect(funded.sponsoredAmountPaise, 30003);
+        expect(funded.sponsoredAmount, 300.03);
+      });
+    });
+
+    group('refunds reduce funding', () {
+      test(
+        'a processed refund is taken off the campaign once (worker)',
+        () async {
+          final campaign = await publish();
+          await sponsorProfile(funder, 'Funding Sponsor');
+          await credited(
+            campaign.id!,
+            400000,
+            orderId: 'order_r1',
+            paymentId: 'pay_r1',
+          );
+          await credited(
+            campaign.id!,
+            150000,
+            orderId: 'order_r2',
+            paymentId: 'pay_r2',
+          );
+          await endpoints.fieldnote.cancelCampaign(sponsor, campaign.id!);
+          final session = sessionBuilder.build();
+          final run = await const RefundService().processDue(session);
+          expect(run.processed, 2);
+          // Replaying the worker and the webhook changes nothing.
+          await const RefundService().processDue(session);
+          final refunds = await TestRefund.db.find(
+            session,
+            orderBy: (t) => t.id,
+          );
+          for (final refund in refunds) {
+            expect(refund.fundingReversedAt, isNotNull);
+            expect(refund.fundingReversedPaise, refund.amountPaise);
+          }
+          final first = refunds.first;
+          final body = _refundEvent(
+            event: 'refund.processed',
+            refundId: first.providerRefundId!,
+            paymentId: 'pay_r1',
+            amountPaise: first.amountPaise,
+            fieldnoteRefundId: first.id!,
+          );
+          final hook = await const RazorpayWebhookService().handle(
+            session,
+            rawBody: body,
+            signature: _sign(body),
+            eventIdHeader: 'evt_refund_replay',
+            webhookSecret: _webhookSecret,
+          );
+          expect(hook.outcome, 'processed');
+
+          final after = (await Campaign.db.findById(session, campaign.id!))!;
+          expect(after.sponsoredAmountPaise, 0);
+          expect(after.sponsoredAmount, 0);
+          expect(after.refundedAmountPaise, 550000);
+          final impact = await endpoints.fieldnote.getImpact(
+            sponsor,
+            campaign.id!,
+          );
+          expect(impact.sponsorshipTotalPaise, 0);
+          expect(impact.sponsorshipTotal, 0);
+          expect(impact.refundedPaise, 550000);
+        },
+      );
+
+      test(
+        'a refund.processed webhook reverses funding exactly once',
+        () async {
+          final campaign = await publish();
+          await credited(
+            campaign.id!,
+            250000,
+            orderId: 'order_wh',
+            paymentId: 'pay_wh',
+          );
+          await endpoints.fieldnote.cancelCampaign(sponsor, campaign.id!);
+          final session = sessionBuilder.build();
+          gateway.refundStatus = 'pending';
+          await const RefundService().processDue(session);
+          final pending = (await TestRefund.db.find(session)).single;
+          expect(pending.status, RefundStatus.processing);
+          expect(
+            (await Campaign.db.findById(
+              session,
+              campaign.id!,
+            ))!.sponsoredAmountPaise,
+            250000,
+          );
+
+          final body = _refundEvent(
+            event: 'refund.processed',
+            refundId: pending.providerRefundId!,
+            paymentId: 'pay_wh',
+            amountPaise: 250000,
+            fieldnoteRefundId: pending.id!,
+          );
+          for (final eventId in ['evt_rf_1', 'evt_rf_1', 'evt_rf_2']) {
+            await const RazorpayWebhookService().handle(
+              session,
+              rawBody: body,
+              signature: _sign(body),
+              eventIdHeader: eventId,
+              webhookSecret: _webhookSecret,
+            );
+          }
+          final refund = (await TestRefund.db.findById(session, pending.id!))!;
+          expect(refund.status, RefundStatus.processed);
+          expect(refund.fundingReversedPaise, 250000);
+          final after = (await Campaign.db.findById(session, campaign.id!))!;
+          expect(after.sponsoredAmountPaise, 0);
+          expect(after.refundedAmountPaise, 250000);
+        },
+      );
+
+      test('refunding an uncredited capture leaves funding alone', () async {
+        final campaign = await publish();
+        await credited(
+          campaign.id!,
+          100000,
+          orderId: 'order_ok',
+          paymentId: 'pay_ok',
+        );
+        await update(campaign.id!, (c) => c.readinessState = 'cancelled');
+        final late = await sponsorshipRow(
+          campaign.id!,
+          status: 'created',
+          amount: 500,
+          orderId: 'order_late2',
+        );
+        final session = sessionBuilder.build();
+        await const PaymentCreditService().credit(
+          session,
+          sponsorshipId: late.id!,
+          campaignId: campaign.id!,
+          sponsorAuthUserId: late.sponsorAuthUserId,
+          orderId: 'order_late2',
+          paymentId: 'pay_late2',
+        );
+        await const RefundService().processDue(session);
+        final refund = (await TestRefund.db.find(session)).single;
+        expect(refund.status, RefundStatus.processed);
+        expect(refund.fundingReversedAt, isNotNull);
+        expect(refund.fundingReversedPaise, 0);
+        final after = (await Campaign.db.findById(session, campaign.id!))!;
+        expect(after.sponsoredAmountPaise, 100000);
+        expect(after.refundedAmountPaise, 0);
+      });
+    });
+
+    group('Razorpay refund idempotency', () {
+      test(
+        'a lost response is adopted on retry, never refunded twice',
+        () async {
+          final campaign = await publish();
+          await credited(
+            campaign.id!,
+            120000,
+            orderId: 'order_lost',
+            paymentId: 'pay_lost',
+          );
+          await endpoints.fieldnote.cancelCampaign(sponsor, campaign.id!);
+          final session = sessionBuilder.build();
+          gateway.loseNextRefundResponse = true;
+          await const RefundService().processDue(session);
+          final failed = (await TestRefund.db.find(session)).single;
+          expect(failed.status, RefundStatus.failed);
+          expect(gateway.refundReceipts, [
+            RefundService.receiptFor(failed.id!),
+          ]);
+
+          await const RefundService().processDue(
+            session,
+            now: DateTime.now().toUtc().add(const Duration(hours: 1)),
+          );
+          expect(gateway.createRefundCalls, 1);
+          final done = (await TestRefund.db.findById(session, failed.id!))!;
+          expect(done.status, RefundStatus.processed);
+          expect(done.providerRefundId, 'rfnd_fake1');
+          expect(
+            (await Campaign.db.findById(
+              session,
+              campaign.id!,
+            ))!.sponsoredAmountPaise,
+            0,
+          );
+        },
+      );
+
+      test('a refund Razorpay failed is not adopted on retry', () async {
+        final campaign = await publish();
+        await credited(
+          campaign.id!,
+          90000,
+          orderId: 'order_rf',
+          paymentId: 'pay_rf',
+        );
+        await endpoints.fieldnote.cancelCampaign(sponsor, campaign.id!);
+        final session = sessionBuilder.build();
+        final row = (await TestRefund.db.find(session)).single;
+        // An earlier attempt that Razorpay itself failed.
+        gateway.refundsByPayment['pay_rf'] = [
+          RazorpayRefundRecord(
+            id: 'rfnd_failed_before',
+            paymentId: 'pay_rf',
+            status: 'failed',
+            amountPaise: 90000,
+            receipt: RefundService.receiptFor(row.id!),
+            notes: {'fieldnote_refund_id': '${row.id}'},
+          ),
+        ];
+        await TestRefund.db.updateRow(
+          session,
+          row.copyWith(attempts: 1, status: RefundStatus.failed),
+        );
+        await const RefundService().processDue(session);
+        expect(gateway.createRefundCalls, 1);
+        final done = (await TestRefund.db.findById(session, row.id!))!;
+        expect(done.status, RefundStatus.processed);
+        expect(done.providerRefundId, 'rfnd_fake1');
+      });
+    });
+
+    group('publish and checkout idempotency', () {
+      test('a replayed publish returns the first campaign', () async {
+        await sponsorProfile(sponsor, 'Asha Sponsor');
+        Future<Campaign> publishWith(String id, {CampaignProposal? plan}) =>
+            endpoints.fieldnote.createCampaignFromProposal(
+              sponsor,
+              plan ?? _proposal(),
+              _siteLatitude,
+              _siteLongitude,
+              null,
+              null,
+              clientRequestId: id,
+            );
+        final first = await publishWith('publish-0001-abcdef');
+        final replay = await publishWith('publish-0001-abcdef');
+        expect(replay.id, first.id);
+        expect(
+          await Campaign.db.count(
+            sessionBuilder.build(),
+            where: (t) => t.clientRequestId.equals('publish-0001-abcdef'),
+          ),
+          1,
+        );
+        final other = await publishWith('publish-0002-abcdef');
+        expect(other.id, isNot(first.id));
+        await expectLater(
+          publishWith(
+            'publish-0001-abcdef',
+            plan: _proposal().copyWith(title: 'A different campaign title'),
+          ),
+          _throwsCode('client_request_id_reused'),
+        );
+        await expectLater(
+          publishWith('bad id!'),
+          _throwsCode('invalid_client_request_id'),
+        );
+        // The unique (createdBy, clientRequestId) index backs the replay
+        // check when two retries race past it.
+        await expectLater(
+          Campaign.db.insertRow(
+            sessionBuilder.build(),
+            first.copyWith(id: null, shareSlug: 'race-slug-0000000000001'),
+          ),
+          throwsA(isA<DatabaseException>()),
+        );
+      });
+
+      test('a replayed checkout returns the open order', () async {
+        final campaign = await publish();
+        Future<RazorpayCheckoutOrder> order(int paise) =>
+            endpoints.fieldnote.createRazorpayOrder(
+              sponsor,
+              campaign.id!,
+              0,
+              null,
+              amountPaise: paise,
+              clientRequestId: 'checkout-0001',
+            );
+        final first = await order(500000);
+        final replay = await order(500000);
+        expect(replay.orderId, first.orderId);
+        expect(replay.sponsorshipId, first.sponsorshipId);
+        expect(
+          await Sponsorship.db.count(
+            sessionBuilder.build(),
+            where: (t) => t.campaignId.equals(campaign.id!),
+          ),
+          1,
+        );
+        await expectLater(
+          order(400000),
+          _throwsCode('duplicate_payment_request'),
+        );
+      });
+    });
+
+    group('payouts', () {
+      test(
+        'live keys report manual settlement instead of simulating',
+        () async {
+          final campaign = await publish();
+          expect(
+            await endpoints.fieldnote.isPayoutSimulationAvailable(sponsor),
+            isTrue,
+          );
+          RazorpayRuntime.credentialsResolver = (_) =>
+              const RazorpayCredentials(
+                keyId: 'rzp_live_fake',
+                keySecret: 'secret_fake',
+              );
+          expect(
+            await endpoints.fieldnote.isPayoutSimulationAvailable(sponsor),
+            isFalse,
+          );
+          await expectLater(
+            endpoints.fieldnote.simulateCampaignTestPayout(
+              sponsor,
+              campaign.id!,
+            ),
+            _throwsCode('payouts_manual'),
+          );
+          RazorpayRuntime.credentialsResolver = (_) => null;
+          expect(
+            await endpoints.fieldnote.isPayoutSimulationAvailable(sponsor),
+            isFalse,
+          );
+        },
+      );
+
+      test(
+        'simulated payouts carry paise and skip refunded payments',
+        () async {
+          final campaign = await publish();
+          await credited(
+            campaign.id!,
+            70000,
+            orderId: 'order_po1',
+            paymentId: 'pay_po1',
+          );
+          final refunded = await credited(
+            campaign.id!,
+            30000,
+            orderId: 'order_po2',
+            paymentId: 'pay_po2',
+          );
+          await const RefundService().queueForSponsorship(
+            sessionBuilder.build(),
+            sponsorship: refunded,
+            reason: RefundReason.uncredited,
+          );
+          await update(
+            campaign.id!,
+            (c) => c.status = CampaignStatus.completed,
+          );
+          final payouts = await endpoints.fieldnote.simulateCampaignTestPayout(
+            sponsor,
+            campaign.id!,
+          );
+          expect(payouts.single.amountPaise, 70000);
+          expect(payouts.single.amount, 700);
         },
       );
     });

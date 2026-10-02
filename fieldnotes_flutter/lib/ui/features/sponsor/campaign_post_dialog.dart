@@ -1,7 +1,7 @@
 import 'package:fieldnotes_client/fieldnotes_client.dart';
 import 'package:flutter/material.dart';
 
-import '../../core/error_messages.dart';
+import '../../../l10n/l10n.dart';
 import '../../core/widgets.dart';
 import '../shell/fieldnote_view_model.dart';
 import 'sponsor_formatting.dart';
@@ -50,18 +50,20 @@ class _CampaignPostDialogState extends State<_CampaignPostDialog> {
     if (title.length < CampaignLimits.postTitleMin ||
         title.length > CampaignLimits.postTitleMax) {
       setState(
-        () => _error =
-            'Give the update a title of ${CampaignLimits.postTitleMin}–'
-            '${CampaignLimits.postTitleMax} characters.',
+        () => _error = context.l10n.sponsorPostTitleInvalid(
+          CampaignLimits.postTitleMin,
+          CampaignLimits.postTitleMax,
+        ),
       );
       return;
     }
     if (body.length < CampaignLimits.postBodyMin ||
         body.length > CampaignLimits.postBodyMax) {
       setState(
-        () => _error =
-            'Write ${CampaignLimits.postBodyMin}–${CampaignLimits.postBodyMax} '
-            'characters for the update.',
+        () => _error = context.l10n.sponsorPostBodyInvalid(
+          CampaignLimits.postBodyMin,
+          CampaignLimits.postBodyMax,
+        ),
       );
       return;
     }
@@ -79,9 +81,10 @@ class _CampaignPostDialogState extends State<_CampaignPostDialog> {
     } catch (error) {
       if (mounted) {
         setState(
-          () => _error = userMessageFor(
+          () => _error = sponsorErrorMessage(
             error,
-            fallback: 'Could not publish the update.',
+            context: context,
+            fallback: context.l10n.sponsorPostPublishFailed,
           ),
         );
       }
@@ -92,6 +95,7 @@ class _CampaignPostDialogState extends State<_CampaignPostDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final dirty = _title.text.isNotEmpty || _body.text.isNotEmpty;
     return PopScope(
       canPop: !_sending && !dirty,
@@ -102,17 +106,14 @@ class _CampaignPostDialogState extends State<_CampaignPostDialog> {
       },
       child: AlertDialog(
         scrollable: true,
-        title: const Text('Post an update'),
+        title: Text(l10n.sponsorPostTitle),
         content: SizedBox(
           width: 480,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Volunteers and sponsors of ${widget.campaign.name} will see '
-                'this update.',
-              ),
+              Text(l10n.sponsorPostAudience(widget.campaign.name)),
               const SizedBox(height: 14),
               FieldnoteTextField(
                 controller: _title,
@@ -120,7 +121,9 @@ class _CampaignPostDialogState extends State<_CampaignPostDialog> {
                 maxLength: CampaignLimits.postTitleMax,
                 textCapitalization: TextCapitalization.sentences,
                 onChanged: (_) => setState(() {}),
-                decoration: const InputDecoration(labelText: 'Title'),
+                decoration: InputDecoration(
+                  labelText: l10n.sponsorPostTitleLabel,
+                ),
               ),
               const SizedBox(height: 8),
               FieldnoteTextField(
@@ -131,7 +134,9 @@ class _CampaignPostDialogState extends State<_CampaignPostDialog> {
                 maxLength: CampaignLimits.postBodyMax,
                 textCapitalization: TextCapitalization.sentences,
                 onChanged: (_) => setState(() {}),
-                decoration: const InputDecoration(labelText: 'Update'),
+                decoration: InputDecoration(
+                  labelText: l10n.sponsorPostBodyLabel,
+                ),
               ),
               if (_error != null) ...[
                 const SizedBox(height: 8),
@@ -149,7 +154,7 @@ class _CampaignPostDialogState extends State<_CampaignPostDialog> {
         actions: [
           TextButton(
             onPressed: _sending ? null : () => Navigator.maybePop(context),
-            child: const Text('Cancel'),
+            child: Text(l10n.sponsorCheckoutCancel),
           ),
           FilledButton.icon(
             onPressed: _sending ? null : _send,
@@ -159,7 +164,9 @@ class _CampaignPostDialogState extends State<_CampaignPostDialog> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.send_outlined),
-            label: Text(_sending ? 'Publishing…' : 'Publish update'),
+            label: Text(
+              _sending ? l10n.sponsorPostPublishing : l10n.sponsorPostPublish,
+            ),
           ),
         ],
       ),
@@ -169,19 +176,20 @@ class _CampaignPostDialogState extends State<_CampaignPostDialog> {
 
 /// Asks whether unsaved form input may be thrown away.
 Future<bool> confirmDiscard(BuildContext context) async {
+  final l10n = context.l10n;
   final result = await showDialog<bool>(
     context: context,
     builder: (dialogContext) => AlertDialog(
-      title: const Text('Discard changes?'),
-      content: const Text('What you entered in this form will be lost.'),
+      title: Text(l10n.sponsorDiscardTitle),
+      content: Text(l10n.sponsorDiscardMessage),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(dialogContext, false),
-          child: const Text('Keep editing'),
+          child: Text(l10n.sponsorDiscardKeepEditing),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(dialogContext, true),
-          child: const Text('Discard'),
+          child: Text(l10n.sponsorDiscardConfirm),
         ),
       ],
     ),

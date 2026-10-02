@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../data/services/device_location_service.dart';
+import '../../../l10n/l10n.dart';
 import '../../core/fieldnote_theme.dart';
 
 /// Pure helpers for the volunteer screens. They mirror server rules so the UI
@@ -55,18 +56,37 @@ CheckInWindow checkInWindow(Campaign campaign, DateTime now) {
   return CheckInWindow.open;
 }
 
+/// English strings for the pure helpers when no [AppLocalizations] is given.
+final _en = lookupAppLocalizations(const Locale('en'));
+
+/// The `intl` date locale for [tag]. English uses intl's built-in default
+/// (which needs no `initializeDateFormatting`); other locales are loaded by
+/// `GlobalMaterialLocalizations` before any screen builds.
+String? dateLocale(String? tag) =>
+    tag == null || tag == 'en' || tag.startsWith('en-') ? null : tag;
+
 /// "Check-in opens at 09:30" (with the date when it is not today).
-String checkInOpensLabel(Campaign campaign, DateTime now) {
+String checkInOpensLabel(
+  Campaign campaign,
+  DateTime now, {
+  AppLocalizations? l10n,
+  String? locale,
+}) {
+  final strings = l10n ?? _en;
+  final tag = dateLocale(locale);
   final opens = checkInOpensAt(campaign).toLocal();
   final local = now.toLocal();
   final sameDay =
       opens.year == local.year &&
       opens.month == local.month &&
       opens.day == local.day;
-  final time = DateFormat('HH:mm').format(opens);
+  final time = DateFormat.Hm(tag).format(opens);
   return sameDay
-      ? 'Check-in opens at $time'
-      : 'Check-in opens ${DateFormat('EEE d MMM').format(opens)} at $time';
+      ? strings.volunteerCheckInOpensAt(time)
+      : strings.volunteerCheckInOpensOn(
+          DateFormat.MMMEd(tag).format(opens),
+          time,
+        );
 }
 
 bool isCampaignCancelled(Campaign campaign) =>
@@ -116,68 +136,70 @@ ParticipationDisplay participationDisplay(
   CampaignParticipation participation,
   Campaign? campaign, {
   DateTime? now,
+  AppLocalizations? l10n,
 }) {
+  final strings = l10n ?? _en;
   final at = (now ?? DateTime.now()).toUtc();
   switch (participation.status) {
     case ParticipationStatus.completed:
-      return const ParticipationDisplay(
-        label: 'Impact submitted',
+      return ParticipationDisplay(
+        label: strings.volunteerStatusImpactSubmitted,
         color: FieldnoteColors.forest,
         icon: Icons.verified,
       );
     case ParticipationStatus.left:
-      return const ParticipationDisplay(
-        label: 'You left this campaign',
+      return ParticipationDisplay(
+        label: strings.volunteerStatusLeft,
         color: FieldnoteColors.moss,
         icon: Icons.logout,
-        detail: 'Your place was freed. You can join again while it is open.',
+        detail: strings.volunteerStatusLeftDetail,
       );
     case ParticipationStatus.noShow:
-      return const ParticipationDisplay(
-        label: 'Missed · no check-in',
+      return ParticipationDisplay(
+        label: strings.volunteerStatusNoShow,
         color: FieldnoteColors.clay,
         icon: Icons.event_busy_outlined,
-        detail: 'The campaign ended without a GPS check-in from you.',
+        detail: strings.volunteerStatusNoShowDetail,
       );
     case ParticipationStatus.incomplete:
-      return const ParticipationDisplay(
-        label: 'Incomplete · no evidence',
+      return ParticipationDisplay(
+        label: strings.volunteerStatusIncomplete,
         color: FieldnoteColors.clay,
         icon: Icons.hourglass_disabled_outlined,
-        detail: 'You checked in, but no evidence was sent before the deadline.',
+        detail: strings.volunteerStatusIncompleteDetail,
       );
     case ParticipationStatus.cancelled:
-      return _cancelledOrExpired(campaign);
+      return _cancelledOrExpired(campaign, strings);
     case ParticipationStatus.joined:
     case ParticipationStatus.checkedIn:
       break;
   }
   if (campaign != null &&
       (isCampaignCancelled(campaign) || isCampaignExpired(campaign))) {
-    return _cancelledOrExpired(campaign);
+    return _cancelledOrExpired(campaign, strings);
   }
   if (campaign != null && isCampaignCompleted(campaign)) {
     return ParticipationDisplay(
-      label: 'Campaign completed',
+      label: strings.volunteerStatusCampaignCompleted,
       color: FieldnoteColors.moss,
       icon: Icons.flag_outlined,
       detail: participation.status == ParticipationStatus.checkedIn
-          ? 'The evidence window has closed.'
-          : 'This campaign has finished.',
+          ? strings.volunteerStatusEvidenceWindowClosed
+          : strings.volunteerStatusCampaignFinished,
     );
   }
   if (participation.status == ParticipationStatus.checkedIn) {
     final open = campaign == null || !at.isAfter(completionDeadline(campaign));
     return ParticipationDisplay(
-      label: 'GPS checked in',
+      label: strings.volunteerStatusCheckedIn,
       color: FieldnoteColors.forest,
       icon: Icons.gps_fixed,
       canComplete: open,
-      detail: open ? null : 'The evidence window for this campaign has closed.',
+      detail: open ? null : strings.volunteerEvidenceWindowClosed,
     );
   }
-  return const ParticipationDisplay(
-    label: 'Joined',
+  return ParticipationDisplay(
+    label: strings.volunteerStatusJoined,
     color: FieldnoteColors.clay,
     icon: Icons.how_to_reg,
     canCheckIn: true,
@@ -185,47 +207,56 @@ ParticipationDisplay participationDisplay(
   );
 }
 
-ParticipationDisplay _cancelledOrExpired(Campaign? campaign) =>
-    campaign != null && isCampaignExpired(campaign)
-    ? const ParticipationDisplay(
-        label: 'Campaign expired',
+ParticipationDisplay _cancelledOrExpired(
+  Campaign? campaign,
+  AppLocalizations strings,
+) => campaign != null && isCampaignExpired(campaign)
+    ? ParticipationDisplay(
+        label: strings.volunteerStatusExpired,
         color: FieldnoteColors.danger,
         icon: Icons.event_busy_outlined,
-        detail:
-            'The proposed date passed without enough support. Do not travel.',
+        detail: strings.volunteerStatusExpiredDetail,
       )
-    : const ParticipationDisplay(
-        label: 'Campaign cancelled — do not travel',
+    : ParticipationDisplay(
+        label: strings.volunteerStatusCancelled,
         color: FieldnoteColors.danger,
         icon: Icons.cancel_outlined,
-        detail: 'The organizer cancelled this campaign.',
+        detail: strings.volunteerStatusCancelledDetail,
       );
 
-String reviewStateLabel(ReviewState state) => switch (state) {
-  ReviewState.awaitingReview => 'Awaiting sponsor review',
-  ReviewState.approved => 'Approved by sponsor',
-  ReviewState.changesRequested => 'Changes requested',
-  ReviewState.rejected => 'Rejected by sponsor',
-};
+String reviewStateLabel(ReviewState state, {AppLocalizations? l10n}) {
+  final strings = l10n ?? _en;
+  return switch (state) {
+    ReviewState.awaitingReview => strings.volunteerReviewAwaiting,
+    ReviewState.approved => strings.volunteerReviewApproved,
+    ReviewState.changesRequested => strings.volunteerReviewChangesRequested,
+    ReviewState.rejected => strings.volunteerReviewRejected,
+  };
+}
 
 /// Why [location] cannot be sent to the server, or null when it is usable.
-String? locationProblem(DeviceLocation location, DateTime now) {
+String? locationProblem(
+  DeviceLocation location,
+  DateTime now, {
+  AppLocalizations? l10n,
+}) {
   if (location.accuracyMeters > maxAcceptedAccuracyMeters ||
       !location.accuracyMeters.isFinite ||
       location.accuracyMeters <= 0) {
-    return accuracyMessage(location.accuracyMeters);
+    return accuracyMessage(location.accuracyMeters, l10n: l10n);
   }
   if (now.toUtc().difference(location.capturedAt.toUtc()).abs() >
       maxLocationAge) {
-    return 'The GPS reading is out of date. Try again.';
+    return (l10n ?? _en).volunteerGpsOutOfDate;
   }
   return null;
 }
 
-String accuracyMessage(double accuracyMeters) =>
-    'GPS accuracy is ±${accuracyMeters.isFinite ? accuracyMeters.round() : '?'} m; '
-    'FieldNote needs ${maxAcceptedAccuracyMeters.round()} m or better. Move '
-    'outdoors or near a window and try again.';
+String accuracyMessage(double accuracyMeters, {AppLocalizations? l10n}) =>
+    (l10n ?? _en).volunteerGpsAccuracyTooLow(
+      accuracyMeters.isFinite ? '${accuracyMeters.round()}' : '?',
+      maxAcceptedAccuracyMeters.round(),
+    );
 
 /// True when [location] can be reused instead of asking for a new fix.
 bool isReusableFix(DeviceLocation? location, DateTime now) =>
@@ -259,12 +290,16 @@ String formatMinutes(int minutes) {
 }
 
 /// Null when the window is valid (0–1440, start before end).
-String? availabilityWindowProblem(int startMinutes, int endMinutes) {
+String? availabilityWindowProblem(
+  int startMinutes,
+  int endMinutes, {
+  AppLocalizations? l10n,
+}) {
   if (startMinutes < 0 || endMinutes > 1440 || startMinutes > 1440) {
-    return 'Choose times within the day.';
+    return (l10n ?? _en).volunteerTimesWithinDay;
   }
   if (startMinutes >= endMinutes) {
-    return 'The end time must be after the start time.';
+    return (l10n ?? _en).volunteerEndAfterStart;
   }
   return null;
 }

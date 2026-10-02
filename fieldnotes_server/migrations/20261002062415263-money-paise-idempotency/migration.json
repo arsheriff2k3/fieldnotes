@@ -1,0 +1,331 @@
+{
+  "__className__": "serverpod.DatabaseMigration",
+  "actions": [
+    {
+      "__className__": "serverpod.DatabaseMigrationAction",
+      "type": "deleteTable",
+      "deleteTable": "fieldnote_review_decision"
+    },
+    {
+      "__className__": "serverpod.DatabaseMigrationAction",
+      "type": "deleteTable",
+      "deleteTable": "fieldnote_organization_member"
+    },
+    {
+      "__className__": "serverpod.DatabaseMigrationAction",
+      "type": "deleteTable",
+      "deleteTable": "fieldnote_observation_media"
+    },
+    {
+      "__className__": "serverpod.DatabaseMigrationAction",
+      "type": "deleteTable",
+      "deleteTable": "fieldnote_observation"
+    },
+    {
+      "__className__": "serverpod.DatabaseMigrationAction",
+      "type": "deleteTable",
+      "deleteTable": "fieldnote_follow_up_task"
+    },
+    {
+      "__className__": "serverpod.DatabaseMigrationAction",
+      "type": "deleteTable",
+      "deleteTable": "fieldnote_asset"
+    },
+    {
+      "__className__": "serverpod.DatabaseMigrationAction",
+      "type": "alterTable",
+      "alterTable": {
+        "__className__": "serverpod.TableMigration",
+        "name": "fieldnote_campaign",
+        "schema": "public",
+        "addColumns": [
+          {
+            "__className__": "serverpod.ColumnDefinition",
+            "name": "fundingGoalPaise",
+            "fieldName": "fundingGoalPaise",
+            "columnType": 6,
+            "isNullable": false,
+            "columnDefault": "0",
+            "dartType": "int"
+          },
+          {
+            "__className__": "serverpod.ColumnDefinition",
+            "name": "sponsoredAmountPaise",
+            "fieldName": "sponsoredAmountPaise",
+            "columnType": 6,
+            "isNullable": false,
+            "columnDefault": "0",
+            "dartType": "int"
+          },
+          {
+            "__className__": "serverpod.ColumnDefinition",
+            "name": "refundedAmountPaise",
+            "fieldName": "refundedAmountPaise",
+            "columnType": 6,
+            "isNullable": false,
+            "columnDefault": "0",
+            "dartType": "int"
+          },
+          {
+            "__className__": "serverpod.ColumnDefinition",
+            "name": "clientRequestId",
+            "fieldName": "clientRequestId",
+            "columnType": 0,
+            "isNullable": true,
+            "dartType": "String?"
+          }
+        ],
+        "deleteColumns": [],
+        "modifyColumns": [],
+        "addIndexes": [
+          {
+            "__className__": "serverpod.IndexDefinition",
+            "indexName": "fieldnote_campaign_client_request_idx",
+            "elements": [
+              {
+                "__className__": "serverpod.IndexElementDefinition",
+                "type": 0,
+                "definition": "createdBy"
+              },
+              {
+                "__className__": "serverpod.IndexElementDefinition",
+                "type": 0,
+                "definition": "clientRequestId"
+              }
+            ],
+            "type": "btree",
+            "isUnique": true,
+            "isPrimary": false
+          }
+        ],
+        "deleteIndexes": [],
+        "addForeignKeys": [],
+        "deleteForeignKeys": [],
+        "warnings": [
+          {
+            "__className__": "serverpod.DatabaseMigrationWarning",
+            "type": "uniqueIndexCreated",
+            "message": "Unique index \"fieldnote_campaign_client_request_idx\" is added to table \"fieldnote_campaign\". If there are existing rows with duplicate values, this migration will fail.",
+            "table": "fieldnote_campaign",
+            "columns": [
+              "createdBy",
+              "clientRequestId"
+            ],
+            "destrucive": false
+          }
+        ]
+      }
+    },
+    {
+      "__className__": "serverpod.DatabaseMigrationAction",
+      "type": "alterTable",
+      "alterTable": {
+        "__className__": "serverpod.TableMigration",
+        "name": "fieldnote_sponsorship",
+        "schema": "public",
+        "addColumns": [
+          {
+            "__className__": "serverpod.ColumnDefinition",
+            "name": "amountPaise",
+            "fieldName": "amountPaise",
+            "columnType": 6,
+            "isNullable": false,
+            "columnDefault": "0",
+            "dartType": "int"
+          },
+          {
+            "__className__": "serverpod.ColumnDefinition",
+            "name": "clientRequestId",
+            "fieldName": "clientRequestId",
+            "columnType": 0,
+            "isNullable": true,
+            "dartType": "String?"
+          }
+        ],
+        "deleteColumns": [],
+        "modifyColumns": [],
+        "addIndexes": [
+          {
+            "__className__": "serverpod.IndexDefinition",
+            "indexName": "fieldnote_sponsorship_client_request_idx",
+            "elements": [
+              {
+                "__className__": "serverpod.IndexElementDefinition",
+                "type": 0,
+                "definition": "sponsorAuthUserId"
+              },
+              {
+                "__className__": "serverpod.IndexElementDefinition",
+                "type": 0,
+                "definition": "clientRequestId"
+              }
+            ],
+            "type": "btree",
+            "isUnique": true,
+            "isPrimary": false
+          }
+        ],
+        "deleteIndexes": [],
+        "addForeignKeys": [],
+        "deleteForeignKeys": [],
+        "warnings": [
+          {
+            "__className__": "serverpod.DatabaseMigrationWarning",
+            "type": "uniqueIndexCreated",
+            "message": "Unique index \"fieldnote_sponsorship_client_request_idx\" is added to table \"fieldnote_sponsorship\". If there are existing rows with duplicate values, this migration will fail.",
+            "table": "fieldnote_sponsorship",
+            "columns": [
+              "sponsorAuthUserId",
+              "clientRequestId"
+            ],
+            "destrucive": false
+          }
+        ]
+      }
+    },
+    {
+      "__className__": "serverpod.DatabaseMigrationAction",
+      "type": "alterTable",
+      "alterTable": {
+        "__className__": "serverpod.TableMigration",
+        "name": "fieldnote_test_payout",
+        "schema": "public",
+        "addColumns": [
+          {
+            "__className__": "serverpod.ColumnDefinition",
+            "name": "amountPaise",
+            "fieldName": "amountPaise",
+            "columnType": 6,
+            "isNullable": false,
+            "columnDefault": "0",
+            "dartType": "int"
+          }
+        ],
+        "deleteColumns": [],
+        "modifyColumns": [],
+        "addIndexes": [],
+        "deleteIndexes": [],
+        "addForeignKeys": [],
+        "deleteForeignKeys": [],
+        "warnings": []
+      }
+    },
+    {
+      "__className__": "serverpod.DatabaseMigrationAction",
+      "type": "alterTable",
+      "alterTable": {
+        "__className__": "serverpod.TableMigration",
+        "name": "fieldnote_test_refund",
+        "schema": "public",
+        "addColumns": [
+          {
+            "__className__": "serverpod.ColumnDefinition",
+            "name": "amountPaise",
+            "fieldName": "amountPaise",
+            "columnType": 6,
+            "isNullable": false,
+            "columnDefault": "0",
+            "dartType": "int"
+          },
+          {
+            "__className__": "serverpod.ColumnDefinition",
+            "name": "fundingReversedAt",
+            "fieldName": "fundingReversedAt",
+            "columnType": 4,
+            "isNullable": true,
+            "dartType": "DateTime?"
+          },
+          {
+            "__className__": "serverpod.ColumnDefinition",
+            "name": "fundingReversedPaise",
+            "fieldName": "fundingReversedPaise",
+            "columnType": 6,
+            "isNullable": false,
+            "columnDefault": "0",
+            "dartType": "int"
+          }
+        ],
+        "deleteColumns": [],
+        "modifyColumns": [],
+        "addIndexes": [],
+        "deleteIndexes": [],
+        "addForeignKeys": [],
+        "deleteForeignKeys": [],
+        "warnings": []
+      }
+    }
+  ],
+  "warnings": [
+    {
+      "__className__": "serverpod.DatabaseMigrationWarning",
+      "type": "tableDropped",
+      "message": "Table \"fieldnote_review_decision\" will be dropped.",
+      "table": "fieldnote_review_decision",
+      "columns": [],
+      "destrucive": true
+    },
+    {
+      "__className__": "serverpod.DatabaseMigrationWarning",
+      "type": "tableDropped",
+      "message": "Table \"fieldnote_organization_member\" will be dropped.",
+      "table": "fieldnote_organization_member",
+      "columns": [],
+      "destrucive": true
+    },
+    {
+      "__className__": "serverpod.DatabaseMigrationWarning",
+      "type": "tableDropped",
+      "message": "Table \"fieldnote_observation_media\" will be dropped.",
+      "table": "fieldnote_observation_media",
+      "columns": [],
+      "destrucive": true
+    },
+    {
+      "__className__": "serverpod.DatabaseMigrationWarning",
+      "type": "tableDropped",
+      "message": "Table \"fieldnote_observation\" will be dropped.",
+      "table": "fieldnote_observation",
+      "columns": [],
+      "destrucive": true
+    },
+    {
+      "__className__": "serverpod.DatabaseMigrationWarning",
+      "type": "tableDropped",
+      "message": "Table \"fieldnote_follow_up_task\" will be dropped.",
+      "table": "fieldnote_follow_up_task",
+      "columns": [],
+      "destrucive": true
+    },
+    {
+      "__className__": "serverpod.DatabaseMigrationWarning",
+      "type": "tableDropped",
+      "message": "Table \"fieldnote_asset\" will be dropped.",
+      "table": "fieldnote_asset",
+      "columns": [],
+      "destrucive": true
+    },
+    {
+      "__className__": "serverpod.DatabaseMigrationWarning",
+      "type": "uniqueIndexCreated",
+      "message": "Unique index \"fieldnote_campaign_client_request_idx\" is added to table \"fieldnote_campaign\". If there are existing rows with duplicate values, this migration will fail.",
+      "table": "fieldnote_campaign",
+      "columns": [
+        "createdBy",
+        "clientRequestId"
+      ],
+      "destrucive": false
+    },
+    {
+      "__className__": "serverpod.DatabaseMigrationWarning",
+      "type": "uniqueIndexCreated",
+      "message": "Unique index \"fieldnote_sponsorship_client_request_idx\" is added to table \"fieldnote_sponsorship\". If there are existing rows with duplicate values, this migration will fail.",
+      "table": "fieldnote_sponsorship",
+      "columns": [
+        "sponsorAuthUserId",
+        "clientRequestId"
+      ],
+      "destrucive": false
+    }
+  ],
+  "migrationApiVersion": 1
+}

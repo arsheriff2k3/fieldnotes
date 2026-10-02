@@ -4,7 +4,6 @@ import 'package:crypto/crypto.dart';
 import 'package:serverpod/serverpod.dart';
 
 import '../../generated/protocol.dart';
-import 'money.dart';
 import 'payment_reconciliation_service.dart';
 import 'razorpay_payment_service.dart';
 import 'refund_service.dart';
@@ -179,7 +178,7 @@ class RazorpayWebhookService {
         final sponsorship = await _sponsorship(session, orderId);
         if (sponsorship == null) return ('ignored', 'Unknown order $orderId.');
         final amount = (payment?['amount'] as num?)?.round();
-        if (amount != null && amount != Money.toPaise(sponsorship.amount)) {
+        if (amount != null && amount != sponsorship.amountPaise) {
           return ('ignored', 'Amount $amount does not match order $orderId.');
         }
         final result = await _settlement.settleCaptured(

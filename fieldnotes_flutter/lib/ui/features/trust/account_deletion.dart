@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../core/error_messages.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/widgets.dart';
+import '../../../l10n/l10n.dart';
 import '../shell/fieldnote_view_model.dart';
 
 /// Set after this device requested deletion and signed out, so the sign-in
@@ -14,6 +15,9 @@ final ValueNotifier<bool> accountDeletionNotice = ValueNotifier(false);
 const accountDeletionSignInMessage =
     'Your account deletion has started and completes within about a minute. '
     'You have been signed out on every device.';
+
+// The constants below are the English copies used where no BuildContext is
+// available (the sign-in notice); widgets show the AppLocalizations strings.
 
 /// What deletion really does (matches `AccountDeletionService`).
 const accountDeletionExplanation =
@@ -30,35 +34,40 @@ const accountDeletionBlockers =
 
 const _confirmWord = 'DELETE';
 
-final _timestamp = DateFormat('d MMM yyyy, HH:mm');
+DateFormat _timestamp(BuildContext context) =>
+    DateFormat.yMMMd(context.localeTag).add_Hm();
 
-/// User-facing label for an [AccountDeletionRequest.status].
-String accountDeletionStatusLabel(String status) => switch (status) {
-  'pending' => 'Deletion pending',
-  'processing' => 'Deletion in progress',
-  'completed' => 'Account deleted',
-  'failed' => 'Deletion failed',
-  _ => 'Deletion $status',
-};
+/// User-facing label for an [AccountDeletionRequest.status]. English unless
+/// [l10n] is given.
+String accountDeletionStatusLabel(String status, [AppLocalizations? l10n]) {
+  final l = l10n ?? lookupAppLocalizations(const Locale('en'));
+  return switch (status) {
+    'pending' => l.deletionStatusPending,
+    'processing' => l.deletionStatusProcessing,
+    'completed' => l.deletionStatusCompleted,
+    'failed' => l.deletionStatusFailed,
+    _ => l.deletionStatusOther(status),
+  };
+}
 
 bool deletionInFlight(AccountDeletionRequest? request) =>
     request != null &&
     (request.status == 'pending' || request.status == 'processing');
 
-String _failureMessage(AccountDeletionRequest request) {
+String _failureMessage(BuildContext context, AccountDeletionRequest request) {
+  final l10n = context.l10n;
   final code = request.lastError;
-  final reason = code == null || code.isEmpty
-      ? 'FieldNote could not finish deleting your account.'
-      : code.startsWith('deletion_blocked_')
+  final reason = code != null && code.startsWith('deletion_blocked_')
       ? userMessageFor(FieldnoteException(message: '', code: code))
-      : 'FieldNote could not finish deleting your account.';
+      : l10n.deletionFailedReason;
   final retryAt = request.nextAttemptAt;
   if (retryAt != null) {
-    return '$reason It will retry automatically at '
-        '${_timestamp.format(retryAt.toLocal())}.';
+    return l10n.deletionWillRetry(
+      reason,
+      _timestamp(context).format(retryAt.toLocal()),
+    );
   }
-  return '$reason Request deletion again, or contact support if this keeps '
-      'happening.';
+  return l10n.deletionRequestAgain(reason);
 }
 
 /// Asks the user to type DELETE, requests deletion, then signs out.
@@ -71,16 +80,17 @@ Future<void> confirmAndRequestAccountDeletion(
     builder: (_) => const _DeleteAccountDialog(),
   );
   if (confirmed != true || !context.mounted) return;
+  final l10n = context.l10n;
   try {
     await viewModel.requestAccountDeletion();
   } on Object catch (error) {
     if (context.mounted) {
       showFieldnoteNotice(
         context,
-        title: 'Account not deleted',
+        title: l10n.deletionNotDeletedTitle,
         message: userMessageFor(
           error,
-          fallback: 'Could not request account deletion. Try again.',
+          fallback: l10n.deletionRequestFailed,
         ),
         kind: FieldnoteNoticeKind.error,
       );
@@ -92,15 +102,14 @@ Future<void> confirmAndRequestAccountDeletion(
     context: context,
     barrierDismissible: false,
     builder: (dialogContext) => AlertDialog(
-      title: const Text('Deletion started'),
-      content: const Text(
-        'Your account is being deleted and this completes within about a '
-        'minute. You will now be signed out.',
-      ),
+      title: Text(l10n.deletionStartedTitle),
+      content: Text(l10n.deletionStartedBody),
       actions: [
         FilledButton(
           onPressed: () => Navigator.pop(dialogContext),
-          child: const Text('OK'),
+          child: Text(
+            MaterialLocalizations.of(dialogContext).okButtonLabel,
+          ),
         ),
       ],
     ),
@@ -129,18 +138,20 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return AlertDialog(
-      title: const Text('Delete your account?'),
+      title: Text(l10n.deletionDialogTitle),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(accountDeletionExplanation),
+            Text(l10n.deletionExplanation),
             const SizedBox(height: 10),
-            const Text(accountDeletionBlockers),
+            Text(l10n.deletionBlockers),
             const SizedBox(height: 16),
-            const Text('Type $_confirmWord to confirm.'),
+            // The confirmation word itself stays DELETE in every language.
+            Text(l10n.deletionTypeToConfirm(_confirmWord)),
             const SizedBox(height: 8),
             TextField(
               key: const ValueKey('delete-confirm-field'),
@@ -157,15 +168,16 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancel'),
+          child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
         ),
         FilledButton(
           onPressed: _matches ? () => Navigator.pop(context, true) : null,
+          // A solid fill with white text in both brightnesses.
           style: FilledButton.styleFrom(
             backgroundColor: FieldnoteColors.danger,
             foregroundColor: Colors.white,
           ),
-          child: const Text('Delete account'),
+          child: Text(l10n.deletionDeleteAccount),
         ),
       ],
     );
@@ -182,33 +194,35 @@ class AccountDeletionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final request = viewModel.deletionStatus;
     final inFlight = deletionInFlight(request);
+    final c = context.fieldnoteColors;
+    final l10n = context.l10n;
     return SurfaceCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.delete_outline, color: FieldnoteColors.danger),
+              Icon(Icons.delete_outline, color: c.danger),
               const SizedBox(width: 9),
               Expanded(
                 child: Text(
-                  'Delete account',
+                  l10n.deletionDeleteAccount,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
-          const Text(accountDeletionExplanation),
+          Text(l10n.deletionExplanation),
           const SizedBox(height: 6),
           Text(
-            accountDeletionBlockers,
+            l10n.deletionBlockers,
             style: Theme.of(context).textTheme.bodySmall,
           ),
           if (request != null) ...[
             const SizedBox(height: 12),
             StatusPill(
-              label: accountDeletionStatusLabel(request.status),
+              label: accountDeletionStatusLabel(request.status, l10n),
               color: request.status == 'failed'
                   ? FieldnoteColors.danger
                   : FieldnoteColors.clay,
@@ -219,12 +233,12 @@ class AccountDeletionCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               request.status == 'failed'
-                  ? _failureMessage(request)
+                  ? _failureMessage(context, request)
                   : request.status == 'completed'
-                  ? 'Your account was deleted.'
-                  : 'Requested ${_timestamp.format(request.requestedAt.toLocal())}. '
-                        'This completes within about a minute and signs you '
-                        'out.',
+                  ? l10n.deletionCompletedBody
+                  : l10n.deletionRequestedAt(
+                      _timestamp(context).format(request.requestedAt.toLocal()),
+                    ),
             ),
           ],
           const SizedBox(height: 14),
@@ -237,6 +251,7 @@ class AccountDeletionCard extends StatelessWidget {
                     ? null
                     : () =>
                           confirmAndRequestAccountDeletion(context, viewModel),
+                // A solid fill with white text in both brightnesses.
                 style: FilledButton.styleFrom(
                   backgroundColor: FieldnoteColors.danger,
                   foregroundColor: Colors.white,
@@ -244,15 +259,15 @@ class AccountDeletionCard extends StatelessWidget {
                 icon: const Icon(Icons.delete_forever_outlined),
                 label: Text(
                   request?.status == 'failed'
-                      ? 'Request deletion again'
-                      : 'Delete my account',
+                      ? l10n.deletionRequestAgainButton
+                      : l10n.deletionDeleteMyAccount,
                 ),
               ),
               if (request != null)
                 OutlinedButton.icon(
                   onPressed: viewModel.refreshDeletionStatus,
                   icon: const Icon(Icons.refresh),
-                  label: const Text('Refresh status'),
+                  label: Text(l10n.deletionRefreshStatus),
                 ),
             ],
           ),

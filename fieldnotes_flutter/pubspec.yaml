@@ -1,5 +1,5 @@
 name: fieldnotes_flutter
-description: A new Flutter project with Serverpod.
+description: FieldNote Teams AI - sponsors fund nearby, evidence-backed volunteer action.
 
 # The following line prevents the package from being accidentally published to
 # pub.dev using `pub publish`. This is preferred for private packages.
@@ -29,6 +29,8 @@ dependencies:
   cupertino_icons: ^1.0.5
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   google_fonts: ^8.1.0
   google_maps_flutter: ^2.9.0
   url_launcher: ^6.3.0
@@ -47,6 +49,8 @@ dependencies:
     path: ../fieldnotes_client
   serverpod_flutter: 4.0.0
   serverpod_auth_idp_flutter: 4.0.0
+  flutter_timezone: ^5.1.0
+  uuid: ^4.6.0
 
 dev_dependencies:
   # Used for agents to drive the app through the Dart MCP
@@ -55,6 +59,7 @@ dev_dependencies:
   flutter_lints: '>=3.0.0 <7.0.0'
   flutter_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.14.4
 
 dependency_overrides:
   flutter_secure_storage: ^10.0.0
@@ -69,6 +74,9 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # Generates AppLocalizations from lib/l10n/*.arb (see l10n.yaml).
+  generate: true
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -85,6 +93,7 @@ flutter:
     - .env.maps
     - assets/fonts/Roboto-Regular.ttf
     - assets/fonts/NotoSansTamil.ttf
+    - assets/fonts/NotoSansDevanagari.ttf
 
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a
@@ -105,3 +114,21 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
+
+# Launcher icons from assets/branding (source: icon.svg, rendered by
+# `flutter test tool/render_icon_test.dart`). Regenerate with
+# `dart run flutter_launcher_icons`.
+flutter_launcher_icons:
+  image_path: assets/branding/icon.png
+  android: true
+  adaptive_icon_background: "#1D4B3B"
+  adaptive_icon_foreground: assets/branding/icon_foreground.png
+  ios: true
+  remove_alpha_ios: true
+  web:
+    generate: true
+    background_color: "#1D4B3B"
+    theme_color: "#1D4B3B"
+  macos:
+    generate: true
+    image_path: assets/branding/icon_macos.png

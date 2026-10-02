@@ -4,6 +4,7 @@ import 'package:serverpod/serverpod.dart';
 
 import '../../generated/protocol.dart';
 import 'campaign_events_service.dart';
+import 'campaign_lifecycle_service.dart';
 import 'money.dart';
 import 'notification_service.dart';
 import 'razorpay_payment_service.dart';
@@ -32,10 +33,17 @@ typedef RefundRunResult = ({int attempted, int processed, int failed});
 /// Razorpay `POST /v1/payments/{id}/refund`.
 ///
 /// Idempotency: the `fieldnote_test_refund.sponsorshipId` unique index allows
-/// one row per payment; each provider request carries the receipt
-/// `fn_refund_<rowId>` (also sent as `X-Refund-Idempotency`) and the note
-/// `fieldnote_refund_id`, and a retry first adopts any provider refund that
-/// already carries that note.
+/// one row per payment. Every request uses only the documented refund body
+/// fields (`amount`, `speed`, `receipt`, `notes`): the receipt is
+/// `fn_refund_<rowId>` and the note `fieldnote_refund_id` carries the row id.
+/// No idempotency header is sent (none is documented for this API). Instead,
+/// before any retry the worker lists `GET /v1/payments/:id/refunds` and adopts
+/// a non-failed refund carrying that receipt or note rather than creating a
+/// second one.
+///
+/// A processed refund of a credited payment is taken off the campaign's
+/// `sponsoredAmountPaise` exactly once (`fundingReversedAt`), under the
+/// campaign row lock, in the same transaction that marks the row processed.
 class RefundService {
   const RefundService({this.gatewayOverride});
 
@@ -95,7 +103,8 @@ class RefundService {
       TestRefund(
         campaignId: sponsorship.campaignId,
         sponsorshipId: sponsorship.id!,
-        amount: Money.round2(sponsorship.amount),
+        amount: Money.fromPaise(sponsorship.amountPaise),
+        amountPaise: sponsorship.amountPaise,
         status: RefundStatus.pending,
         reason: reason,
         testMode: RazorpayCredentials.fromSession(session)?.isTestMode ?? true,
@@ -174,33 +183,15 @@ class RefundService {
     String? failureReason,
   }) async {
     final rowId = int.tryParse(record.notes['fieldnote_refund_id'] ?? '');
-    final updated = await session.db.transaction((transaction) async {
-      var refund = await TestRefund.db.findFirstRow(
-        session,
-        where: (t) => t.providerRefundId.equals(record.id),
-        transaction: transaction,
-        lockMode: LockMode.forUpdate,
-      );
-      if (refund == null && rowId != null) {
-        refund = await TestRefund.db.findById(
-          session,
-          rowId,
-          transaction: transaction,
-          lockMode: LockMode.forUpdate,
-        );
-      }
-      if (refund == null) return null;
-      if (refund.status == RefundStatus.processed) return refund;
-      return _applyRecord(
-        session,
-        refund,
-        record,
-        transaction: transaction,
-        failureReason: failureReason,
-      );
-    });
-    if (updated != null) await _auditOutcome(session, updated);
-    return updated;
+    var refund = await TestRefund.db.findFirstRow(
+      session,
+      where: (t) => t.providerRefundId.equals(record.id),
+    );
+    if (refund == null && rowId != null) {
+      refund = await TestRefund.db.findById(session, rowId);
+    }
+    if (refund == null) return null;
+    return _store(session, refund.id!, record, failureReason: failureReason);
   }
 
   Future<TestRefund?> _processOne(
@@ -264,7 +255,8 @@ class RefundService {
     if (claimed == null) return null;
 
     try {
-      // A previous attempt may have reached Razorpay before failing locally.
+      // A previous attempt may have reached Razorpay before failing locally
+      // (timeout, crash): adopt it instead of refunding twice.
       if (claimed.attempts > 1) {
         final adopted = await _findProviderRefund(
           credentials,
@@ -278,7 +270,7 @@ class RefundService {
       final record = await gateway.createRefund(
         credentials: credentials,
         paymentId: paymentId,
-        amountPaise: Money.toPaise(claimed.amount),
+        amountPaise: claimed.amountPaise,
         receipt: receiptFor(claimed.id!),
         notes: {
           'fieldnote_refund_id': '${claimed.id}',
@@ -347,6 +339,8 @@ class RefundService {
       paymentId: paymentId,
     );
     for (final refund in refunds) {
+      // A refund Razorpay already failed is retried with a new request.
+      if (refund.status == 'failed') continue;
       if (refund.notes['fieldnote_refund_id'] == '$refundId' ||
           refund.receipt == receiptFor(refundId)) {
         return refund;
@@ -358,9 +352,19 @@ class RefundService {
   Future<TestRefund?> _store(
     Session session,
     int refundId,
-    RazorpayRefundRecord record,
-  ) async {
-    final updated = await session.db.transaction((transaction) async {
+    RazorpayRefundRecord record, {
+    String? failureReason,
+  }) async {
+    final peek = await TestRefund.db.findById(session, refundId);
+    if (peek == null) return null;
+    final result = await session.db.transaction((transaction) async {
+      // Lock order campaign -> payment rows, as in PaymentCreditService.
+      final campaign = await Campaign.db.findById(
+        session,
+        peek.campaignId,
+        transaction: transaction,
+        lockMode: LockMode.forUpdate,
+      );
       final row = await TestRefund.db.findById(
         session,
         refundId,
@@ -368,11 +372,106 @@ class RefundService {
         lockMode: LockMode.forUpdate,
       );
       if (row == null) return null;
-      if (row.status == RefundStatus.processed) return row;
-      return _applyRecord(session, row, record, transaction: transaction);
+      var updated = row;
+      final wasProcessed = row.status == RefundStatus.processed;
+      if (!wasProcessed) {
+        updated = await _applyRecord(
+          session,
+          row,
+          record,
+          transaction: transaction,
+          failureReason: failureReason,
+        );
+      }
+      final reversed = campaign == null
+          ? 0
+          : await reverseFunding(
+              session,
+              campaign: campaign,
+              refund: updated,
+              transaction: transaction,
+            );
+      return (
+        refund: await TestRefund.db.findById(
+          session,
+          refundId,
+          transaction: transaction,
+        ),
+        changed: !wasProcessed,
+        reversed: reversed,
+      );
     });
-    if (updated != null) await _auditOutcome(session, updated);
-    return updated;
+    if (result == null || result.refund == null) return null;
+    final refund = result.refund!;
+    if (result.reversed > 0) {
+      await _afterFundingReversed(session, refund, result.reversed);
+    }
+    if (result.changed) await _auditOutcome(session, refund);
+    return refund;
+  }
+
+  /// Takes a processed refund of a credited payment off the campaign's
+  /// funded amount, once per refund row. The caller holds the campaign and
+  /// refund row locks. Returns the paise removed.
+  Future<int> reverseFunding(
+    Session session, {
+    required Campaign campaign,
+    required TestRefund refund,
+    required Transaction transaction,
+  }) async {
+    if (refund.status != RefundStatus.processed ||
+        refund.fundingReversedAt != null ||
+        refund.campaignId != campaign.id) {
+      return 0;
+    }
+    final sponsorship = await Sponsorship.db.findById(
+      session,
+      refund.sponsorshipId,
+      transaction: transaction,
+    );
+    final now = DateTime.now().toUtc();
+    // Only `verified` payments were ever added to sponsoredAmountPaise;
+    // uncredited captures are refunded without touching the campaign.
+    final credited = sponsorship?.paymentStatus == 'verified';
+    final paise = credited
+        ? math.min(
+            refund.amountPaise,
+            math.max(0, campaign.sponsoredAmountPaise),
+          )
+        : 0;
+    refund.fundingReversedAt = now;
+    refund.fundingReversedPaise = paise;
+    refund.updatedAt = now;
+    await TestRefund.db.updateRow(session, refund, transaction: transaction);
+    if (paise > 0) {
+      campaign.setSponsoredPaise(campaign.sponsoredAmountPaise - paise);
+      campaign.refundedAmountPaise += paise;
+      campaign.updatedAt = now;
+      await Campaign.db.updateRow(session, campaign, transaction: transaction);
+    }
+    return paise;
+  }
+
+  Future<void> _afterFundingReversed(
+    Session session,
+    TestRefund refund,
+    int paise,
+  ) async {
+    try {
+      // Closed campaigns keep their state; open ones are re-evaluated.
+      await const CampaignLifecycleService().refreshReadiness(
+        session,
+        refund.campaignId,
+      );
+    } on FieldnoteException {
+      // The campaign is gone; nothing to re-evaluate.
+    }
+    await _events.publish(
+      session,
+      refund.campaignId,
+      'sponsorshipRefunded',
+      'A refund of ${Money.format(paise)} was returned to a sponsor.',
+    );
   }
 
   Future<TestRefund> _applyRecord(
@@ -467,7 +566,7 @@ class RefundService {
       outcome: refund.status,
       riskLevel: refund.status == RefundStatus.failed ? 'warning' : 'info',
       detail: refund.status == RefundStatus.processed
-          ? 'Refund of ₹${refund.amount.toStringAsFixed(2)} processed${refund.testMode ? ' in Razorpay Test Mode' : ''}.'
+          ? 'Refund of ${Money.format(refund.amountPaise)} processed${refund.testMode ? ' in Razorpay Test Mode' : ''}.'
           : 'Refund attempt ${refund.attempts} failed and will be retried.',
     );
     if (refund.status == RefundStatus.processed) {

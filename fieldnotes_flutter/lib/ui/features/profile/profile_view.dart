@@ -2,12 +2,14 @@ import 'dart:async';
 
 import 'package:fieldnotes_client/fieldnotes_client.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/error_messages.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/in_app_maps.dart';
 import '../../core/location_picker.dart';
 import '../../core/widgets.dart';
+import '../../../l10n/l10n.dart';
 import '../shell/fieldnote_view_model.dart';
 import '../trust/account_deletion.dart';
 import '../trust/trust_center_view.dart' show confirmSignOut;
@@ -39,15 +41,6 @@ class _ProfileViewState extends State<ProfileView> {
     'organizing',
     'photography',
   ];
-  static const _dayNames = {
-    1: 'Mon',
-    2: 'Tue',
-    3: 'Wed',
-    4: 'Thu',
-    5: 'Fri',
-    6: 'Sat',
-    7: 'Sun',
-  };
   final _name = TextEditingController();
   final _city = TextEditingController();
   final _organization = TextEditingController();
@@ -180,7 +173,7 @@ class _ProfileViewState extends State<ProfileView> {
       MaterialPageRoute(
         builder: (_) => LocationPicker(
           repository: widget.viewModel.repository,
-          title: 'Choose profile location',
+          title: context.l10n.profileChooseLocation,
           initialQuery: _city.text,
           initialLabel:
               widget.viewModel.profile?.locationAddress ??
@@ -200,17 +193,18 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   Future<void> _save() async {
+    final l10n = context.l10n;
     final city = _city.text.trim();
     if (_name.text.trim().length < 2 || city.length < 2) {
       _message(
         widget.viewModel.isSponsor
-            ? 'Enter your display name and location.'
-            : 'Enter your display name and city.',
+            ? l10n.profileNeedNameAndLocation
+            : l10n.profileNeedNameAndCity,
       );
       return;
     }
     if (_interests.isEmpty) {
-      _message('Choose at least one interest.');
+      _message(l10n.profileNeedInterest);
       return;
     }
     if (_citySearchAvailable &&
@@ -220,22 +214,20 @@ class _ProfileViewState extends State<ProfileView> {
         widget.viewModel.isSponsor) {
       _message(
         widget.viewModel.isSponsor
-            ? 'Select the new location from the Google suggestions.'
-            : 'Select the new city from the Google suggestions.',
+            ? l10n.profileSelectLocationSuggestion
+            : l10n.profileSelectCitySuggestion,
       );
       return;
     }
     if (widget.viewModel.isVolunteer && _skills.isEmpty) {
-      _message('Choose at least one skill.');
+      _message(l10n.profileNeedSkill);
       return;
     }
     if ((widget.viewModel.isSponsor || _contactPhone.text.trim().isNotEmpty) &&
         !RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(
           _contactPhone.text.replaceAll(RegExp(r'[\s()\-]'), ''),
         )) {
-      _message(
-        'Enter a phone number with country code, for example +919876543210.',
-      );
+      _message(l10n.onboardingNeedPhone);
       return;
     }
 
@@ -263,12 +255,10 @@ class _ProfileViewState extends State<ProfileView> {
       if (!mounted) return;
       _resetFromModel();
       setState(() => _editing = false);
-      _message('Profile updated.');
+      _message(l10n.profileUpdated);
     } catch (error) {
       _message(
-        error is FieldnoteException
-            ? error.message
-            : 'Could not update your profile.',
+        error is FieldnoteException ? error.message : l10n.profileUpdateFailed,
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -279,7 +269,7 @@ class _ProfileViewState extends State<ProfileView> {
     final latitude = profile.locationLatitude;
     final longitude = profile.locationLongitude;
     if (latitude == null || longitude == null) {
-      _message('This profile does not have a mapped location yet.');
+      _message(context.l10n.profileNoMappedLocation);
       return;
     }
     Navigator.of(context).push<void>(
@@ -300,17 +290,19 @@ class _ProfileViewState extends State<ProfileView> {
   @override
   Widget build(BuildContext context) {
     final profile = widget.viewModel.profile!;
-    final roleName = widget.viewModel.isSponsor ? 'Sponsor' : 'Volunteer';
+    final l10n = context.l10n;
     return FieldnotePageList(
       children: [
         SectionHeading(
-          eyebrow: '$roleName account',
-          title: _editing ? 'Edit your profile' : profile.displayName,
+          eyebrow: widget.viewModel.isSponsor
+              ? l10n.profileSponsorAccount
+              : l10n.profileVolunteerAccount,
+          title: _editing ? l10n.profileEditTitle : profile.displayName,
           description: _editing
-              ? 'Update the details people use to reach you.'
+              ? l10n.profileEditDescription
               : widget.viewModel.isSponsor
-              ? 'Your contact and campaign identity.'
-              : 'Your account and availability details.',
+              ? l10n.profileSponsorDescription
+              : l10n.profileVolunteerDescription,
           trailing: _editing
               ? OutlinedButton(
                   onPressed: _saving
@@ -319,12 +311,14 @@ class _ProfileViewState extends State<ProfileView> {
                           _resetFromModel();
                           _editing = false;
                         }),
-                  child: const Text('Cancel'),
+                  child: Text(
+                    MaterialLocalizations.of(context).cancelButtonLabel,
+                  ),
                 )
               : FilledButton.icon(
                   onPressed: () => setState(() => _editing = true),
                   icon: const Icon(Icons.edit_outlined),
-                  label: const Text('Edit profile'),
+                  label: Text(l10n.profileEdit),
                 ),
         ),
         const SizedBox(height: 16),
@@ -335,6 +329,8 @@ class _ProfileViewState extends State<ProfileView> {
 
   Widget _summary(FieldnoteUserProfile profile) {
     final availability = widget.viewModel.availability;
+    final l10n = context.l10n;
+    final number = NumberFormat.decimalPattern(context.localeTag);
     return Column(
       children: [
         SurfaceCard(
@@ -342,26 +338,26 @@ class _ProfileViewState extends State<ProfileView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _detail(
-                'Phone number',
+                l10n.profilePhoneNumber,
                 profile.contactPhone?.isNotEmpty == true
                     ? profile.contactPhone!
-                    : 'Not provided',
+                    : l10n.profileNotProvided,
               ),
               if (widget.viewModel.isSponsor &&
                   profile.contactPhone?.isNotEmpty != true) ...[
-                const Text(
-                  'Add your phone number so volunteers who join your campaigns can call you.',
-                ),
+                Text(l10n.profileAddPhoneHint),
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
                   onPressed: () => setState(() => _editing = true),
                   icon: const Icon(Icons.call_outlined),
-                  label: const Text('Add contact number'),
+                  label: Text(l10n.profileAddContactNumber),
                 ),
                 const SizedBox(height: 12),
               ],
               _detail(
-                widget.viewModel.isSponsor ? 'Location' : 'Home area',
+                widget.viewModel.isSponsor
+                    ? l10n.onboardingLocationLabel
+                    : l10n.profileHomeArea,
                 widget.viewModel.isSponsor
                     ? profile.locationAddress ?? profile.city
                     : profile.city,
@@ -376,53 +372,72 @@ class _ProfileViewState extends State<ProfileView> {
                     child: OutlinedButton.icon(
                       onPressed: () => _openSavedLocation(profile),
                       icon: const Icon(Icons.map_outlined),
-                      label: const Text('View location on map'),
+                      label: Text(l10n.profileViewLocationOnMap),
                     ),
                   ),
                 ),
-              _detail('Interests', _values(profile.interests).join(', ')),
+              _detail(
+                l10n.onboardingInterests,
+                _values(profile.interests).join(', '),
+              ),
               if (widget.viewModel.isSponsor) ...[
-                const Text(
-                  'Your number is shared only with volunteers who join your campaign.',
-                ),
+                Text(l10n.profilePhoneSharedNotice),
                 const SizedBox(height: 12),
-                _detail('Sponsor type', profile.sponsorType ?? 'Individual'),
                 _detail(
-                  'Organization',
+                  l10n.onboardingSponsorType,
+                  _sponsorTypeLabel(profile.sponsorType ?? 'Individual'),
+                ),
+                _detail(
+                  l10n.profileOrganization,
                   profile.organizationName?.isNotEmpty == true
                       ? profile.organizationName!
-                      : 'Not provided',
+                      : l10n.profileNotProvided,
                 ),
               ] else ...[
-                _detail('Skills', _values(profile.skills).join(', ')),
                 _detail(
-                  'Availability',
-                  availability?.isAvailable == true ? 'Active' : 'Paused',
+                  l10n.onboardingSkills,
+                  _values(profile.skills).join(', '),
                 ),
                 _detail(
-                  'Available today',
-                  availability?.availableToday == true ? 'Yes' : 'No',
-                ),
-                _detail('Regular days', _weekdayLabel(availability?.weekdays)),
-                _detail(
-                  'Hours',
-                  '${_time(availability?.startMinutes ?? 420)} – ${_time(availability?.endMinutes ?? 780)}',
+                  l10n.navAvailability,
+                  availability?.isAvailable == true
+                      ? l10n.profileAvailabilityActive
+                      : l10n.profileAvailabilityPaused,
                 ),
                 _detail(
-                  'Travel radius',
-                  '${availability?.maximumTravelKm.round() ?? 10} km',
+                  l10n.onboardingAvailableToday,
+                  availability?.availableToday == true
+                      ? l10n.commonYes
+                      : l10n.commonNo,
                 ),
                 _detail(
-                  'Travel area',
+                  l10n.profileRegularDays,
+                  _weekdayLabel(availability?.weekdays),
+                ),
+                _detail(
+                  l10n.profileHours,
+                  l10n.profileHoursRange(
+                    _time(availability?.startMinutes ?? 420),
+                    _time(availability?.endMinutes ?? 780),
+                  ),
+                ),
+                _detail(
+                  l10n.profileTravelRadius,
+                  l10n.profileKm(
+                    number.format(availability?.maximumTravelKm.round() ?? 10),
+                  ),
+                ),
+                _detail(
+                  l10n.profileTravelArea,
                   availability?.locationLabel.isNotEmpty == true
                       ? availability!.locationLabel
-                      : 'Not selected',
+                      : l10n.profileNotSelected,
                 ),
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
                   onPressed: widget.onEditAvailability,
                   icon: const Icon(Icons.event_available_outlined),
-                  label: const Text('Edit availability and travel area'),
+                  label: Text(l10n.profileEditAvailability),
                 ),
               ],
             ],
@@ -442,12 +457,12 @@ class _ProfileViewState extends State<ProfileView> {
             OutlinedButton.icon(
               onPressed: _signingOut ? null : () => _signOut(allDevices: false),
               icon: const Icon(Icons.logout),
-              label: const Text('Sign out'),
+              label: Text(l10n.signOut),
             ),
             OutlinedButton.icon(
               onPressed: _signingOut ? null : () => _signOut(allDevices: true),
               icon: const Icon(Icons.devices_other_outlined),
-              label: const Text('Sign out of all devices'),
+              label: Text(l10n.profileSignOutAllDevices),
             ),
           ],
         ),
@@ -460,17 +475,15 @@ class _ProfileViewState extends State<ProfileView> {
       child: SwitchListTile.adaptive(
         contentPadding: EdgeInsets.zero,
         value: profile.emailNotifications,
-        title: const Text('Email notifications'),
-        subtitle: const Text(
-          'Emails about campaign changes, cancellations, invitations and '
-          'confirmations.',
-        ),
+        title: Text(context.l10n.profileEmailNotifications),
+        subtitle: Text(context.l10n.profileEmailNotificationsBody),
         onChanged: _savingNotifications ? null : _setEmailNotifications,
       ),
     );
   }
 
   Future<void> _setEmailNotifications(bool enabled) async {
+    final l10n = context.l10n;
     setState(() => _savingNotifications = true);
     try {
       await widget.viewModel.setEmailNotifications(enabled);
@@ -479,7 +492,7 @@ class _ProfileViewState extends State<ProfileView> {
         _message(
           userMessageFor(
             error,
-            fallback: 'Could not update email notifications. Try again.',
+            fallback: l10n.profileEmailNotificationsFailed,
           ),
         );
       }
@@ -491,6 +504,7 @@ class _ProfileViewState extends State<ProfileView> {
   Future<void> _signOut({required bool allDevices}) async {
     final confirmed = await confirmSignOut(context, allDevices: allDevices);
     if (confirmed != true || !mounted) return;
+    final l10n = context.l10n;
     setState(() => _signingOut = true);
     final messenger = ScaffoldMessenger.of(context);
     final signedOut = await widget.viewModel.signOut(allDevices: allDevices);
@@ -499,10 +513,8 @@ class _ProfileViewState extends State<ProfileView> {
         SnackBar(
           content: Text(
             allDevices
-                ? 'Signed out here, but other devices could not be reached. '
-                      'Try again after signing in.'
-                : 'Signed out on this device. The server could not be '
-                      'reached to end the session.',
+                ? l10n.profileSignOutAllPartial
+                : l10n.profileSignOutLocalOnly,
           ),
         ),
       );
@@ -510,14 +522,23 @@ class _ProfileViewState extends State<ProfileView> {
     if (mounted) setState(() => _signingOut = false);
   }
 
+  String _sponsorTypeLabel(String value) => switch (value) {
+    'Individual' => context.l10n.sponsorTypeIndividual,
+    'Company' => context.l10n.sponsorTypeCompany,
+    'Foundation' => context.l10n.sponsorTypeFoundation,
+    'Community group' => context.l10n.sponsorTypeCommunityGroup,
+    _ => value,
+  };
+
   Widget _editor() {
+    final l10n = context.l10n;
     return SurfaceCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           FieldnoteTextField(
             controller: _name,
-            decoration: const InputDecoration(labelText: 'Display name'),
+            decoration: InputDecoration(labelText: l10n.onboardingDisplayName),
           ),
           const SizedBox(height: 12),
           FieldnoteTextField(
@@ -525,13 +546,13 @@ class _ProfileViewState extends State<ProfileView> {
             keyboardType: TextInputType.phone,
             decoration: InputDecoration(
               labelText: widget.viewModel.isSponsor
-                  ? 'Phone number (required)'
-                  : 'Phone number (optional)',
+                  ? l10n.profilePhoneRequired
+                  : l10n.profilePhoneOptional,
               hintText: '+919876543210',
               prefixIcon: const Icon(Icons.call_outlined),
               helperText: widget.viewModel.isSponsor
-                  ? 'Visible only to joined volunteers.'
-                  : 'Private to your account.',
+                  ? l10n.profilePhoneVisibleToJoined
+                  : l10n.profilePhonePrivate,
               helperMaxLines: 2,
             ),
           ),
@@ -541,7 +562,10 @@ class _ProfileViewState extends State<ProfileView> {
           if (widget.viewModel.isSponsor) ...[
             DropdownButtonFormField<String>(
               initialValue: _sponsorType,
-              decoration: const InputDecoration(labelText: 'Sponsor type'),
+              decoration: InputDecoration(
+                labelText: l10n.onboardingSponsorType,
+              ),
+              // The values are stored on the profile; only labels are localized.
               items:
                   const [
                         'Individual',
@@ -550,8 +574,10 @@ class _ProfileViewState extends State<ProfileView> {
                         'Community group',
                       ]
                       .map(
-                        (value) =>
-                            DropdownMenuItem(value: value, child: Text(value)),
+                        (value) => DropdownMenuItem(
+                          value: value,
+                          child: Text(_sponsorTypeLabel(value)),
+                        ),
                       )
                       .toList(),
               onChanged: (value) => setState(() => _sponsorType = value!),
@@ -559,23 +585,23 @@ class _ProfileViewState extends State<ProfileView> {
             const SizedBox(height: 12),
             FieldnoteTextField(
               controller: _organization,
-              decoration: const InputDecoration(
-                labelText: 'Organization name (optional)',
+              decoration: InputDecoration(
+                labelText: l10n.onboardingOrganization,
               ),
             ),
           ],
           const SizedBox(height: 18),
-          _chips('Interests', _interestOptions, _interests),
+          _chips(l10n.onboardingInterests, _interestOptions, _interests),
           if (widget.viewModel.isVolunteer) ...[
             const SizedBox(height: 18),
-            _chips('Skills', _skillOptions, _skills),
+            _chips(l10n.onboardingSkills, _skillOptions, _skills),
             const Divider(height: 34),
-            const Text('Travel area and schedule are managed in Availability.'),
+            Text(l10n.profileScheduleManagedInAvailability),
             const SizedBox(height: 10),
             OutlinedButton.icon(
               onPressed: widget.onEditAvailability,
               icon: const Icon(Icons.event_available_outlined),
-              label: const Text('Edit availability and travel area'),
+              label: Text(l10n.profileEditAvailability),
             ),
           ],
           const SizedBox(height: 22),
@@ -591,7 +617,7 @@ class _ProfileViewState extends State<ProfileView> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.save_outlined),
-              label: Text(_saving ? 'Saving…' : 'Save profile'),
+              label: Text(_saving ? l10n.commonSaving : l10n.profileSave),
             ),
           ),
         ],
@@ -601,6 +627,8 @@ class _ProfileViewState extends State<ProfileView> {
 
   Widget _cityField() {
     final isLocation = widget.viewModel.isSponsor;
+    final c = context.fieldnoteColors;
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -608,10 +636,12 @@ class _ProfileViewState extends State<ProfileView> {
           controller: _city,
           onChanged: _cityChanged,
           decoration: InputDecoration(
-            labelText: isLocation ? 'Location' : 'Home city',
+            labelText: isLocation
+                ? l10n.onboardingLocationLabel
+                : l10n.profileHomeCity,
             hintText: isLocation
-                ? 'Search for an address or place…'
-                : 'Start typing a city…',
+                ? l10n.onboardingLocationHint
+                : l10n.profileCityHint,
             prefixIcon: Icon(
               isLocation
                   ? Icons.location_on_outlined
@@ -627,7 +657,7 @@ class _ProfileViewState extends State<ProfileView> {
                   )
                 : _cityPlaceId == null
                 ? null
-                : const Icon(Icons.check_circle, color: FieldnoteColors.moss),
+                : Icon(Icons.check_circle, color: c.moss),
           ),
         ),
         if (isLocation) ...[
@@ -635,17 +665,17 @@ class _ProfileViewState extends State<ProfileView> {
           OutlinedButton.icon(
             onPressed: _openLocationMap,
             icon: const Icon(Icons.map_outlined),
-            label: const Text('Choose on map'),
+            label: Text(l10n.onboardingChooseOnMap),
           ),
         ],
         if (_citySuggestions.isNotEmpty)
           Container(
             margin: const EdgeInsets.only(top: 8),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: c.raised,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: FieldnoteColors.ink.withValues(alpha: .1),
+                color: c.ink.withValues(alpha: .1),
               ),
             ),
             child: Column(
@@ -671,11 +701,11 @@ class _ProfileViewState extends State<ProfileView> {
         Text(
           _citySearchAvailable
               ? isLocation
-                    ? 'Choose a suggestion or pin a place on the map.'
-                    : 'Choose a city suggestion · Powered by Google'
+                    ? l10n.profileLocationSuggestionHint
+                    : l10n.profileCitySuggestionHint
               : isLocation
-              ? 'Location search is unavailable; enter the complete address manually.'
-              : 'City search is unavailable; enter the city manually.',
+              ? l10n.onboardingPlacesUnavailable
+              : l10n.profileCitySearchUnavailable,
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ],
@@ -709,34 +739,36 @@ class _ProfileViewState extends State<ProfileView> {
 
   Widget _privacyCard() {
     final consent = widget.viewModel.consent;
+    final l10n = context.l10n;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: FieldnoteColors.mist,
+        color: context.fieldnoteColors.mist,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.lock_outline, size: 19),
-              SizedBox(width: 8),
-              Text('Privacy choices (read-only)'),
+              const Icon(Icons.lock_outline, size: 19),
+              const SizedBox(width: 8),
+              Text(l10n.profilePrivacyReadOnly),
             ],
           ),
           const SizedBox(height: 10),
           _lockedChoice(
-            'GPS for matching and evidence',
+            l10n.profileConsentGps,
             consent?.locationConsent,
           ),
-          _lockedChoice('AI processing', consent?.aiProcessingConsent),
-          _lockedChoice('Evidence sharing', consent?.evidenceSharingConsent),
-          const SizedBox(height: 4),
-          const Text(
-            'Review your consent history or withdraw consent in Trust & safety.',
+          _lockedChoice(l10n.profileConsentAi, consent?.aiProcessingConsent),
+          _lockedChoice(
+            l10n.profileConsentEvidence,
+            consent?.evidenceSharingConsent,
           ),
+          const SizedBox(height: 4),
+          Text(l10n.profilePrivacyReviewHint),
         ],
       ),
     );
@@ -747,7 +779,9 @@ class _ProfileViewState extends State<ProfileView> {
       Icon(
         accepted == true ? Icons.check_circle : Icons.cancel_outlined,
         size: 18,
-        color: accepted == true ? FieldnoteColors.moss : FieldnoteColors.clay,
+        color: accepted == true
+            ? context.fieldnoteColors.moss
+            : context.fieldnoteColors.clay,
       ),
       const SizedBox(width: 8),
       Expanded(child: Text(label)),
@@ -762,7 +796,9 @@ class _ProfileViewState extends State<ProfileView> {
           label,
           style: Theme.of(context).textTheme.labelLarge,
         );
-        final valueWidget = Text(value.isEmpty ? 'Not selected' : value);
+        final valueWidget = Text(
+          value.isEmpty ? context.l10n.profileNotSelected : value,
+        );
         if (constraints.maxWidth < 420) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -785,23 +821,22 @@ class _ProfileViewState extends State<ProfileView> {
   );
 
   String _weekdayLabel(String? encoded) {
+    // 2024-01-01 was a Monday, so DateTime(2024, 1, n) has weekday n.
+    final format = DateFormat.E(context.localeTag);
     final values =
         encoded
             ?.split(',')
             .map(int.tryParse)
             .whereType<int>()
-            .map((day) => _dayNames[day])
-            .whereType<String>()
+            .where((day) => day >= DateTime.monday && day <= DateTime.sunday)
+            .map((day) => format.format(DateTime(2024, 1, day)))
             .join(', ') ??
         '';
-    return values.isEmpty ? 'Not selected' : values;
+    return values.isEmpty ? context.l10n.profileNotSelected : values;
   }
 
-  String _time(int minutes) {
-    final hour = minutes ~/ 60;
-    final minute = minutes % 60;
-    final suffix = hour >= 12 ? 'PM' : 'AM';
-    final displayHour = hour % 12 == 0 ? 12 : hour % 12;
-    return '$displayHour:${minute.toString().padLeft(2, '0')} $suffix';
-  }
+  /// Minutes after midnight as a locale-formatted time of day.
+  String _time(int minutes) => DateFormat.jm(
+    context.localeTag,
+  ).format(DateTime(2000, 1, 1, minutes ~/ 60, minutes % 60));
 }

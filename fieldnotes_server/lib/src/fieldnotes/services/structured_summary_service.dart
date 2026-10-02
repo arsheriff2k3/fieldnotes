@@ -1,4 +1,5 @@
 import '../../generated/protocol.dart';
+import 'money.dart';
 
 /// Deterministic helper for provider-independent impact summaries and tests.
 ///
@@ -70,6 +71,7 @@ class StructuredSummaryService {
       durationMinutes: 180,
       volunteerCapacity: capacity.clamp(2, 100).toInt(),
       fundingGoal: amount.clamp(1000, 10000000).toDouble(),
+      fundingGoalPaise: Money.toPaise(amount.clamp(1000, 10000000).toDouble()),
       requiredSkills: treeCare
           ? ['No specialist skills', 'Comfortable working outdoors']
           : ['No specialist skills'],

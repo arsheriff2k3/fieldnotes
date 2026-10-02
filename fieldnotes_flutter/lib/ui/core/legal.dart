@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../l10n/l10n.dart';
 import 'fieldnote_theme.dart';
 
 /// The consent switches `acceptLegalConsent` knows about, in display order.
@@ -21,8 +22,24 @@ class ConsentChoice {
   const ConsentChoice(this.key, this.title, this.description);
 
   final String key;
+
+  /// English fallback; views show [localizedTitle].
   final String title;
   final String description;
+
+  String localizedTitle(AppLocalizations l10n) => switch (key) {
+    consentLocation => l10n.consentLocationTitle,
+    consentAiProcessing => l10n.consentAiTitle,
+    consentEvidenceSharing => l10n.consentEvidenceTitle,
+    _ => title,
+  };
+
+  String localizedDescription(AppLocalizations l10n) => switch (key) {
+    consentLocation => l10n.consentLocationDescription,
+    consentAiProcessing => l10n.consentAiDescription,
+    consentEvidenceSharing => l10n.consentEvidenceDescription,
+    _ => description,
+  };
 }
 
 const consentChoices = [
@@ -79,6 +96,7 @@ class ConsentChecklist extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final required = requiredConsentKeys(policies);
+    final l10n = context.l10n;
     // The tiles often sit on a decorated card; give their ink a Material.
     return Material(
       type: MaterialType.transparency,
@@ -92,10 +110,12 @@ class ConsentChecklist extends StatelessWidget {
               value: values[choice.key] ?? false,
               title: Text(
                 required.contains(choice.key)
-                    ? '${choice.title} (required)'
-                    : choice.title,
+                    ? l10n.consentRequiredSuffix(choice.localizedTitle(l10n))
+                    : choice.localizedTitle(l10n),
               ),
-              subtitle: showDescriptions ? Text(choice.description) : null,
+              subtitle: showDescriptions
+                  ? Text(choice.localizedDescription(l10n))
+                  : null,
               onChanged: enabled
                   ? (value) => onChanged(choice.key, value ?? false)
                   : null,
@@ -123,6 +143,7 @@ Future<void> openLegalDocument(
     }
   }
   if (opened || !context.mounted) return;
+  final l10n = context.l10n;
   await showDialog<void>(
     context: context,
     builder: (dialogContext) => AlertDialog(
@@ -131,7 +152,7 @@ Future<void> openLegalDocument(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Open this address in your browser to read it:'),
+          Text(l10n.legalOpenInBrowser),
           const SizedBox(height: 8),
           SelectableText(url),
         ],
@@ -139,7 +160,7 @@ Future<void> openLegalDocument(
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(dialogContext),
-          child: const Text('Close'),
+          child: Text(l10n.commonClose),
         ),
         FilledButton.icon(
           onPressed: () async {
@@ -147,7 +168,7 @@ Future<void> openLegalDocument(
             if (dialogContext.mounted) Navigator.pop(dialogContext);
           },
           icon: const Icon(Icons.copy),
-          label: const Text('Copy link'),
+          label: Text(l10n.legalCopyLink),
         ),
       ],
     ),
@@ -175,8 +196,9 @@ class LegalLinks extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final value = policies;
+    final l10n = context.l10n;
     final style = TextButton.styleFrom(
-      foregroundColor: color ?? FieldnoteColors.forest,
+      foregroundColor: color ?? context.fieldnoteColors.forest,
       padding: const EdgeInsets.symmetric(horizontal: 8),
       minimumSize: const Size(48, 40),
       textStyle: const TextStyle(
@@ -190,14 +212,14 @@ class LegalLinks extends StatelessWidget {
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Text(
-            'Privacy Policy and Terms are loading…',
+            l10n.legalLoading,
             style: TextStyle(color: color, fontSize: 12),
           ),
           if (onRetry != null)
             TextButton(
               style: style,
               onPressed: onRetry,
-              child: const Text('Retry'),
+              child: Text(l10n.commonRetry),
             ),
         ],
       );
@@ -213,13 +235,13 @@ class LegalLinks extends StatelessWidget {
             style: style,
             onPressed: () => openLegalDocument(
               context,
-              title: 'Privacy Policy',
+              title: l10n.legalPrivacyPolicy,
               url: value.privacyPolicyUrl,
             ),
             child: Text(
               showVersions
-                  ? 'Privacy Policy v${value.privacyPolicyVersion}'
-                  : 'Privacy Policy',
+                  ? l10n.legalPrivacyPolicyVersion(value.privacyPolicyVersion)
+                  : l10n.legalPrivacyPolicy,
             ),
           ),
         ),
@@ -229,11 +251,13 @@ class LegalLinks extends StatelessWidget {
             style: style,
             onPressed: () => openLegalDocument(
               context,
-              title: 'Terms of Service',
+              title: l10n.legalTermsOfService,
               url: value.termsUrl,
             ),
             child: Text(
-              showVersions ? 'Terms v${value.termsVersion}' : 'Terms',
+              showVersions
+                  ? l10n.legalTermsVersion(value.termsVersion)
+                  : l10n.legalTerms,
             ),
           ),
         ),

@@ -2,9 +2,10 @@ import 'dart:async';
 
 import 'package:fieldnotes_client/fieldnotes_client.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../../data/services/razorpay_checkout_service.dart';
-import '../../core/error_messages.dart';
+import '../../../l10n/l10n.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/widgets.dart';
 import '../shell/fieldnote_view_model.dart';
@@ -22,30 +23,37 @@ Future<bool> openSponsorCheckout(
   FieldnoteViewModel viewModel,
   Campaign campaign,
 ) async {
-  final remainingAmount = (campaign.fundingGoal - campaign.sponsoredAmount)
-      .clamp(0, double.infinity)
-      .toDouble();
-  if (remainingAmount <= 0) {
+  final l10n = context.l10n;
+  final localeTag = context.localeTag;
+  String money(int paise) => formatPaise(paise, localeTag: localeTag);
+  final remainingPaise = campaignRemainingPaise(campaign);
+  if (remainingPaise <= 0) {
     showFieldnoteNotice(
       context,
-      title: 'Campaign fully funded',
-      message: 'This campaign has already reached its funding goal.',
+      title: l10n.sponsorCheckoutFullyFundedTitle,
+      message: l10n.sponsorCheckoutFullyFundedMessage,
     );
     return false;
   }
   if (campaignIsClosed(campaignPhase(campaign))) {
     showFieldnoteNotice(
       context,
-      title: 'Campaign closed',
-      message: 'This campaign is no longer accepting sponsorships.',
+      title: l10n.sponsorCheckoutClosedTitle,
+      message: l10n.sponsorCheckoutClosedMessage,
       kind: FieldnoteNoticeKind.error,
     );
     return false;
   }
+  // Test keys are the only case where payout simulation is available, so the
+  // same flag tells the banner whether this checkout moves real money. Fall
+  // back to the neutral wording rather than claiming test mode.
+  var testMode = false;
+  try {
+    testMode = await viewModel.payoutSimulationAvailable();
+  } catch (_) {}
+  if (!context.mounted) return false;
   const portions = [0.25, 0.5, 0.75, 1.0];
-  final amounts = portions
-      .map((portion) => (remainingAmount * portion * 100).round() / 100)
-      .toList(growable: false);
+  final amounts = sponsorshipPortionsPaise(remainingPaise, portions);
   var selectedPortion = portions.first;
   var amount = amounts.first;
   final note = TextEditingController();
@@ -77,7 +85,7 @@ Future<bool> openSponsorCheckout(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Sponsor campaign',
+                      l10n.sponsorCheckoutTitle,
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 6),
@@ -98,16 +106,20 @@ Future<bool> openSponsorCheckout(
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: FieldnoteColors.acid.withValues(alpha: .24),
+                          color: context.fieldnoteColors.acid.withValues(
+                            alpha: .24,
+                          ),
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
-                            Icon(Icons.verified_user_outlined),
-                            SizedBox(width: 9),
+                            const Icon(Icons.verified_user_outlined),
+                            const SizedBox(width: 9),
                             Expanded(
                               child: Text(
-                                'Razorpay test checkout. Payment is credited after verification.',
+                                testMode
+                                    ? l10n.sponsorCheckoutBanner
+                                    : l10n.sponsorCheckoutBannerLive,
                               ),
                             ),
                           ],
@@ -115,12 +127,12 @@ Future<bool> openSponsorCheckout(
                       ),
                       const SizedBox(height: 20),
                       Text(
-                        '${formatRupees(remainingAmount)} remaining',
+                        l10n.sponsorCheckoutRemaining(money(remainingPaise)),
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Choose how much to contribute',
+                        l10n.sponsorCheckoutChooseAmount,
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                       const SizedBox(height: 12),
@@ -150,13 +162,15 @@ Future<bool> openSponsorCheckout(
                                             minimumSize: const Size(0, 72),
                                             padding: const EdgeInsets.all(10),
                                             backgroundColor: selected
-                                                ? FieldnoteColors.moss
+                                                ? context.fieldnoteColors.moss
                                                       .withValues(alpha: .18)
                                                 : null,
                                             side: BorderSide(
                                               color: selected
-                                                  ? FieldnoteColors.forest
-                                                  : FieldnoteColors.moss
+                                                  ? context
+                                                        .fieldnoteColors
+                                                        .forest
+                                                  : context.fieldnoteColors.moss
                                                         .withValues(alpha: .4),
                                               width: selected ? 2 : 1,
                                             ),
@@ -165,13 +179,15 @@ Future<bool> openSponsorCheckout(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               Text(
-                                                '${(portion * 100).round()}%',
+                                                NumberFormat.percentPattern(
+                                                  localeTag,
+                                                ).format(portion),
                                                 style: const TextStyle(
                                                   fontWeight: FontWeight.w800,
                                                 ),
                                               ),
                                               Text(
-                                                formatRupees(value),
+                                                money(value),
                                                 style: Theme.of(
                                                   context,
                                                 ).textTheme.labelSmall,
@@ -195,9 +211,9 @@ Future<bool> openSponsorCheckout(
                         maxLines: 2,
                         maxLength: 500,
                         enabled: !saving,
-                        decoration: const InputDecoration(
-                          labelText: 'Message (optional)',
-                          hintText: 'Why this campaign matters to you',
+                        decoration: InputDecoration(
+                          labelText: l10n.sponsorCheckoutMessageLabel,
+                          hintText: l10n.sponsorCheckoutMessageHint,
                         ),
                       ),
                     ],
@@ -238,6 +254,7 @@ Future<bool> openSponsorCheckout(
                                 final order = createdOrder;
                                 if (order != null && !checkoutReturned) {
                                   try {
+                                    // Stored server-side: kept in English.
                                     await viewModel.repository
                                         .recordRazorpayFailure(
                                           order.sponsorshipId,
@@ -246,18 +263,20 @@ Future<bool> openSponsorCheckout(
                                   } catch (_) {}
                                 }
                                 if (dialogContext.mounted) {
+                                  final reason = paymentErrorMessage(
+                                    error,
+                                    l10n: l10n,
+                                  );
                                   showFieldnoteNotice(
                                     dialogContext,
                                     title: checkoutReturned
-                                        ? 'Payment needs review'
-                                        : 'Payment unsuccessful',
+                                        ? l10n.sponsorCheckoutNeedsReviewTitle
+                                        : l10n.sponsorCheckoutUnsuccessfulTitle,
                                     message: checkoutReturned
-                                        ? '${paymentErrorMessage(error)} '
-                                              'If money left your account, it '
-                                              'is credited or refunded '
-                                              'automatically. See Payment '
-                                              'history.'
-                                        : paymentErrorMessage(error),
+                                        ? l10n.sponsorCheckoutNeedsReviewMessage(
+                                            reason,
+                                          )
+                                        : reason,
                                     kind: FieldnoteNoticeKind.error,
                                   );
                                 }
@@ -271,8 +290,8 @@ Future<bool> openSponsorCheckout(
                       icon: const Icon(Icons.lock_outline),
                       label: Text(
                         saving
-                            ? 'Processing payment…'
-                            : 'Pay ${formatRupees(amount)}',
+                            ? l10n.sponsorCheckoutProcessing
+                            : l10n.sponsorCheckoutPay(money(amount)),
                       ),
                     ),
                   ),
@@ -282,7 +301,7 @@ Future<bool> openSponsorCheckout(
                       onPressed: saving
                           ? null
                           : () => Navigator.pop(dialogContext, false),
-                      child: const Text('Cancel'),
+                      child: Text(l10n.sponsorCheckoutCancel),
                     ),
                   ),
                 ],
@@ -296,8 +315,11 @@ Future<bool> openSponsorCheckout(
       if (context.mounted) {
         showFieldnoteNotice(
           context,
-          title: 'Payment successful',
-          message: '${formatRupees(amount)} was added to ${campaign.name}.',
+          title: l10n.sponsorCheckoutSuccessTitle,
+          message: l10n.sponsorCheckoutSuccessMessage(
+            money(amount),
+            campaign.name,
+          ),
           kind: FieldnoteNoticeKind.success,
         );
       }
@@ -311,14 +333,26 @@ Future<bool> openSponsorCheckout(
   }
 }
 
-String paymentErrorMessage(Object error) {
+/// Splits [remainingPaise] into contribution options in whole paise. The
+/// last portion (1.0) is always exactly the remaining balance.
+List<int> sponsorshipPortionsPaise(int remainingPaise, List<double> portions) =>
+    [
+      for (final portion in portions)
+        portion >= 1 ? remainingPaise : (remainingPaise * portion).round(),
+    ];
+
+/// The message for a failed checkout. Without [l10n] it is English (used
+/// for the failure reason stored on the server).
+String paymentErrorMessage(Object error, {AppLocalizations? l10n}) {
   if (error is RazorpayCheckoutException &&
       error.message.trim().isNotEmpty &&
       error.message.trim().toLowerCase() != 'undefined') {
     return error.message;
   }
-  return userMessageFor(
+  final strings = l10n ?? lookupAppLocalizations(const Locale('en'));
+  return sponsorErrorMessage(
     error,
-    fallback: 'The Razorpay test payment was not completed.',
+    l10n: strings,
+    fallback: strings.sponsorCheckoutNotCompleted,
   );
 }

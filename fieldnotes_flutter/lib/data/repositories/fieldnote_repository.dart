@@ -6,24 +6,14 @@ import 'package:fieldnotes_client/fieldnotes_client.dart';
 import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
 
 import '../../client.dart';
-
-/// The device's current UTC offset, sent so the server can do weekday and
-/// time-window maths in the volunteer's own time.
-int deviceUtcOffsetMinutes() => DateTime.now().timeZoneOffset.inMinutes;
-
-/// Best-effort zone name. Dart has no IANA zone lookup without a package, and
-/// `timeZoneName` is an abbreviation such as `IST` (or `GMT+05:30`, or a
-/// Windows name with spaces). It is only sent when it passes the server's
-/// format check so a non-IANA name can never fail the request; the offset is
-/// what the server actually relies on.
-String? deviceTimeZoneName() {
-  final name = DateTime.now().timeZoneName.trim();
-  if (name.isEmpty || name.length > 64) return null;
-  if (!RegExp(r'^[A-Za-z][A-Za-z0-9_+\-/]*$').hasMatch(name)) return null;
-  return name;
-}
+import '../services/device_time_zone_service.dart';
 
 class FieldnoteRepository {
+  FieldnoteRepository({DeviceTimeZoneService? timeZones})
+    : _timeZones = timeZones ?? DeviceTimeZoneService();
+
+  final DeviceTimeZoneService _timeZones;
+
   bool get isSignedIn => client.auth.isAuthenticated;
 
   /// Revokes the session on the server; the local session is cleared even
@@ -70,7 +60,7 @@ class FieldnoteRepository {
     double? latitude,
     double? longitude,
     required String locationLabel,
-  }) => client.fieldnote.completeVolunteerProfile(
+  }) async => client.fieldnote.completeVolunteerProfile(
     displayName,
     city,
     interests,
@@ -84,8 +74,8 @@ class FieldnoteRepository {
     latitude,
     longitude,
     locationLabel,
-    timezone: deviceTimeZoneName(),
-    utcOffsetMinutes: deviceUtcOffsetMinutes(),
+    timezone: await _timeZones.ianaTimeZone(),
+    utcOffsetMinutes: DeviceTimeZoneService.utcOffsetMinutes(),
   );
 
   Future<VolunteerAvailability?> availability() =>
@@ -125,7 +115,7 @@ class FieldnoteRepository {
     double? latitude,
     double? longitude,
     required String locationLabel,
-  }) => client.fieldnote.updateAvailability(
+  }) async => client.fieldnote.updateAvailability(
     isAvailable,
     availableToday,
     weekdays,
@@ -135,8 +125,8 @@ class FieldnoteRepository {
     latitude,
     longitude,
     locationLabel,
-    timezone: deviceTimeZoneName(),
-    utcOffsetMinutes: deviceUtcOffsetMinutes(),
+    timezone: await _timeZones.ianaTimeZone(),
+    utcOffsetMinutes: DeviceTimeZoneService.utcOffsetMinutes(),
   );
 
   Future<FieldnoteUserProfile> setEmailNotifications(bool enabled) =>
@@ -198,17 +188,24 @@ class FieldnoteRepository {
   ) => client.fieldnote.createCampaignPost(campaignId, title, body);
   Future<Campaign> refreshCampaignReadiness(int campaignId) =>
       client.fieldnote.refreshCampaignReadiness(campaignId);
+
+  /// The goal is sent in paise; the rupee value is only for old servers.
   Future<Campaign> reviseCampaignScope(
     int campaignId,
-    double fundingGoal,
+    int fundingGoalPaise,
     int minimumVolunteers,
     String description,
   ) => client.fieldnote.reviseCampaignScope(
     campaignId,
-    fundingGoal,
+    fundingGoalPaise / 100,
     minimumVolunteers,
     description,
+    fundingGoalPaise: fundingGoalPaise,
   );
+
+  /// False in Razorpay live mode: payouts are then settled manually.
+  Future<bool> isPayoutSimulationAvailable() =>
+      client.fieldnote.isPayoutSimulationAvailable();
   Future<Campaign> postponeCampaign(int campaignId, DateTime newStartsAt) =>
       client.fieldnote.postponeCampaign(campaignId, newStartsAt);
   Future<Campaign> cancelCampaign(int campaignId) =>
@@ -241,21 +238,29 @@ class FieldnoteRepository {
     String mimeType,
   ) => client.fieldnote.transcribeDictation(audio, fileName, mimeType);
 
-  Future<CampaignProposal> proposeCampaign(String prompt) => client.fieldnote
-      .proposeCampaign(prompt, utcOffsetMinutes: deviceUtcOffsetMinutes());
+  Future<CampaignProposal> proposeCampaign(String prompt) async =>
+      client.fieldnote.proposeCampaign(
+        prompt,
+        utcOffsetMinutes: DeviceTimeZoneService.utcOffsetMinutes(),
+        timezone: await _timeZones.ianaTimeZone(),
+      );
 
+  /// Publishes [proposal] (its goal must be in `fundingGoalPaise`). The same
+  /// [clientRequestId] on a retry returns the campaign created first.
   Future<Campaign> createCampaign(
     CampaignProposal proposal,
     double latitude,
     double longitude, {
     String? locationName,
     double? geofenceMeters,
+    String? clientRequestId,
   }) => client.fieldnote.createCampaignFromProposal(
     proposal,
     latitude,
     longitude,
     locationName,
     geofenceMeters,
+    clientRequestId: clientRequestId,
   );
 
   // Google Maps Platform. The API key stays on the server; these calls return
@@ -336,11 +341,20 @@ class FieldnoteRepository {
   Future<CampaignMapOverview> campaignMap(int campaignId) =>
       client.fieldnote.getCampaignMap(campaignId);
 
+  /// Opens a checkout for [amountPaise]. The same [clientRequestId] on a
+  /// retry returns the order created first while it awaits payment.
   Future<RazorpayCheckoutOrder> createRazorpayOrder(
     int campaignId,
-    double amount,
-    String? message,
-  ) => client.fieldnote.createRazorpayOrder(campaignId, amount, message);
+    int amountPaise,
+    String? message, {
+    String? clientRequestId,
+  }) => client.fieldnote.createRazorpayOrder(
+    campaignId,
+    amountPaise / 100,
+    message,
+    amountPaise: amountPaise,
+    clientRequestId: clientRequestId,
+  );
 
   Future<Sponsorship> verifyRazorpayPayment({
     required int sponsorshipId,

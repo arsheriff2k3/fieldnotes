@@ -29,7 +29,10 @@ Other services under `services/`:
 - `account_deletion_service.dart`: P0-6 deletion policy (refuse on open obligations, delete personal rows and the Serverpod auth user, anonymise shared/financial rows).
 - `notification_service.dart`: outbox-based transactional email over the SMTP passwords; one email per event per user; never fails the business action. Tests swap the mailer via `NotificationRuntime.mailerResolver`.
 - `rate_limiter.dart`: DB-backed per-user fixed windows (`RateLimits`), throws `rate_limited` with `retryAfterSeconds`.
-- `fieldnote_time.dart`: volunteer-offset weekday/time maths for matching and "I can help today" expiry. Never use `toLocal()`/server time for matching.
+- `fieldnote_time.dart`: DST-aware volunteer weekday/time maths (`package:timezone`, initialised in `server.dart`) for matching, "I can help today", email times and AI date resolution. It uses the stored IANA `timezone` when it is known, then `utcOffsetMinutes`, then IST. Never use `toLocal()`/server time.
+- Money: `*Paise` int columns are the source of truth. Use the `money.dart` helpers (`Money`, `CampaignMoney.setFundingGoalPaise/setSponsoredPaise`), which also keep the legacy rupee doubles written for old clients. Never do arithmetic on the doubles. Processed refunds decrement `sponsoredAmountPaise` once (`TestRefund.fundingReversedAt`).
+- Idempotency: `createCampaignFromProposal(..., clientRequestId:)` and `createRazorpayOrder(..., clientRequestId:)` return the earlier result on replay. Each is backed by a unique index per user. Refund retries rely on receipt/notes lookup, not on headers.
+- Payouts: `TestPayout` is a Test Mode-only simulation of paying the campaign creator. With live keys, the server answers `payouts_manual` and `isPayoutSimulationAvailable()` returns false. Operations settle payouts manually (`docs/DEPLOYMENT.md`).
 - `fieldnote_config.dart`: non-secret `FIELDNOTE_*` env settings (app IDs for share pages and `/.well-known/*`, store URLs, link base URL, Gemini model).
 
 `legal_endpoint.dart` is the only endpoint without login (`getLegalPolicies`). Volunteer identities reach sponsors only for volunteers who joined; everyone else appears in k>=3 area buckets. Live campaign streams are limited to the campaign team and never carry names.

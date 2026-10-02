@@ -53,7 +53,7 @@ class PaymentSettlementService {
       session,
       updated.campaignId,
       'sponsorshipAdded',
-      'A Razorpay-verified sponsorship of ₹${updated.amount.toStringAsFixed(0)} was recorded.',
+      'A Razorpay-verified sponsorship of ${Money.format(updated.amountPaise)} was recorded.',
     );
     await _events.audit(
       session,
@@ -177,7 +177,7 @@ class PaymentReconciliationService {
       final captured = payments.where((p) => p.status == 'captured');
       if (captured.isNotEmpty) {
         final payment = captured.first;
-        if (payment.amountPaise != Money.toPaise(row.amount)) {
+        if (payment.amountPaise != row.amountPaise) {
           await const CampaignEventsService().audit(
             session,
             actor: row.sponsorAuthUserId,
@@ -224,8 +224,8 @@ class PaymentReconciliationService {
     return (checked: checked, credited: credited, expired: expired);
   }
 
-  /// Sum of unpaid orders that still reserve campaign balance (S6).
-  static Future<double> reservedAmount(
+  /// Paise of unpaid orders that still reserve campaign balance (S6).
+  static Future<int> reservedPaise(
     Session session, {
     required int campaignId,
     required Transaction transaction,
@@ -240,9 +240,7 @@ class PaymentReconciliationService {
           (t.createdAt > clock.subtract(orderTtl)),
       transaction: transaction,
     );
-    return Money.fromPaise(
-      pending.fold<int>(0, (sum, item) => sum + Money.toPaise(item.amount)),
-    );
+    return pending.fold<int>(0, (sum, item) => sum + item.amountPaise);
   }
 
   Future<void> _touch(Session session, int sponsorshipId, DateTime now) =>

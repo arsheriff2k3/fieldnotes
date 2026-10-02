@@ -15,6 +15,7 @@ dependencies:
   serverpod: 4.0.0
   serverpod_auth_idp_server: 4.0.0
   serverpod_cloud_storage: 4.0.0
+  timezone: ^0.11.1
 
 dev_dependencies:
   lints: '>=3.0.0 <7.0.0'

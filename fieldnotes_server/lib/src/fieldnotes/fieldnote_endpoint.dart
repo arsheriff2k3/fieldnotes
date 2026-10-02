@@ -874,13 +874,15 @@ class FieldnoteEndpoint extends Endpoint {
     }
   }
 
-  /// Drafts a campaign from a brief. [utcOffsetMinutes] is the sponsor
-  /// device's offset (`DateTime.now().timeZoneOffset.inMinutes`) so relative
-  /// dates such as "this Saturday 8am" resolve in the sponsor's time zone.
+  /// Drafts a campaign from a brief. Relative dates such as "this Saturday
+  /// 8am" resolve in the sponsor's time zone: the IANA [timezone]
+  /// (`Asia/Kolkata`, DST-aware) when given and known, else
+  /// [utcOffsetMinutes] (`DateTime.now().timeZoneOffset.inMinutes`), else IST.
   Future<CampaignProposal> proposeCampaign(
     Session session,
     String prompt, {
     int? utcOffsetMinutes,
+    String? timezone,
   }) async {
     final sponsor = await _requireRole(session, AccountRole.sponsor);
     if (prompt.trim().length < 20) {
@@ -890,9 +892,12 @@ class FieldnoteEndpoint extends Endpoint {
       );
     }
     _maxLength(prompt, _promptMax, 'brief');
-    final offset = FieldnoteTime.validatedOffset(utcOffsetMinutes);
-    await _moderateOrThrow(session, prompt, 'campaignPrompt');
+    final zone = FieldnoteTime.validatedZoneName(timezone);
     final now = DateTime.now();
+    final offset = zone != null
+        ? FieldnoteTime.offsetAt(now, zone: zone)
+        : FieldnoteTime.validatedOffset(utcOffsetMinutes);
+    await _moderateOrThrow(session, prompt, 'campaignPrompt');
     final apiKey = session.passwords['geminiApiKey']?.trim();
     final groqKey = session.passwords['groqApiKey']?.trim();
     if ((apiKey == null || apiKey.isEmpty) &&
@@ -904,36 +909,50 @@ class FieldnoteEndpoint extends Endpoint {
       );
     }
     await _limiter.hit(session, sponsor.authUserId, RateLimits.proposeCampaign);
+    CampaignProposal finish(CampaignProposal proposal) {
+      proposal.fundingGoalPaise = Money.toPaise(proposal.fundingGoal);
+      if (zone != null) {
+        proposal.startsAt = FieldnoteTime.reresolveInZone(
+          proposal.startsAt,
+          offsetUsed: offset,
+          zone: zone,
+        );
+      }
+      return proposal;
+    }
+
     try {
-      return await AiProviderRouter.run<CampaignProposal>(
-        primary: _aiPrimaryProvider(session),
-        gemini: apiKey == null || apiKey.isEmpty
-            ? null
-            : () async {
-                final proposal = await _gemini.proposeCampaign(
-                  apiKey: apiKey,
-                  model: _geminiModel(session),
-                  prompt: prompt.trim(),
-                  now: now,
-                  utcOffsetMinutes: offset,
-                );
-                session.log('Gemini campaign generation succeeded.');
-                return proposal;
-              },
-        groq: groqKey == null || groqKey.isEmpty
-            ? null
-            : () async {
-                final proposal = await _groq.proposeCampaign(
-                  apiKey: groqKey,
-                  prompt: prompt.trim(),
-                  now: now,
-                  utcOffsetMinutes: offset,
-                );
-                session.log('Groq campaign generation succeeded.');
-                return proposal;
-              },
-        onFallback: (from, to) => session.log(
-          '${from.name} campaign quota exhausted; trying ${to.name}.',
+      return finish(
+        await AiProviderRouter.run<CampaignProposal>(
+          primary: _aiPrimaryProvider(session),
+          gemini: apiKey == null || apiKey.isEmpty
+              ? null
+              : () async {
+                  final proposal = await _gemini.proposeCampaign(
+                    apiKey: apiKey,
+                    model: _geminiModel(session),
+                    prompt: prompt.trim(),
+                    now: now,
+                    utcOffsetMinutes: offset,
+                  );
+                  session.log('Gemini campaign generation succeeded.');
+                  return proposal;
+                },
+          groq: groqKey == null || groqKey.isEmpty
+              ? null
+              : () async {
+                  final proposal = await _groq.proposeCampaign(
+                    apiKey: groqKey,
+                    prompt: prompt.trim(),
+                    now: now,
+                    utcOffsetMinutes: offset,
+                  );
+                  session.log('Groq campaign generation succeeded.');
+                  return proposal;
+                },
+          onFallback: (from, to) => session.log(
+            '${from.name} campaign quota exhausted; trying ${to.name}.',
+          ),
         ),
       );
     } on GeminiAiException catch (error, stackTrace) {
@@ -968,17 +987,34 @@ class FieldnoteEndpoint extends Endpoint {
   /// [locationName] and [geofenceMeters] come from the sponsor's map: the pin
   /// can be dragged anywhere and named from Places, so the published campaign
   /// is no longer tied to where the sponsor's own device happened to be.
+  ///
+  /// The goal is `proposal.fundingGoalPaise` when sent, else the rupee
+  /// `proposal.fundingGoal`. [clientRequestId] makes publishing idempotent:
+  /// a retry with the same id (per creator) returns the campaign created by
+  /// the first call instead of a duplicate.
   Future<Campaign> createCampaignFromProposal(
     Session session,
     CampaignProposal proposal,
     double latitude,
     double longitude,
     String? locationName,
-    double? geofenceMeters,
-  ) async {
+    double? geofenceMeters, {
+    String? clientRequestId,
+  }) async {
     final sponsor = await _requireRole(session, AccountRole.sponsor);
+    final requestId = _validatedClientRequestId(clientRequestId);
+    if (requestId != null) {
+      final existing = await _campaignForRequest(
+        session,
+        sponsor.authUserId,
+        requestId,
+        proposal,
+      );
+      if (existing != null) return existing;
+    }
     _validatedContactPhone(sponsor.contactPhone);
     CampaignValidation.proposal(proposal);
+    final goalPaise = CampaignValidation.proposalGoalPaise(proposal);
     await _moderateOrThrow(
       session,
       '${proposal.title}\n${proposal.description}\n${proposal.checklist.join('\n')}',
@@ -1002,37 +1038,55 @@ class FieldnoteEndpoint extends Endpoint {
         code: 'invalid_campaign_plan',
       );
     }
-    final campaign = await Campaign.db.insertRow(
-      session,
-      Campaign(
-        organizationId: organization.id!,
-        name: proposal.title.trim(),
-        description: proposal.description.trim(),
-        locationName: pinName,
-        startsAt: start,
-        endsAt: start.add(Duration(minutes: proposal.durationMinutes)),
-        status: CampaignStatus.active,
-        createdBy: sponsor.authUserId,
-        fundingGoal: Money.round2(proposal.fundingGoal),
-        sponsoredAmount: 0,
-        latitude: latitude,
-        longitude: longitude,
-        geofenceMeters: (geofenceMeters ?? 200).clamp(50, 2000).toDouble(),
-        volunteerCapacity: proposal.volunteerCapacity,
-        minimumVolunteers: minimum,
-        eligibleVolunteers: 0,
-        readinessState: 'open',
-        requiredSkills: proposal.requiredSkills.join(' | '),
-        checklist: proposal.checklist.join(' | '),
-        evidenceInstructions: proposal.evidenceInstructions,
-        tags: proposal.tags.join(' | '),
-        aiGenerated: !proposal.rationale.startsWith(
-          'Entered manually by the sponsor.',
+    final Campaign campaign;
+    try {
+      campaign = await Campaign.db.insertRow(
+        session,
+        Campaign(
+          organizationId: organization.id!,
+          name: proposal.title.trim(),
+          description: proposal.description.trim(),
+          locationName: pinName,
+          startsAt: start,
+          endsAt: start.add(Duration(minutes: proposal.durationMinutes)),
+          status: CampaignStatus.active,
+          createdBy: sponsor.authUserId,
+          fundingGoal: Money.fromPaise(goalPaise),
+          fundingGoalPaise: goalPaise,
+          sponsoredAmount: 0,
+          sponsoredAmountPaise: 0,
+          latitude: latitude,
+          longitude: longitude,
+          geofenceMeters: (geofenceMeters ?? 200).clamp(50, 2000).toDouble(),
+          volunteerCapacity: proposal.volunteerCapacity,
+          minimumVolunteers: minimum,
+          eligibleVolunteers: 0,
+          readinessState: 'open',
+          requiredSkills: proposal.requiredSkills.join(' | '),
+          checklist: proposal.checklist.join(' | '),
+          evidenceInstructions: proposal.evidenceInstructions,
+          tags: proposal.tags.join(' | '),
+          aiGenerated: !proposal.rationale.startsWith(
+            'Entered manually by the sponsor.',
+          ),
+          publishedAt: DateTime.now().toUtc(),
+          shareSlug: newShareSlug(),
+          clientRequestId: requestId,
         ),
-        publishedAt: DateTime.now().toUtc(),
-        shareSlug: newShareSlug(),
-      ),
-    );
+      );
+    } on DatabaseException {
+      // A concurrent retry with the same clientRequestId won the insert.
+      final existing = requestId == null
+          ? null
+          : await _campaignForRequest(
+              session,
+              sponsor.authUserId,
+              requestId,
+              proposal,
+            );
+      if (existing == null) rethrow;
+      return existing;
+    }
     await _publish(
       session,
       campaign.id!,
@@ -1040,6 +1094,41 @@ class FieldnoteEndpoint extends Endpoint {
       '${campaign.name} was published.',
     );
     return campaign;
+  }
+
+  /// Accepts UUIDs and similar opaque client keys.
+  static String? _validatedClientRequestId(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) return null;
+    if (!RegExp(r'^[A-Za-z0-9_.:\-]{8,64}$').hasMatch(trimmed)) {
+      throw FieldnoteException(
+        message: 'The request id is invalid.',
+        code: 'invalid_client_request_id',
+      );
+    }
+    return trimmed;
+  }
+
+  /// The campaign an earlier publish with [requestId] created. A reused id
+  /// for a different plan is rejected rather than silently ignored.
+  Future<Campaign?> _campaignForRequest(
+    Session session,
+    UuidValue creator,
+    String requestId,
+    CampaignProposal proposal,
+  ) async {
+    final existing = await Campaign.db.findFirstRow(
+      session,
+      where: (t) =>
+          t.createdBy.equals(creator) & t.clientRequestId.equals(requestId),
+    );
+    if (existing != null && existing.name != proposal.title.trim()) {
+      throw FieldnoteException(
+        message: 'This request id was already used for a different campaign.',
+        code: 'client_request_id_reused',
+      );
+    }
+    return existing;
   }
 
   /// Open campaigns (active, not cancelled or expired, not started), soonest
@@ -1220,13 +1309,15 @@ class FieldnoteEndpoint extends Endpoint {
     int campaignId,
     double fundingGoal,
     int minimumVolunteers,
-    String description,
-  ) async {
+    String description, {
+    int? fundingGoalPaise,
+  }) async {
     final sponsor = await _requireRole(session, AccountRole.sponsor);
     final note = description.trim();
-    CampaignValidation.fundingGoal(fundingGoal);
+    final goalPaise = CampaignValidation.fundingGoalPaise(
+      Money.fromInput(paise: fundingGoalPaise, rupees: fundingGoal),
+    );
     CampaignValidation.scopeNote(note);
-    fundingGoal = Money.round2(fundingGoal);
     await _moderateOrThrow(session, note, 'campaignScope');
     final updated = await session.db.transaction((transaction) async {
       final campaign = await Campaign.db.findById(
@@ -1248,15 +1339,14 @@ class FieldnoteEndpoint extends Endpoint {
       await _requireNotStarted(session, campaign, transaction, 'revised');
       if (minimumVolunteers < 1 ||
           minimumVolunteers > campaign.volunteerCapacity ||
-          Money.toPaise(fundingGoal) <
-              Money.toPaise(campaign.sponsoredAmount)) {
+          goalPaise < campaign.sponsoredAmountPaise) {
         throw FieldnoteException(
           message:
               'Minimum team must fit the available places and the new goal cannot be below funds already recorded.',
           code: 'invalid_campaign_plan',
         );
       }
-      campaign.fundingGoal = fundingGoal;
+      campaign.setFundingGoalPaise(goalPaise);
       campaign.minimumVolunteers = minimumVolunteers;
       campaign.description = note;
       campaign.revision += 1;
@@ -2370,92 +2460,126 @@ class FieldnoteEndpoint extends Endpoint {
   /// The balance check runs under the campaign row lock and counts unpaid
   /// orders from the last [PaymentReconciliationService.orderTtl] as reserved,
   /// so parallel checkouts cannot oversubscribe the goal (S6).
+  ///
+  /// [amountPaise] is preferred over the rupee [amount] when sent. A retry
+  /// with the same [clientRequestId] (per sponsor) returns the order created
+  /// by the first call while it is still awaiting payment.
   Future<RazorpayCheckoutOrder> createRazorpayOrder(
     Session session,
     int campaignId,
     double amount,
-    String? message,
-  ) async {
+    String? message, {
+    int? amountPaise,
+    String? clientRequestId,
+  }) async {
     final sponsor = await _requireRole(session, AccountRole.sponsor);
-    if (!amount.isFinite || amount < 1 || amount > Money.maximumRupees) {
+    final requestedPaise = Money.fromInput(paise: amountPaise, rupees: amount);
+    if (requestedPaise == null ||
+        requestedPaise < 100 ||
+        requestedPaise > Money.maximumPaise) {
       throw FieldnoteException(
         message: 'Choose a sponsorship between ₹1 and ₹10,00,000.',
         code: 'invalid_amount',
       );
     }
-    final amountPaise = Money.toPaise(amount);
+    final orderPaise = requestedPaise;
+    final requestId = _validatedClientRequestId(clientRequestId);
+    if (requestId != null) {
+      final replay = await _checkoutForRequest(
+        session,
+        sponsor.authUserId,
+        requestId,
+        campaignId: campaignId,
+        amountPaise: orderPaise,
+      );
+      if (replay != null) return replay;
+    }
     _maxLength(message ?? '', _sponsorMessageMax, 'message');
     await _moderateOrThrow(session, message ?? '', 'sponsorMessage');
     final credentials = RazorpayCredentials.require(session);
     await _limiter.hit(session, sponsor.authUserId, RateLimits.createOrder);
     await _refreshCampaignReadiness(session, campaignId);
-    final reserved = await session.db.transaction((transaction) async {
-      final campaign = await Campaign.db.findById(
-        session,
-        campaignId,
-        transaction: transaction,
-        lockMode: LockMode.forUpdate,
-      );
-      if (campaign == null ||
-          CampaignLifecycleService.isClosed(campaign) ||
-          !DateTime.now().toUtc().isBefore(campaign.startsAt)) {
-        throw FieldnoteException(
-          message: 'This campaign is closed to new payments.',
-          code: 'campaign_unavailable',
+    final ({Campaign campaign, Sponsorship sponsorship}) reserved;
+    try {
+      reserved = await session.db.transaction((transaction) async {
+        final campaign = await Campaign.db.findById(
+          session,
+          campaignId,
+          transaction: transaction,
+          lockMode: LockMode.forUpdate,
         );
-      }
-      final unfundedPaise =
-          Money.toPaise(campaign.fundingGoal) -
-          Money.toPaise(campaign.sponsoredAmount);
-      if (unfundedPaise <= 0) {
-        throw FieldnoteException(
-          message: 'This campaign is already fully funded.',
-          code: 'campaign_fully_funded',
-        );
-      }
-      final reservedPaise = Money.toPaise(
-        await PaymentReconciliationService.reservedAmount(
+        if (campaign == null ||
+            CampaignLifecycleService.isClosed(campaign) ||
+            !DateTime.now().toUtc().isBefore(campaign.startsAt)) {
+          throw FieldnoteException(
+            message: 'This campaign is closed to new payments.',
+            code: 'campaign_unavailable',
+          );
+        }
+        final unfundedPaise = campaign.unfundedPaise;
+        if (unfundedPaise <= 0) {
+          throw FieldnoteException(
+            message: 'This campaign is already fully funded.',
+            code: 'campaign_fully_funded',
+          );
+        }
+        final reservedPaise = await PaymentReconciliationService.reservedPaise(
           session,
           campaignId: campaignId,
           transaction: transaction,
-        ),
-      );
-      final availablePaise = unfundedPaise - reservedPaise;
-      if (amountPaise > availablePaise) {
-        throw FieldnoteException(
-          message: availablePaise <= 0
-              ? 'Other sponsors are completing checkout for the remaining balance. Try again in a few minutes.'
-              : 'Choose an amount up to the remaining campaign balance of '
-                    '₹${Money.fromPaise(availablePaise).toStringAsFixed(2)}.',
-          code: 'amount_exceeds_campaign_balance',
         );
-      }
-      final sponsorship = await Sponsorship.db.insertRow(
-        session,
-        Sponsorship(
-          campaignId: campaignId,
-          sponsorAuthUserId: sponsor.authUserId,
-          amount: Money.fromPaise(amountPaise),
-          message: _blankToNull(message),
-          paymentProvider: 'razorpay',
-          paymentStatus: 'created',
-          updatedAt: DateTime.now().toUtc(),
-        ),
-        transaction: transaction,
-      );
-      return (campaign: campaign, sponsorship: sponsorship);
-    });
+        final availablePaise = unfundedPaise - reservedPaise;
+        if (orderPaise > availablePaise) {
+          throw FieldnoteException(
+            message: availablePaise <= 0
+                ? 'Other sponsors are completing checkout for the remaining balance. Try again in a few minutes.'
+                : 'Choose an amount up to the remaining campaign balance of '
+                      '₹${Money.fromPaise(availablePaise).toStringAsFixed(2)}.',
+            code: 'amount_exceeds_campaign_balance',
+          );
+        }
+        final sponsorship = await Sponsorship.db.insertRow(
+          session,
+          Sponsorship(
+            campaignId: campaignId,
+            sponsorAuthUserId: sponsor.authUserId,
+            amount: Money.fromPaise(orderPaise),
+            amountPaise: orderPaise,
+            message: _blankToNull(message),
+            paymentProvider: 'razorpay',
+            paymentStatus: 'created',
+            clientRequestId: requestId,
+            updatedAt: DateTime.now().toUtc(),
+          ),
+          transaction: transaction,
+        );
+        return (campaign: campaign, sponsorship: sponsorship);
+      });
+    } on DatabaseException {
+      // A concurrent retry with the same clientRequestId inserted first.
+      final replay = requestId == null
+          ? null
+          : await _checkoutForRequest(
+              session,
+              sponsor.authUserId,
+              requestId,
+              campaignId: campaignId,
+              amountPaise: orderPaise,
+            );
+      if (replay == null) rethrow;
+      return replay;
+    }
     final receipt = 'fn_${campaignId}_${reserved.sponsorship.id}';
     late final RazorpayOrderResult order;
     try {
       order = await _payments.createOrder(
         keyId: credentials.keyId,
         keySecret: credentials.keySecret,
-        amountPaise: amountPaise,
+        amountPaise: orderPaise,
         receipt: receipt,
         campaignId: campaignId,
       );
-      if (order.amountPaise != amountPaise) {
+      if (order.amountPaise != orderPaise) {
         throw const RazorpayPaymentException(
           'Razorpay returned an order for a different amount.',
         );
@@ -2498,7 +2622,7 @@ class FieldnoteEndpoint extends Endpoint {
       entityId: '${sponsorship.id}',
       outcome: 'created',
       riskLevel: 'info',
-      detail: 'Razorpay order ${order.id} created for $amountPaise paise.',
+      detail: 'Razorpay order ${order.id} created for $orderPaise paise.',
     );
     return RazorpayCheckoutOrder(
       sponsorshipId: sponsorship.id!,
@@ -2507,6 +2631,48 @@ class FieldnoteEndpoint extends Endpoint {
       amountPaise: order.amountPaise,
       currency: order.currency,
       campaignName: reserved.campaign.name,
+      description: 'Sponsor verified volunteer impact',
+    );
+  }
+
+  /// The checkout an earlier [createRazorpayOrder] with [requestId] opened,
+  /// or null when the id is new. A retry while Razorpay is still creating
+  /// the order, a finished attempt, or an id reused for another campaign or
+  /// amount is rejected with `duplicate_payment_request`.
+  Future<RazorpayCheckoutOrder?> _checkoutForRequest(
+    Session session,
+    UuidValue sponsor,
+    String requestId, {
+    required int campaignId,
+    required int amountPaise,
+  }) async {
+    final existing = await Sponsorship.db.findFirstRow(
+      session,
+      where: (t) =>
+          t.sponsorAuthUserId.equals(sponsor) &
+          t.clientRequestId.equals(requestId),
+    );
+    if (existing == null) return null;
+    final campaign = await Campaign.db.findById(session, existing.campaignId);
+    final orderId = existing.providerOrderId;
+    if (campaign == null ||
+        existing.campaignId != campaignId ||
+        existing.amountPaise != amountPaise ||
+        existing.paymentStatus != 'created' ||
+        orderId == null) {
+      throw FieldnoteException(
+        message:
+            'This payment request was already handled. Start a new checkout.',
+        code: 'duplicate_payment_request',
+      );
+    }
+    return RazorpayCheckoutOrder(
+      sponsorshipId: existing.id!,
+      orderId: orderId,
+      keyId: RazorpayCredentials.require(session).keyId,
+      amountPaise: existing.amountPaise,
+      currency: 'INR',
+      campaignName: campaign.name,
       description: 'Sponsor verified volunteer impact',
     );
   }
@@ -2651,6 +2817,16 @@ class FieldnoteEndpoint extends Endpoint {
     );
   }
 
+  /// Whether [simulateCampaignTestPayout] can run: Razorpay keys are
+  /// configured and are Test Mode (`rzp_test_`) keys. When false in live
+  /// mode, creator payouts are settled manually by FieldNote operations
+  /// (docs/DEPLOYMENT.md) and the app should say so instead of offering a
+  /// simulation.
+  Future<bool> isPayoutSimulationAvailable(Session session) async {
+    await _requireProfile(session);
+    return RazorpayCredentials.fromSession(session)?.isTestMode ?? false;
+  }
+
   /// Creator-only demonstration ledger. These rows never initiate a bank
   /// transfer or call Razorpay Route.
   Future<List<TestPayout>> listCampaignTestPayouts(
@@ -2686,10 +2862,11 @@ class FieldnoteEndpoint extends Endpoint {
     final sponsor = await _requireRole(session, AccountRole.sponsor);
     await _refreshCampaignReadiness(session, campaignId);
     if (!RazorpayCredentials.require(session).isTestMode) {
+      // Item 7: real payouts need RazorpayX + KYC, which FieldNote does not
+      // integrate. Live money is released by operations, never simulated.
       throw FieldnoteException(
-        message:
-            'Payout simulation is available only with Razorpay Test Mode keys.',
-        code: 'test_mode_required',
+        message: 'Payouts are settled manually by FieldNote operations.',
+        code: 'payouts_manual',
       );
     }
     final results = await session.db.transaction((transaction) async {
@@ -2726,8 +2903,19 @@ class FieldnoteEndpoint extends Endpoint {
         transaction: transaction,
       );
       final processed = previous.map((payout) => payout.sponsorshipId).toSet();
+      // Money already going back to a sponsor is never paid out as well.
+      final refunded = verified.isEmpty
+          ? <int>{}
+          : (await TestRefund.db.find(
+              session,
+              where: (t) => t.sponsorshipId.inSet(
+                verified.map((payment) => payment.id!).toSet(),
+              ),
+              transaction: transaction,
+            )).map((refund) => refund.sponsorshipId).toSet();
       for (final payment in verified) {
         if (processed.contains(payment.id) ||
+            refunded.contains(payment.id) ||
             payment.providerPaymentId == null ||
             payment.paymentProvider != 'razorpay') {
           continue;
@@ -2738,7 +2926,8 @@ class FieldnoteEndpoint extends Endpoint {
             campaignId: campaignId,
             sponsorshipId: payment.id!,
             creatorAuthUserId: sponsor.authUserId,
-            amount: payment.amount,
+            amount: Money.fromPaise(payment.amountPaise),
+            amountPaise: payment.amountPaise,
             sourcePaymentId: payment.providerPaymentId!,
             status: 'simulated',
           ),
@@ -3736,8 +3925,11 @@ class FieldnoteEndpoint extends Endpoint {
         .length;
     return ImpactSummary(
       campaignId: campaignId,
-      sponsorshipTotal: campaign.sponsoredAmount,
-      fundingGoal: campaign.fundingGoal,
+      sponsorshipTotal: Money.fromPaise(campaign.sponsoredAmountPaise),
+      fundingGoal: Money.fromPaise(campaign.fundingGoalPaise),
+      sponsorshipTotalPaise: campaign.sponsoredAmountPaise,
+      fundingGoalPaise: campaign.fundingGoalPaise,
+      refundedPaise: campaign.refundedAmountPaise,
       joinedVolunteers: joined,
       completedVolunteers: completed,
       evidenceCount: accepted.length,
@@ -4208,7 +4400,10 @@ class FieldnoteEndpoint extends Endpoint {
         : FieldnoteTime.validatedOffset(utcOffsetMinutes);
     // V-5: "I can help today" applies to the volunteer's current local date
     // and lapses at local midnight. Re-saving on the same day keeps it.
-    final today = FieldnoteTime.todayKey(FieldnoteTime.offsetOrDefault(offset));
+    final today = FieldnoteTime.todayKeyIn(
+      zone: zone,
+      utcOffsetMinutes: offset,
+    );
     final todayDate = availableToday ? today : null;
     if (existing == null) {
       final sortedDays = weekdays.toSet().toList()..sort();
@@ -4324,8 +4519,11 @@ class FieldnoteEndpoint extends Endpoint {
     int participationCount, {
     RouteLeg? travel,
   }) {
-    // V-5: weekday and time of day in the volunteer's own UTC offset.
-    final offset = FieldnoteTime.offsetOrDefault(availability.utcOffsetMinutes);
+    // V-5: weekday and time of day in the volunteer's own zone (DST-aware).
+    final offset = FieldnoteTime.availabilityOffsetAt(
+      availability,
+      campaign.startsAt,
+    );
     final availabilityMatches =
         availability.isAvailable &&
         FieldnoteTime.availabilityCovers(availability, campaign);

@@ -3,7 +3,9 @@ table: fieldnote_sponsorship
 fields:
   campaignId: int, relation(parent=fieldnote_campaign)
   sponsorAuthUserId: UuidValue
+  # A-4: amountPaise is the source of truth; amount is paise / 100.
   amount: double
+  amountPaise: int, default=0
   message: String?
   paymentProvider: String, default='razorpay'
   paymentStatus: String, default='created'
@@ -14,6 +16,8 @@ fields:
   reconcileAttempts: int, default=0
   lastReconciledAt: DateTime?
   updatedAt: DateTime?
+  # Checkout idempotency key chosen by the client; unique per sponsor.
+  clientRequestId: String?
   createdAt: DateTime, default=now
 indexes:
   fieldnote_sponsorship_campaign_idx:
@@ -26,4 +30,7 @@ indexes:
     fields: sponsorAuthUserId
   fieldnote_sponsorship_provider_order_idx:
     fields: providerOrderId
+    unique: true
+  fieldnote_sponsorship_client_request_idx:
+    fields: sponsorAuthUserId, clientRequestId
     unique: true

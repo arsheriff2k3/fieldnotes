@@ -8,7 +8,9 @@ table: fieldnote_test_refund
 fields:
   campaignId: int, relation(parent=fieldnote_campaign)
   sponsorshipId: int, relation(parent=fieldnote_sponsorship)
+  # A-4: amountPaise is the source of truth; amount is paise / 100.
   amount: double
+  amountPaise: int, default=0
   status: String, default='pending'
   reason: String, default='campaign_cancelled'
   testMode: bool, default=true
@@ -17,6 +19,10 @@ fields:
   lastError: String?
   nextAttemptAt: DateTime?
   processedAt: DateTime?
+  # Set once, when a processed refund of a credited payment was taken off the
+  # campaign's sponsoredAmountPaise (fundingReversedPaise, 0 for uncredited).
+  fundingReversedAt: DateTime?
+  fundingReversedPaise: int, default=0
   createdAt: DateTime, default=now
   updatedAt: DateTime, default=now
 indexes:

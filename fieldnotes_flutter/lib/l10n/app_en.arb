@@ -1,0 +1,2501 @@
+{
+  "@@locale": "en",
+  "shellOfflineTitle": "You're offline",
+  "shellErrorTitle": "Something went wrong",
+  "navDiscover": "Discover",
+  "navCreate": "Create",
+  "navImpact": "Impact",
+  "navTrust": "Trust",
+  "navProfile": "Profile",
+  "navMatches": "Matches",
+  "navMyWork": "My work",
+  "navAvailability": "Availability",
+  "voiceRecordingLabel": "Recording. Release to finish.",
+  "voiceProcessingLabel": "Campaign generation in progress",
+  "voiceHoldLabel": "Hold to record a campaign brief",
+  "shellSponsorWorkspace": "SPONSOR WORKSPACE",
+  "shellVolunteerWorkspace": "VOLUNTEER WORKSPACE",
+  "shellLoading": "Preparing your impact workspace…",
+  "shellCantReach": "Can't reach FieldNote",
+  "shellCouldNotLoad": "FieldNote could not load",
+  "commonTryAgain": "Try again",
+  "commonDismiss": "Dismiss",
+  "signInHeroTitle": "Fund an idea.\nMatch the people.\nProve the impact.",
+  "signInHeroBody": "AI turns sponsor intent into action. Availability and GPS find the right volunteer. Field evidence closes the loop.",
+  "signInRoleTitle": "How will you create impact?",
+  "signInRoleSubtitle": "Choose once while creating your FieldNote account.",
+  "signInSponsorCardTitle": "Create Sponsor Account",
+  "signInSponsorCardSubtitle": "Turn an idea into a campaign, fund it, and watch verified work arrive.",
+  "signInVolunteerCardTitle": "Create Volunteer Account",
+  "signInVolunteerCardSubtitle": "Mark your availability and discover nearby campaigns matched to you.",
+  "signInExistingAccount": "I already have an account",
+  "signInCreateAgreement": "By creating an account you agree to the FieldNote Terms and Privacy Policy.",
+  "signInWelcomeBack": "Welcome back",
+  "signInCreateSponsorAccount": "Create your sponsor account",
+  "signInCreateVolunteerAccount": "Create your volunteer account",
+  "signInExistingSubtitle": "Sign in with your existing email account.",
+  "signInNewSubtitle": "Use email authentication, then finish your role-specific profile.",
+  "signInAuthFailed": "Authentication failed: {error}",
+  "@signInAuthFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "signInContinueAgreement": "By continuing you agree to the FieldNote Terms and Privacy Policy.",
+  "consentLocationTitle": "Use GPS for matching and check-in integrity",
+  "consentLocationDescription": "Stores approximate check-in and evidence coordinates and integrity signals.",
+  "consentAiTitle": "Use AI assistance",
+  "consentAiDescription": "Campaign text and evidence inputs can be sent to an AI provider for structured drafts.",
+  "consentEvidenceTitle": "Share evidence privately with campaign sponsors",
+  "consentEvidenceDescription": "Evidence is private and exposed only through temporary authenticated links.",
+  "consentRequiredSuffix": "{title} (required)",
+  "@consentRequiredSuffix": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "legalOpenInBrowser": "Open this address in your browser to read it:",
+  "commonClose": "Close",
+  "legalCopyLink": "Copy link",
+  "legalLoading": "Privacy Policy and Terms are loading…",
+  "commonRetry": "Retry",
+  "legalPrivacyPolicy": "Privacy Policy",
+  "legalPrivacyPolicyVersion": "Privacy Policy v{version}",
+  "@legalPrivacyPolicyVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "legalTermsOfService": "Terms of Service",
+  "legalTerms": "Terms",
+  "legalTermsVersion": "Terms v{version}",
+  "@legalTermsVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "onboardingChooseSponsorLocation": "Choose sponsor location",
+  "onboardingChooseTravelArea": "Choose travel area",
+  "onboardingNeedRoleAndName": "Choose a role and enter your name.",
+  "onboardingNeedArea": "Use current GPS or choose your travel area on the map.",
+  "onboardingWaitForArea": "Wait for the selected area to finish loading.",
+  "onboardingNeedLocation": "Choose your location.",
+  "onboardingNeedPhone": "Enter a phone number with country code, for example +919876543210.",
+  "onboardingSelectSuggestion": "Select your location from the Google suggestions.",
+  "onboardingPoliciesUnavailable": "Could not load the Privacy Policy and Terms. Check your connection and try again.",
+  "onboardingAcceptConsents": "Review and accept every required privacy choice.",
+  "onboardingSetupFailed": "Could not complete account setup.",
+  "onboardingBrandHeader": "FIELDNOTE · ACCOUNT SETUP",
+  "onboardingChooseRole": "Choose role",
+  "roleSponsor": "Sponsor",
+  "roleVolunteer": "Volunteer",
+  "onboardingSponsorTitle": "Set up your sponsor profile",
+  "onboardingVolunteerTitle": "Tell AI when and where you can help",
+  "onboardingSponsorDescription": "Sponsors create, fund, and monitor campaigns.",
+  "onboardingVolunteerDescription": "Availability and GPS are used to explain every campaign match.",
+  "onboardingDisplayName": "Display name",
+  "onboardingPreparing": "Preparing account…",
+  "onboardingEnter": "Enter FieldNote",
+  "onboardingLocationLabel": "Location",
+  "onboardingLocationHint": "Search for an address or place…",
+  "onboardingChooseOnMap": "Choose on map",
+  "onboardingPlacesHint": "Choose a complete location from Google Places · Powered by Google",
+  "onboardingPlacesUnavailable": "Location search is unavailable; enter the complete address manually.",
+  "sponsorTypeIndividual": "Individual",
+  "sponsorTypeCompany": "Company",
+  "sponsorTypeFoundation": "Foundation",
+  "sponsorTypeCommunityGroup": "Community group",
+  "onboardingSponsorType": "Sponsor type",
+  "onboardingOrganization": "Organization name (optional)",
+  "onboardingContactPhone": "Contact phone (required)",
+  "onboardingContactPhoneHelper": "Shared with volunteers after they join your campaign.",
+  "onboardingPreferredCauses": "Preferred causes",
+  "onboardingAvailableForMatches": "Available for campaign matches",
+  "onboardingAvailableToday": "Available today",
+  "onboardingAvailableDays": "Available days",
+  "onboardingTravelRadius": "Travel radius · {km} km",
+  "@onboardingTravelRadius": {
+    "placeholders": {
+      "km": {
+        "type": "String"
+      }
+    },
+    "description": "Slider label; km is a locale-formatted number."
+  },
+  "onboardingTravelAreaHint": "Choose your travel area using GPS or the map pin.",
+  "onboardingFindingLocation": "Finding your location…",
+  "onboardingUseGps": "Use current GPS location",
+  "onboardingUseGpsInstead": "Use current GPS instead",
+  "onboardingRefreshGps": "Refresh current GPS location",
+  "onboardingChooseTravelAreaOnMap": "Choose travel area on map",
+  "locationEnableInSettings": "Enable Location in Settings",
+  "locationOpenPermissions": "Open FieldNote permissions",
+  "onboardingFindingAreaName": "Finding the area name…",
+  "onboardingSelectedArea": "Selected area: {area}",
+  "@onboardingSelectedArea": {
+    "placeholders": {
+      "area": {
+        "type": "String"
+      }
+    }
+  },
+  "onboardingInterests": "Interests",
+  "onboardingSkills": "Skills",
+  "onboardingMapSemantics": "Draggable map pin for the area you can travel from",
+  "onboardingMapFallback": "Map preview is off. Use the GPS button below to set the area you travel from.",
+  "onboardingPrivacyChoices": "Privacy choices",
+  "onboardingPrivacyChoicesBody": "You can review these records, withdraw consent, export your data or delete your account from Trust & safety.",
+  "onboardingAcceptCurrent": "By continuing you accept the current FieldNote Terms and Privacy Policy.",
+  "onboardingAcceptVersions": "By continuing you accept the FieldNote Terms v{termsVersion} and Privacy Policy v{privacyVersion}.",
+  "@onboardingAcceptVersions": {
+    "placeholders": {
+      "termsVersion": {
+        "type": "String"
+      },
+      "privacyVersion": {
+        "type": "String"
+      }
+    }
+  },
+  "deletionStatusPending": "Deletion pending",
+  "deletionStatusProcessing": "Deletion in progress",
+  "deletionStatusCompleted": "Account deleted",
+  "deletionStatusFailed": "Deletion failed",
+  "deletionStatusOther": "Deletion {status}",
+  "@deletionStatusOther": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "deletionFailedReason": "FieldNote could not finish deleting your account.",
+  "deletionWillRetry": "{reason} It will retry automatically at {time}.",
+  "@deletionWillRetry": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "deletionRequestAgain": "{reason} Request deletion again, or contact support if this keeps happening.",
+  "@deletionRequestAgain": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "deletionNotDeletedTitle": "Account not deleted",
+  "deletionRequestFailed": "Could not request account deletion. Try again.",
+  "deletionStartedTitle": "Deletion started",
+  "deletionStartedBody": "Your account is being deleted and this completes within about a minute. You will now be signed out.",
+  "deletionDialogTitle": "Delete your account?",
+  "deletionExplanation": "Deleting your account removes your profile, availability, invitations, photographs and evidence text, and signs you out on every device. Payment, refund and consent records are kept without your name for accounting and legal purposes. Deletion completes within about a minute and cannot be undone.",
+  "deletionBlockers": "You cannot delete the account while you are checked in to a campaign, have campaigns that are still open, or have payments or refunds in progress.",
+  "deletionTypeToConfirm": "Type {word} to confirm.",
+  "@deletionTypeToConfirm": {
+    "placeholders": {
+      "word": {
+        "type": "String"
+      }
+    },
+    "description": "word is always DELETE; do not translate it."
+  },
+  "deletionDeleteAccount": "Delete account",
+  "deletionCompletedBody": "Your account was deleted.",
+  "deletionRequestedAt": "Requested {time}. This completes within about a minute and signs you out.",
+  "@deletionRequestedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "deletionRequestAgainButton": "Request deletion again",
+  "deletionDeleteMyAccount": "Delete my account",
+  "deletionRefreshStatus": "Refresh status",
+  "consentNotSavedTitle": "Consent not saved",
+  "consentNotSavedBody": "Could not save your consent. Try again.",
+  "consentGateIntro": "FieldNote uses location, AI, and private evidence to connect sponsorship with verified volunteer work.",
+  "consentGatePolicyChanged": "The Privacy Policy or Terms changed since you last agreed. Review them and confirm your choices to continue.",
+  "consentGateWithdrawn": "You withdrew consent, so matching, check-in, AI drafts and evidence sharing are paused. Accept again to keep using FieldNote, or delete your account.",
+  "consentGateEyebrow": "Trust before action",
+  "consentGateTitle": "Review your privacy choices",
+  "commonSaving": "Saving…",
+  "consentAcceptAndContinue": "Accept and continue",
+  "consentCheckRequired": "Check every required choice to continue.",
+  "signOut": "Sign out",
+  "signOutTitle": "Sign out?",
+  "signOutAllDevicesTitle": "Sign out of all devices?",
+  "signOutBody": "You will need to sign in again to use FieldNote on this device.",
+  "signOutAllDevicesBody": "Every device signed in to this account, including this one, will need to sign in again.",
+  "signOutEverywhere": "Sign out everywhere",
+  "trustEyebrow": "Your account",
+  "trustTitle": "Trust & safety",
+  "trustDescription": "Review privacy controls and account activity.",
+  "trustLoadingTitle": "Trust data is loading",
+  "trustLoadingBody": "Pull to refresh the security activity for this account.",
+  "trustVerifiedPayments": "Verified payments",
+  "trustLocationIntegrity": "Location integrity",
+  "trustContentModeration": "Content moderation",
+  "trustSecurityActivity": "Security activity",
+  "trustNoSecurityEvents": "No security events recorded yet.",
+  "trustViewAllEvents": "View all {count} events",
+  "@trustViewAllEvents": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "trustEventCount": "{count, plural, =1{1 event} other{{count} events}}",
+  "@trustEventCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "trustPrivacyControls": "Privacy controls",
+  "trustConsentRecorded": "Consent recorded",
+  "trustNoConsent": "No consent recorded",
+  "trustConsentOutdated": "Consent withdrawn or out of date",
+  "trustConsentAccepted": "Accepted {time} (Privacy Policy v{privacyVersion}, Terms v{termsVersion}).",
+  "@trustConsentAccepted": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "privacyVersion": {
+        "type": "String"
+      },
+      "termsVersion": {
+        "type": "String"
+      }
+    }
+  },
+  "trustConsentLastUpdated": "Last updated {time}.",
+  "@trustConsentLastUpdated": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "trustCurrentVersions": "Current Privacy Policy v{privacyVersion} · Terms v{termsVersion}",
+  "@trustCurrentVersions": {
+    "placeholders": {
+      "privacyVersion": {
+        "type": "String"
+      },
+      "termsVersion": {
+        "type": "String"
+      }
+    }
+  },
+  "trustExportData": "View and export my data",
+  "trustWithdrawConsent": "Withdraw consent",
+  "trustConsentHistory": "Consent history",
+  "trustNoConsentChanges": "No consent changes recorded yet.",
+  "trustGrantedGps": "GPS",
+  "trustGrantedAi": "AI",
+  "trustGrantedEvidence": "evidence sharing",
+  "trustConsentHistoryEntry": "{time} · Privacy v{privacyVersion}, Terms v{termsVersion}",
+  "@trustConsentHistoryEntry": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "privacyVersion": {
+        "type": "String"
+      },
+      "termsVersion": {
+        "type": "String"
+      }
+    }
+  },
+  "trustConsentWithdrawn": "Consent withdrawn",
+  "trustConsentAcceptedTitle": "Consent accepted",
+  "trustWithdrawTitle": "Withdraw consent?",
+  "trustWithdrawBody": "FieldNote needs GPS, AI processing and private evidence sharing to work. After you withdraw, matching, check-in, AI drafts and evidence submission stop, and you will be asked to accept again before you can use the app. Your existing records stay until you delete your account.",
+  "trustKeepConsent": "Keep consent",
+  "trustWithdraw": "Withdraw",
+  "trustConsentNotWithdrawn": "Consent not withdrawn",
+  "trustCheckoutDidNotComplete": "Checkout did not complete.",
+  "eventPaymentOrderCreated": "Razorpay order created",
+  "eventPaymentSignatureVerified": "Payment signature checked",
+  "eventPaymentCheckoutFailed": "Checkout failed or cancelled",
+  "eventPaymentVerifiedWithoutCredit": "Payment verification reviewed",
+  "eventPaymentOrderCreate": "Checkout requested",
+  "eventLocationCheckIn": "Check-in integrity checked",
+  "eventEvidenceLocationIntegrity": "Evidence location checked",
+  "eventEvidenceSubmitted": "Evidence verified",
+  "eventContentModeration": "Content moderation decision",
+  "eventPrivacyDataExported": "Data exported",
+  "eventTestPayoutSimulated": "Test payout recorded",
+  "eventAccountDeletionRequested": "Deletion requested",
+  "exportLoadFailed": "Could not load your data. Try again.",
+  "exportPdfFailed": "Could not create the PDF. Try again.",
+  "exportJsonFailed": "Could not share the JSON file. Try again.",
+  "exportAppBarTitle": "My data",
+  "exportEyebrow": "Your account records",
+  "exportTitle": "Your FieldNote data",
+  "exportDescription": "Read your records here, or save a report to your phone.",
+  "exportReportTitle": "Save or share a readable report",
+  "exportPreparedAt": "Prepared {time}. The PDF contains the records shown below.",
+  "@exportPreparedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "exportPreparingPdf": "Preparing PDF…",
+  "exportSharePdf": "Save or share PDF",
+  "exportRecordCount": "{count, plural, =1{1 record} other{{count} records}}",
+  "@exportRecordCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "exportPhotosNotice": "Private photographs are not included in this report. Shared files may contain personal details, so choose where to save them carefully.",
+  "exportAdvancedTitle": "Advanced export",
+  "exportAdvancedSubtitle": "For moving data to another service",
+  "exportJsonDescription": "JSON is a machine-readable copy of these account records.",
+  "exportShareJson": "Save or share JSON",
+  "profileChooseLocation": "Choose profile location",
+  "profileNeedNameAndLocation": "Enter your display name and location.",
+  "profileNeedNameAndCity": "Enter your display name and city.",
+  "profileNeedInterest": "Choose at least one interest.",
+  "profileSelectLocationSuggestion": "Select the new location from the Google suggestions.",
+  "profileSelectCitySuggestion": "Select the new city from the Google suggestions.",
+  "profileNeedSkill": "Choose at least one skill.",
+  "profileUpdated": "Profile updated.",
+  "profileUpdateFailed": "Could not update your profile.",
+  "profileNoMappedLocation": "This profile does not have a mapped location yet.",
+  "profileSponsorAccount": "Sponsor account",
+  "profileVolunteerAccount": "Volunteer account",
+  "profileEditTitle": "Edit your profile",
+  "profileEditDescription": "Update the details people use to reach you.",
+  "profileSponsorDescription": "Your contact and campaign identity.",
+  "profileVolunteerDescription": "Your account and availability details.",
+  "profileEdit": "Edit profile",
+  "profilePhoneNumber": "Phone number",
+  "profileNotProvided": "Not provided",
+  "profileAddPhoneHint": "Add your phone number so volunteers who join your campaigns can call you.",
+  "profileAddContactNumber": "Add contact number",
+  "profileHomeArea": "Home area",
+  "profileViewLocationOnMap": "View location on map",
+  "profilePhoneSharedNotice": "Your number is shared only with volunteers who join your campaign.",
+  "profileOrganization": "Organization",
+  "profileAvailabilityActive": "Active",
+  "profileAvailabilityPaused": "Paused",
+  "commonYes": "Yes",
+  "commonNo": "No",
+  "profileRegularDays": "Regular days",
+  "profileHours": "Hours",
+  "profileHoursRange": "{start} – {end}",
+  "@profileHoursRange": {
+    "placeholders": {
+      "start": {
+        "type": "String"
+      },
+      "end": {
+        "type": "String"
+      }
+    }
+  },
+  "profileTravelRadius": "Travel radius",
+  "profileKm": "{distance} km",
+  "@profileKm": {
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "profileTravelArea": "Travel area",
+  "profileNotSelected": "Not selected",
+  "profileEditAvailability": "Edit availability and travel area",
+  "profileSignOutAllDevices": "Sign out of all devices",
+  "profileEmailNotifications": "Email notifications",
+  "profileEmailNotificationsBody": "Emails about campaign changes, cancellations, invitations and confirmations.",
+  "profileEmailNotificationsFailed": "Could not update email notifications. Try again.",
+  "profileSignOutAllPartial": "Signed out here, but other devices could not be reached. Try again after signing in.",
+  "profileSignOutLocalOnly": "Signed out on this device. The server could not be reached to end the session.",
+  "profilePhoneRequired": "Phone number (required)",
+  "profilePhoneOptional": "Phone number (optional)",
+  "profilePhoneVisibleToJoined": "Visible only to joined volunteers.",
+  "profilePhonePrivate": "Private to your account.",
+  "profileScheduleManagedInAvailability": "Travel area and schedule are managed in Availability.",
+  "profileSave": "Save profile",
+  "profileHomeCity": "Home city",
+  "profileCityHint": "Start typing a city…",
+  "profileLocationSuggestionHint": "Choose a suggestion or pin a place on the map.",
+  "profileCitySuggestionHint": "Choose a city suggestion · Powered by Google",
+  "profileCitySearchUnavailable": "City search is unavailable; enter the city manually.",
+  "profilePrivacyReadOnly": "Privacy choices (read-only)",
+  "profileConsentGps": "GPS for matching and evidence",
+  "profileConsentAi": "AI processing",
+  "profileConsentEvidence": "Evidence sharing",
+  "profilePrivacyReviewHint": "Review your consent history or withdraw consent in Trust & safety.",
+  "sponsorGoalRange": "{minimum} to {maximum}.",
+  "@sponsorGoalRange": {
+    "placeholders": {
+      "minimum": {
+        "type": "String"
+      },
+      "maximum": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorValidationTitle": "Use {min}–{max} characters.",
+  "@sponsorValidationTitle": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorValidationDescription": "Describe the work in {min}–{max} characters.",
+  "@sponsorValidationDescription": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorValidationLocation": "Name the location.",
+  "sponsorValidationStartsAt": "This time has passed. Choose a start date and time in the future.",
+  "sponsorValidationDuration": "{min}–{max} minutes.",
+  "@sponsorValidationDuration": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorValidationCapacity": "{min}–{max} places.",
+  "@sponsorValidationCapacity": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorValidationMinimum": "Between 1 and the volunteer places.",
+  "sponsorValidationChecklist": "Add at least one checklist task.",
+  "sponsorValidationEvidence": "Describe the evidence volunteers submit ({min}–{max} characters).",
+  "@sponsorValidationEvidence": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorValidationLists": "Keep checklists, skills and tags to {items} items of up to {length} characters.",
+  "@sponsorValidationLists": {
+    "placeholders": {
+      "items": {
+        "type": "int"
+      },
+      "length": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorValidationScopeGoal": "Choose a funding goal between {range}",
+  "@sponsorValidationScopeGoal": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorValidationScopeMinimum": "Choose a minimum team between 1 and {capacity}.",
+  "@sponsorValidationScopeMinimum": {
+    "placeholders": {
+      "capacity": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorValidationScopeDescription": "Describe the revised work in {min}–{max} characters.",
+  "@sponsorValidationScopeDescription": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorPayoutsManual": "Payouts are settled manually by FieldNote operations.",
+  "sponsorErrorRequestReused": "This draft was already published as a different campaign. Review your campaigns, then publish again.",
+  "sponsorErrorRequestInvalid": "FieldNote could not process that request. Try again.",
+  "sponsorErrorDuplicatePayment": "This payment request was already handled. Start a new checkout.",
+  "sponsorPhaseDraft": "Draft",
+  "sponsorPhasePlanning": "Planning",
+  "sponsorPhaseNeedsDecision": "Needs a decision",
+  "sponsorPhasePostponed": "Postponed",
+  "sponsorPhaseConfirmed": "Confirmed",
+  "sponsorPhaseInProgress": "In progress",
+  "sponsorPhaseCompleted": "Completed",
+  "sponsorPhaseCancelled": "Cancelled",
+  "sponsorPhaseExpired": "Expired",
+  "sponsorPaymentVerified": "Verified",
+  "sponsorPaymentRefundQueued": "Refund queued",
+  "sponsorPaymentFailed": "Failed",
+  "sponsorPaymentNotCompleted": "Not completed",
+  "sponsorPaymentPending": "Pending",
+  "sponsorRefundProcessed": "Refunded",
+  "sponsorRefundProcessing": "Refund processing",
+  "sponsorRefundFailed": "Refund failed",
+  "sponsorRefundPending": "Refund pending",
+  "sponsorReviewApproved": "Approved",
+  "sponsorReviewRejected": "Rejected",
+  "sponsorReviewChangesRequested": "Changes requested",
+  "sponsorReviewAwaiting": "Awaiting review",
+  "sponsorRefundReasonCancelled": "Campaign cancelled",
+  "sponsorRefundReasonExpired": "Campaign expired",
+  "sponsorRefundReasonUncredited": "Payment could not be credited",
+  "sponsorPinPickerNoMatches": "No matching places. Try a city, street, or landmark.",
+  "sponsorPinPickerSearchUnavailable": "Place search is unavailable. Use the map or GPS.",
+  "sponsorPinPickerResolveFailed": "That place could not be resolved. Drag the pin instead.",
+  "sponsorPinPickerTitle": "Where will this happen?",
+  "sponsorPinPickerIntro": "Search for a place or move the pin to the exact work site. The ring is the check-in geofence volunteers must stand inside.",
+  "sponsorPinPickerFromBrief": "From your brief: {location}. Choose a search result or set a pin to confirm it.",
+  "@sponsorPinPickerFromBrief": {
+    "placeholders": {
+      "location": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorPinPickerChooseOnMap": "Choose on map",
+  "sponsorPinPickerSearchLabel": "Search for a place",
+  "sponsorPinPickerSearchHint": "City, street, or landmark…",
+  "sponsorPinPickerClear": "Clear",
+  "sponsorPinPickerMapSemantics": "Draggable campaign pin with its check-in geofence",
+  "sponsorPinPickerMapFallback": "Map preview is off. Campaign pin: {latitude}, {longitude} with a {meters} m geofence.",
+  "@sponsorPinPickerMapFallback": {
+    "placeholders": {
+      "latitude": {
+        "type": "String"
+      },
+      "longitude": {
+        "type": "String"
+      },
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorPinPickerEmptyTitle": "Choose the campaign site",
+  "sponsorPinPickerEmptyMessage": "Select a place result, choose on the map, or use your device location.",
+  "sponsorPinPickerLocationNotSelected": "Location not selected",
+  "sponsorPinPickerUnnamedPin": "Unnamed pin",
+  "sponsorPinPickerDeviceLocation": "Your device location",
+  "sponsorPinPickerGeofenceTitle": "Check-in geofence · {meters} m",
+  "@sponsorPinPickerGeofenceTitle": {
+    "placeholders": {
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorPinPickerGeofenceValue": "{meters} m",
+  "@sponsorPinPickerGeofenceValue": {
+    "placeholders": {
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorPinPickerGeofenceHelp": "Volunteers must be inside this ring, allowing for their GPS accuracy, before they can check in.",
+  "sponsorPinPickerFindingLocation": "Finding my location…",
+  "sponsorPinPickerPinToMyLocation": "Pin to my location",
+  "sponsorPinPickerReachTitle": "Volunteer reach at this pin",
+  "sponsorPinPickerReachChecking": "Checking who could reach this pin…",
+  "sponsorPinPickerReachUnavailable": "Reach could not be estimated for this pin.",
+  "sponsorPinPickerMedianDistance": "Median distance {distance} km.",
+  "@sponsorPinPickerMedianDistance": {
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorPinPickerReachPrivacy": "Counts come from volunteers who published availability and a travel radius. Individual volunteer locations are never shown to sponsors.",
+  "sponsorPinPickerFullMapSearchUnavailable": "Place search is unavailable. Tap the map to set a pin.",
+  "sponsorPinPickerFullMapOpenFailed": "That place could not be opened. Choose another result.",
+  "sponsorPinPickerFullMapTitle": "Choose campaign location",
+  "sponsorPinPickerFullMapSemantics": "Full-screen campaign map. Tap to set the pin.",
+  "sponsorPinPickerFullMapFallbackSearch": "Map tiles are unavailable. Search for a place here, or go back to use device GPS.",
+  "sponsorPinPickerFullMapFallbackGps": "Map tiles are unavailable. Go back to use device GPS.",
+  "sponsorPinPickerFullMapPrompt": "Search for a place or tap the map to choose a site.",
+  "sponsorPinPickerUseThisPin": "Use this pin",
+  "sponsorReachLoadFailed": "Could not load nearby volunteers.",
+  "sponsorReachInviteTitle": "Invite this area?",
+  "sponsorReachInviteBody": "{count, plural, =0{Send an in-app invitation to {campaign} to the available volunteers in this area? Their identities stay private until they choose to join.} =1{Send an in-app invitation to {campaign} to the 1 available volunteer in this area? Their identity stays private until they choose to join.} other{Send an in-app invitation to {campaign} to the {count} available volunteers in this area? Their identities stay private until they choose to join.}}",
+  "@sponsorReachInviteBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "campaign": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorReachCancel": "Cancel",
+  "sponsorReachInviteArea": "Invite area",
+  "sponsorReachAllAlreadyInvited": "Everyone in this area has already been invited.",
+  "sponsorReachInvitedCount": "{count, plural, =1{Invited 1 volunteer in this area.} other{Invited {count} volunteers in this area.}}",
+  "@sponsorReachInvitedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorReachInviteFailed": "Could not send the invitations.",
+  "sponsorReachJoinedInArea": "Joined in this area",
+  "sponsorReachApproximateNote": "Pins show approximate areas, not live locations.",
+  "sponsorReachJoined": "Joined",
+  "sponsorReachBucketTitle": "{count, plural, =0{Volunteers in this area} =1{1 volunteer in this area} other{{count} volunteers in this area}}",
+  "@sponsorReachBucketTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorReachAllInvited": "All invited",
+  "sponsorReachClosed": "Closed",
+  "sponsorReachTitle": "Nearby volunteers",
+  "sponsorReachPrivacyNote": "Joined volunteers are named. Everyone else is shown only as an area of at least three people, never individually. Pins show approximate areas.",
+  "sponsorReachJoinedCount": "{count} joined",
+  "@sponsorReachJoinedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorReachInReachCount": "{count} in reach",
+  "@sponsorReachInReachCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorReachAreaCount": "{count, plural, =1{1 area} other{{count} areas}}",
+  "@sponsorReachAreaCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorReachMapSemantics": "Campaign and approximate volunteer areas",
+  "sponsorReachMapFallback": "Map unavailable. Volunteers and invite buttons are listed below.",
+  "sponsorReachMarkerTapHint": "Tap to view volunteers",
+  "sponsorReachMarkerVolunteers": "{count, plural, =1{1 volunteer} other{{count} volunteers}}",
+  "@sponsorReachMarkerVolunteers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorReachLegendCampaign": "Campaign",
+  "sponsorReachLegendVolunteerArea": "Volunteer area",
+  "sponsorReachLegendAreaInvited": "Area invited",
+  "sponsorReachNoneJoined": "No volunteers have joined yet.",
+  "sponsorReachNearbyAreas": "Nearby volunteer areas",
+  "sponsorReachNoAreas": "No area has enough available volunteers to show yet. Areas appear once at least three volunteers nearby publish availability.",
+  "sponsorReachInvitationsClosed": "Invitations are closed for this campaign.",
+  "sponsorCampaignMapLoadFailed": "Could not load the campaign map.",
+  "sponsorCampaignMapTitle": "Where the work happened",
+  "sponsorCampaignMapSemantics": "Map of volunteer check-ins and evidence locations",
+  "sponsorCampaignMapPinUnverifiedEvidence": "Unverified · evidence",
+  "sponsorCampaignMapPinUnverifiedCheckIn": "Unverified · check-in",
+  "sponsorCampaignMapPinEvidence": "Evidence",
+  "sponsorCampaignMapPinCheckIn": "Check-in",
+  "sponsorCampaignMapPinSnippet": "{distance} m from the pin · ±{accuracy} m",
+  "@sponsorCampaignMapPinSnippet": {
+    "placeholders": {
+      "distance": {
+        "type": "int"
+      },
+      "accuracy": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorCampaignMapFallback": "{count, plural, =1{Map preview is off. 1 location-verified point recorded within {meters} m of the campaign pin.} other{Map preview is off. {count} location-verified points recorded within {meters} m of the campaign pin.}}",
+  "@sponsorCampaignMapFallback": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorCampaignMapLegendCampaign": "Campaign pin & geofence",
+  "sponsorCampaignMapLegendEvidence": "Evidence submitted",
+  "sponsorCampaignMapLegendUnverified": "Unverified legacy point",
+  "sponsorCampaignMapJoinedCount": "{count} joined",
+  "@sponsorCampaignMapJoinedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorCampaignMapCheckedInCount": "{count} checked in",
+  "@sponsorCampaignMapCheckedInCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorCampaignMapCompletedCount": "{count} completed",
+  "@sponsorCampaignMapCompletedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorCampaignMapUnverifiedCount": "{count} unverified",
+  "@sponsorCampaignMapUnverifiedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorCampaignMapLegacyNote": "Legacy unverified points are retained for audit history and are never counted as verified field locations.",
+  "sponsorCampaignMapViewPin": "View campaign pin",
+  "sponsorCampaignMapProvenanceEyebrow": "Evidence provenance",
+  "sponsorCampaignMapProvenanceTitle": "Verified in place",
+  "sponsorCampaignMapProvenanceSemantics": "Map of where this evidence was captured",
+  "sponsorCampaignMapProvenanceFallback": "Map preview is off. Captured {distance} m from the campaign pin with ±{accuracy} m accuracy.",
+  "@sponsorCampaignMapProvenanceFallback": {
+    "placeholders": {
+      "distance": {
+        "type": "int"
+      },
+      "accuracy": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorCampaignMapLegacyLocation": "Legacy location · not verified",
+  "sponsorCampaignMapLocationIntegrity": "Location integrity {status}",
+  "@sponsorCampaignMapLocationIntegrity": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorCampaignMapDistanceFact": "{distance} m from the campaign pin (geofence {geofence} m)",
+  "@sponsorCampaignMapDistanceFact": {
+    "placeholders": {
+      "distance": {
+        "type": "int"
+      },
+      "geofence": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorCampaignMapAccuracyFact": "Captured with ±{accuracy} m GPS accuracy",
+  "@sponsorCampaignMapAccuracyFact": {
+    "placeholders": {
+      "accuracy": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorCampaignMapServerChecks": "Server checks",
+  "sponsorCampaignMapEvidenceLocation": "Evidence location",
+  "sponsorCampaignMapViewEvidence": "View evidence point",
+  "sponsorPayoutTitle": "Campaign payout",
+  "sponsorPayoutLoadFailed": "Could not load payout and refund records.",
+  "sponsorPayoutNothingToSimulate": "No verified Razorpay test checkout is ready to simulate.",
+  "sponsorPayoutSimulated": "Test payout recorded. No money was sent.",
+  "sponsorPayoutSimulateFailed": "Could not simulate payout.",
+  "sponsorPayoutBlockedCancelled": "This campaign was cancelled, so sponsors are refunded instead of a creator payout.",
+  "sponsorPayoutBlockedExpired": "This campaign expired before it was confirmed, so sponsors are refunded instead of a creator payout.",
+  "sponsorPayoutBlockedInProgress": "The event is under way. A payout can be simulated once FieldNote marks the campaign completed after it ends.",
+  "sponsorPayoutBlockedNotCompleted": "A payout can only be simulated after the campaign is completed: the event must take place and FieldNote marks it completed after it ends.",
+  "sponsorPayoutTestModePill": "Razorpay Test Mode",
+  "sponsorPayoutManualPill": "Manual settlement",
+  "sponsorPayoutTestModeNotice": "Payment testing is active. No real money has moved to a bank account.",
+  "sponsorPayoutCancelledRefunds": "Campaign cancelled · verified sponsorships are refunded to the original payment method.",
+  "sponsorPayoutExpiredRefunds": "Campaign expired · verified sponsorships are refunded to the original payment method.",
+  "sponsorPayoutStatusTitle": "Payout status",
+  "sponsorPayoutRecordedSponsorships": "Recorded sponsorships",
+  "sponsorPayoutRefundedToSponsors": "Refunded to sponsors",
+  "sponsorPayoutSimulatedCredit": "Simulated creator credit",
+  "sponsorPayoutRealTransfer": "Real bank transfer",
+  "sponsorPayoutNoSimulation": "No simulation yet",
+  "sponsorPayoutCreditsRecorded": "{count, plural, =1{1 test credit recorded} other{{count} test credits recorded}}",
+  "@sponsorPayoutCreditsRecorded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorPayoutSimulating": "Recording test payout…",
+  "sponsorPayoutSimulateButton": "Simulate payout to creator",
+  "sponsorPayoutRecipientTitle": "Recipient account",
+  "sponsorPayoutRecipientAccount": "Creator test account · in-app ledger only",
+  "sponsorPayoutRecipientHelp": "Tap Simulate after a verified Razorpay test checkout. Each checkout is credited once in this app’s test ledger. No Razorpay Route transfer or bank deposit occurs.",
+  "sponsorPayoutRefundsTitle": "Sponsor refunds",
+  "sponsorPayoutCreditHistoryTitle": "Test credit history",
+  "sponsorPayoutCheckoutLine": "Checkout #{id} · {detail}",
+  "@sponsorPayoutCheckoutLine": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorPayoutBeforeLiveTitle": "Before live payouts",
+  "sponsorPayoutBeforeLiveStep1": "1. Verify the campaign creator and payout account.",
+  "sponsorPayoutBeforeLiveStep2": "2. Decide when funds are released if a campaign is delayed, cancelled, or underfunded.",
+  "sponsorPayoutBeforeLiveStep3": "3. Reconcile provider transfers, failures, and refunds with the campaign ledger.",
+  "sponsorPayoutManualDetail": "Once the campaign is completed, FieldNote operations verify your payee details outside the app, transfer the verified sponsorships that were not refunded, and email you the bank reference. FieldNote never asks for bank details in the app.",
+  "sponsorCheckoutFullyFundedTitle": "Campaign fully funded",
+  "sponsorCheckoutFullyFundedMessage": "This campaign has already reached its funding goal.",
+  "sponsorCheckoutClosedTitle": "Campaign closed",
+  "sponsorCheckoutClosedMessage": "This campaign is no longer accepting sponsorships.",
+  "sponsorCheckoutTitle": "Sponsor campaign",
+  "sponsorCheckoutBanner": "Razorpay test checkout. Payment is credited after verification.",
+  "sponsorCheckoutBannerLive": "Secure Razorpay checkout. Payment is credited after verification.",
+  "sponsorCheckoutRemaining": "{amount} remaining",
+  "@sponsorCheckoutRemaining": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorCheckoutChooseAmount": "Choose how much to contribute",
+  "sponsorCheckoutMessageLabel": "Message (optional)",
+  "sponsorCheckoutMessageHint": "Why this campaign matters to you",
+  "sponsorCheckoutNeedsReviewTitle": "Payment needs review",
+  "sponsorCheckoutUnsuccessfulTitle": "Payment unsuccessful",
+  "sponsorCheckoutNeedsReviewMessage": "{reason} If money left your account, it is credited or refunded automatically. See Payment history.",
+  "@sponsorCheckoutNeedsReviewMessage": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorCheckoutProcessing": "Processing payment…",
+  "sponsorCheckoutPay": "Pay {amount}",
+  "@sponsorCheckoutPay": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorCheckoutCancel": "Cancel",
+  "sponsorCheckoutSuccessTitle": "Payment successful",
+  "sponsorCheckoutSuccessMessage": "{amount} was added to {campaign}.",
+  "@sponsorCheckoutSuccessMessage": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "campaign": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorCheckoutNotCompleted": "The Razorpay test payment was not completed.",
+  "sponsorEyebrow": "Sponsor",
+  "sponsorDiscoverTitle": "Campaigns",
+  "sponsorDiscoverTabAll": "All",
+  "sponsorDiscoverTabYours": "Yours",
+  "sponsorDiscoverTabCreate": "Create",
+  "sponsorDiscoverLocalCount": "{count, plural, =1{1 local campaign} other{{count} local campaigns}}",
+  "@sponsorDiscoverLocalCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorDiscoverEmptyTitle": "No campaigns yet",
+  "sponsorDiscoverEmptyMessage": "Pull down to refresh or start the first campaign.",
+  "sponsorDiscoverSponsorAction": "Sponsor campaign",
+  "sponsorDiscoverFullyFunded": "Fully funded",
+  "sponsorDiscoverCreatedCount": "{count, plural, =1{1 campaign created} other{{count} campaigns created}}",
+  "@sponsorDiscoverCreatedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorDiscoverNoCreatedTitle": "No campaigns created yet",
+  "sponsorDiscoverNoCreatedMessage": "Create a campaign to see it here.",
+  "sponsorDiscoverCreateAction": "Create a campaign",
+  "sponsorDiscoverStartTitle": "Start a campaign",
+  "sponsorDiscoverStartBody": "Describe your idea by voice or text, or enter the details yourself.",
+  "sponsorDiscoverOpenCreator": "Open campaign creator",
+  "sponsorOwnedCampaignId": "CAMPAIGN {id}",
+  "@sponsorOwnedCampaignId": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorCampaignPlaces": "{count, plural, =1{1 place} other{{count} places}}",
+  "@sponsorCampaignPlaces": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorOwnedJoined": "{joined}/{capacity} joined",
+  "@sponsorOwnedJoined": {
+    "placeholders": {
+      "joined": {
+        "type": "int"
+      },
+      "capacity": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorOwnedFundingRatio": "{funded} / {goal}",
+  "@sponsorOwnedFundingRatio": {
+    "placeholders": {
+      "funded": {
+        "type": "String"
+      },
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorAmountRefunded": "{amount} refunded",
+  "@sponsorAmountRefunded": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorOwnedVolunteerMap": "Volunteer map",
+  "sponsorActionShare": "Share",
+  "sponsorCreateExamplePrompt": "I want to sponsor tree care near the university this Saturday. Budget is ₹25,000 and I need about 10 volunteers.",
+  "sponsorDictationMicPermission": "Microphone permission is required. Allow access and try again.",
+  "sponsorDictationNoAudio": "The microphone stopped before any audio was captured. Check microphone access and try again.",
+  "sponsorDictationTooShort": "Hold the microphone button while speaking for at least one second.",
+  "sponsorDictationFewWords": "Only a few words were heard. Hold the microphone again, or type the rest of the brief.",
+  "sponsorDictationFailed": "The recording could not be transcribed. Try again, or type the brief.",
+  "sponsorCreateManualHeading": "Create a campaign manually",
+  "sponsorCreateConfirmHeading": "Confirm campaign details",
+  "sponsorProposalFormUseDetails": "Use these details",
+  "sponsorCreateBriefTooShort": "Describe the cause, place, timing, and intended impact first, or create the campaign manually.",
+  "sponsorCreateLocationUnreadable": "Could not read this device location. Check Settings and try again.",
+  "sponsorLocationTurnOnTitle": "Turn on device location",
+  "sponsorLocationAllowTitle": "Allow location access",
+  "sponsorLocationUnavailableTitle": "Location unavailable",
+  "sponsorLocationNotNow": "Not now",
+  "sponsorLocationOpenLocationSettings": "Open location settings",
+  "sponsorLocationOpenAppSettings": "Open app settings",
+  "sponsorCreateSelectPlaceResult": "Select a place result or restore the selected campaign pin.",
+  "sponsorCreateChooseLocationFirst": "Choose the campaign location on the map before publishing.",
+  "sponsorCreateIsLive": "{name} is live.",
+  "@sponsorCreateIsLive": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorCreatePublishFailed": "Could not publish the campaign.",
+  "sponsorCreateGenerateFailed": "Could not generate the campaign.",
+  "sponsorCreateEyebrow": "Sponsor studio",
+  "sponsorCreateTitle": "Create a campaign",
+  "sponsorCreateDescription": "Describe the work, then review the draft before publishing.",
+  "sponsorCreatePromptTitle": "What needs to happen?",
+  "sponsorCreatePromptHelp": "Type a brief, or hold the round microphone while you speak and release when finished.",
+  "sponsorCreateListening": "Listening…",
+  "sponsorCreatePromptHint": "Cause, place, date, budget, and volunteers…",
+  "sponsorCreateClear": "Clear",
+  "sponsorCreateExampleButton": "Start from an example brief",
+  "sponsorCreateProcessingRecording": "Processing recording…",
+  "sponsorCreateGenerating": "Generating campaign…",
+  "sponsorCreateGenerate": "Generate campaign",
+  "sponsorCreateManualButton": "Enter campaign details manually",
+  "sponsorCreateManualNote": "Manual entry works when AI is busy.",
+  "sponsorCreateProposalPlaceholder": "Your editable proposal will appear here.",
+  "sponsorProposalAssistedDraft": "Assisted draft",
+  "sponsorProposalGoal": "{amount} goal",
+  "@sponsorProposalGoal": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorProposalTeamSummary": "{places} · {minimum} minimum safe team · {hours}",
+  "@sponsorProposalTeamSummary": {
+    "placeholders": {
+      "places": {
+        "type": "String"
+      },
+      "minimum": {
+        "type": "int"
+      },
+      "hours": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorProposalHours": "{count, plural, =1{1 hour} other{{count} hours}}",
+  "@sponsorProposalHours": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorWorkChecklist": "Work checklist",
+  "sponsorProposalEdit": "Edit",
+  "sponsorProposalPublish": "Publish",
+  "sponsorImpactTitle": "Campaign impact",
+  "sponsorImpactDescription": "Follow funding, volunteers, and completed work.",
+  "sponsorImpactPaymentHistory": "Payment history",
+  "sponsorImpactPaymentHistoryReview": "Payment history · {count} to review",
+  "@sponsorImpactPaymentHistoryReview": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorImpactEmptyTitle": "No sponsored impact yet",
+  "sponsorImpactEmptyMessage": "Create or sponsor a campaign to begin the evidence loop.",
+  "sponsorLiveConnected": "Live",
+  "sponsorLiveReconnecting": "Reconnecting…",
+  "sponsorLiveConnecting": "Connecting…",
+  "sponsorLiveNotListening": "Not listening",
+  "sponsorImpactStopLive": "Stop live updates for this campaign",
+  "sponsorImpactListenLive": "Listen for live updates",
+  "sponsorImpactLoading": "Loading campaign impact…",
+  "sponsorImpactCancelledNote": "This campaign was cancelled. Verified sponsorships are refunded to the original payment method.",
+  "sponsorImpactExpiredNote": "This campaign expired before it was confirmed. Verified sponsorships are refunded to the original payment method.",
+  "sponsorImpactMetricSponsored": "Sponsored",
+  "sponsorImpactMetricRefunded": "Refunded",
+  "sponsorImpactMetricJoined": "Joined",
+  "sponsorImpactMetricCompleted": "Completed",
+  "sponsorImpactMetricEvidence": "Evidence",
+  "sponsorImpactVolunteers": "Volunteers",
+  "sponsorImpactReadiness": "Readiness",
+  "sponsorImpactPayout": "Payout",
+  "sponsorImpactPostUpdate": "Post update",
+  "sponsorImpactUpdatePublishedTitle": "Update published",
+  "sponsorImpactUpdatePublishedMessage": "Volunteers and sponsors can now read \"{title}\".",
+  "@sponsorImpactUpdatePublishedMessage": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorEvidenceTitle": "Field evidence",
+  "sponsorEvidenceTapToReview": "Tap a photograph to review it and see exactly where it was captured.",
+  "sponsorEvidenceTapToSee": "Tap a photograph to see exactly where it was captured.",
+  "sponsorEvidencePhotoUnavailable": "Photo unavailable · Retry",
+  "sponsorEvidenceReloadPhoto": "Reload photo",
+  "sponsorEvidenceLocationUnverified": "Unverified location",
+  "sponsorEvidenceLocationVerified": "Location verified",
+  "sponsorEvidenceReviewAndSee": "Review and see where it was captured",
+  "sponsorEvidenceSeeWhere": "See where this was captured",
+  "sponsorEvidenceRejectNoteTooShort": "Explain why the evidence is rejected (at least {minimum} characters).",
+  "@sponsorEvidenceRejectNoteTooShort": {
+    "placeholders": {
+      "minimum": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorEvidenceNoteTooLong": "Keep the note under {maximum} characters.",
+  "@sponsorEvidenceNoteTooLong": {
+    "placeholders": {
+      "maximum": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorEvidenceApproved": "Evidence approved.",
+  "sponsorEvidenceRejected": "Evidence rejected.",
+  "sponsorEvidenceReviewFailed": "Could not save the review.",
+  "sponsorEvidenceYourReview": "Your review",
+  "sponsorEvidenceAiDrafted": "The summary was drafted by AI and confirmed by the volunteer.",
+  "sponsorEvidenceSavedNote": "Note: {note}",
+  "@sponsorEvidenceSavedNote": {
+    "placeholders": {
+      "note": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorEvidenceNoteLabel": "Note to the volunteer",
+  "sponsorEvidenceNoteHelper": "Required when rejecting",
+  "sponsorEvidenceReject": "Reject",
+  "sponsorEvidenceApprove": "Approve",
+  "sponsorCardMatch": "{percent}% match",
+  "@sponsorCardMatch": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorCardDateTentative": "Date tentative",
+  "sponsorCardAwaitingDecision": "Awaiting decision",
+  "sponsorCardPlaceAndDate": "{location} · {date}",
+  "@sponsorCardPlaceAndDate": {
+    "placeholders": {
+      "location": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorFundingOfGoal": "{funded} of {goal}",
+  "@sponsorFundingOfGoal": {
+    "placeholders": {
+      "funded": {
+        "type": "String"
+      },
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorFundingOfGoalRefunded": "{funded} of {goal} · {refunded} refunded",
+  "@sponsorFundingOfGoalRefunded": {
+    "placeholders": {
+      "funded": {
+        "type": "String"
+      },
+      "goal": {
+        "type": "String"
+      },
+      "refunded": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorProposalFormChooseLocation": "Choose campaign location",
+  "sponsorProposalFormDefaultSkill": "No specialist skills",
+  "sponsorProposalFormDefaultEvidence": "Submit a location-verified photograph and describe the completed work.",
+  "sponsorProposalFormFixFields": "{count, plural, =1{Fix the highlighted field.} other{Fix the {count} highlighted fields.}}",
+  "@sponsorProposalFormFixFields": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorProposalFormBasics": "Basics",
+  "sponsorProposalFormTitle": "Campaign title",
+  "sponsorProposalFormDescription": "Description",
+  "sponsorProposalFormLocation": "Location name",
+  "sponsorProposalFormChooseOnMap": "Choose on map",
+  "sponsorProposalFormSchedule": "Schedule and capacity",
+  "sponsorProposalFormStartsAt": "Starts at",
+  "sponsorProposalFormStartPassed": "This time has passed. Choose a start date and time in the future.",
+  "sponsorProposalFormFunding": "Funding goal (₹)",
+  "sponsorProposalFormRange": "{minimum} – {maximum}",
+  "@sponsorProposalFormRange": {
+    "placeholders": {
+      "minimum": {
+        "type": "String"
+      },
+      "maximum": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorProposalFormPlaces": "Volunteer places",
+  "sponsorProposalFormMinimumTeam": "Minimum safe team",
+  "sponsorProposalFormMinutes": "Minutes",
+  "sponsorProposalFormWork": "Work and evidence",
+  "sponsorProposalFormOneTaskPerLine": "One task per line",
+  "sponsorProposalFormSkills": "Required skills",
+  "sponsorProposalFormOnePerLine": "One per line",
+  "sponsorProposalFormEvidence": "Evidence instructions",
+  "sponsorProposalFormTags": "Tags",
+  "sponsorProposalFormCancel": "Cancel",
+  "sponsorPaymentHistoryTitle": "Payment history",
+  "sponsorPaymentHistoryIntro": "Razorpay Test Mode. Payments are credited only after the server verifies them; anything that could not be credited is refunded automatically.",
+  "sponsorPaymentHistoryEmptyTitle": "No payments yet",
+  "sponsorPaymentHistoryEmptyMessage": "Sponsor a campaign and it will be listed here.",
+  "sponsorPaymentRefundedOn": "{amount} refunded on {date}.",
+  "@sponsorPaymentRefundedOn": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorPaymentRefunded": "{amount} refunded.",
+  "@sponsorPaymentRefunded": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorPaymentRefundFailedDetail": "The refund of {amount} failed. FieldNote will contact you to resolve it.",
+  "@sponsorPaymentRefundFailedDetail": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorPaymentRefundOnItsWay": "A refund of {amount} is on its way to the original payment method.",
+  "@sponsorPaymentRefundOnItsWay": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorPaymentUncreditedDetail": "The payment was verified but could not be credited (for example the campaign closed or was already fully funded). It will be refunded automatically.",
+  "sponsorPaymentAwaitingConfirmation": "Waiting for Razorpay to confirm this payment. It updates automatically.",
+  "sponsorReadinessUpdateFailed": "Could not update campaign readiness.",
+  "sponsorReadinessReviseTitle": "Revise the work scope",
+  "sponsorReadinessReviseIntro": "A revised scope asks joined volunteers to reconfirm before they count toward the minimum team.",
+  "sponsorReadinessReviseGoalLabel": "Revised funding goal (₹)",
+  "sponsorReadinessRange": "{min} – {max}",
+  "@sponsorReadinessRange": {
+    "placeholders": {
+      "min": {
+        "type": "String"
+      },
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorReadinessReviseMinimumLabel": "Minimum safe team",
+  "sponsorReadinessReviseDescriptionLabel": "Revised work description",
+  "sponsorReadinessSaveRevision": "Save revision",
+  "sponsorReadinessPostponePast": "That time has already passed. Choose a new start in the future.",
+  "sponsorReadinessCancelTitle": "Cancel this campaign?",
+  "sponsorReadinessCancelBody": "{joined, plural, =1{1 volunteer has} other{{joined} volunteers have}} joined. Their places are released and they are emailed and told not to travel.\n\nEvery verified sponsorship ({recorded} recorded) is refunded to the original payment method. This cannot be undone.",
+  "@sponsorReadinessCancelBody": {
+    "placeholders": {
+      "joined": {
+        "type": "int"
+      },
+      "recorded": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorReadinessKeepCampaign": "Keep campaign",
+  "sponsorReadinessCancelCampaign": "Cancel campaign",
+  "sponsorReadinessInviteMessage": "Volunteer places are open on FieldNote. Join here: {link}",
+  "@sponsorReadinessInviteMessage": {
+    "placeholders": {
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorReadinessInviteCopied": "Invite and campaign link copied. Share them with your volunteers.",
+  "sponsorReadinessFundingShort": "Funding short",
+  "sponsorReadinessVolunteersShort": "Volunteers short",
+  "sponsorReadinessBothShort": "Funding and volunteers short",
+  "sponsorReadinessPostponedCutoff": "Postponed · awaiting cutoff",
+  "sponsorReadinessPostponedReconfirm": "Postponed · awaiting reconfirmation",
+  "sponsorReadinessDateExpired": "Date expired",
+  "sponsorReadinessOpenTentative": "Open · date tentative",
+  "sponsorReadinessTitle": "Campaign readiness",
+  "sponsorReadinessCutoffTitle": "At the cutoff",
+  "sponsorReadinessCheckedBefore": "Readiness is checked 24 hours before {start}.",
+  "@sponsorReadinessCheckedBefore": {
+    "placeholders": {
+      "start": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorReadinessReadyBeforeCutoff": "Funding and the minimum team are ready. The event will be checked for confirmation on {cutoff}.",
+  "@sponsorReadinessReadyBeforeCutoff": {
+    "placeholders": {
+      "cutoff": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorReadinessTentativeUntil": "The event stays tentative until {cutoff}. Refreshing now updates the counts.",
+  "@sponsorReadinessTentativeUntil": {
+    "placeholders": {
+      "cutoff": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorReadinessFundingLine": "Funding: {funded} of {goal} · {short} short",
+  "@sponsorReadinessFundingLine": {
+    "placeholders": {
+      "funded": {
+        "type": "String"
+      },
+      "goal": {
+        "type": "String"
+      },
+      "short": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorReadinessRefundedLine": "{amount} refunded to sponsors",
+  "@sponsorReadinessRefundedLine": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorReadinessTeamLine": "Team: {joined} joined · {minimum} minimum · {short} short",
+  "@sponsorReadinessTeamLine": {
+    "placeholders": {
+      "joined": {
+        "type": "int"
+      },
+      "minimum": {
+        "type": "int"
+      },
+      "short": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorReadinessReconfirmNote": "After a scope or date change, joined volunteers must reconfirm before counting toward readiness.",
+  "sponsorReadinessStartedLocked": "This campaign has started. Its date and scope are locked and it can no longer be cancelled.",
+  "sponsorReadinessDecisionsTitle": "Sponsor decisions",
+  "sponsorReadinessTopUpHint": "Top up through the sponsor checkout. A verified payment updates the funding result.",
+  "sponsorReadinessRecruitHint": "Keep recruiting volunteers. New joins and reconfirmations update the team result.",
+  "sponsorReadinessCopyInvite": "Copy volunteer invite",
+  "sponsorReadinessOpenCheckout": "Open sponsor checkout",
+  "sponsorReadinessReviseScope": "Revise scope",
+  "sponsorReadinessPostpone": "Postpone",
+  "sponsorReadinessRefreshStatus": "Refresh status",
+  "sponsorPostTitleInvalid": "Give the update a title of {min}–{max} characters.",
+  "@sponsorPostTitleInvalid": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorPostBodyInvalid": "Write {min}–{max} characters for the update.",
+  "@sponsorPostBodyInvalid": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "sponsorPostPublishFailed": "Could not publish the update.",
+  "sponsorPostTitle": "Post an update",
+  "sponsorPostAudience": "Volunteers and sponsors of {campaign} will see this update.",
+  "@sponsorPostAudience": {
+    "placeholders": {
+      "campaign": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsorPostTitleLabel": "Title",
+  "sponsorPostBodyLabel": "Update",
+  "sponsorPostPublishing": "Publishing…",
+  "sponsorPostPublish": "Publish update",
+  "sponsorDiscardTitle": "Discard changes?",
+  "sponsorDiscardMessage": "What you entered in this form will be lost.",
+  "sponsorDiscardKeepEditing": "Keep editing",
+  "sponsorDiscardConfirm": "Discard",
+  "coreErrorSessionExpired": "Your session expired, please sign in again.",
+  "coreErrorOffline": "Can't reach FieldNote. Check your connection.",
+  "coreErrorGeneric": "FieldNote could not complete that action. Try again.",
+  "coreErrorServer": "FieldNote hit a problem on the server. Try again.",
+  "coreErrorForbidden": "You don't have access to that.",
+  "coreErrorRateLimited": "Too many requests. Wait a moment and try again.",
+  "coreErrorRateLimitedWait": "Too many requests. Try again in {wait}.",
+  "@coreErrorRateLimitedWait": {
+    "placeholders": {
+      "wait": {
+        "type": "String"
+      }
+    }
+  },
+  "coreWaitSeconds": "{count, plural, =1{1 second} other{{count} seconds}}",
+  "@coreWaitSeconds": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "coreWaitMinutes": "{count, plural, =1{1 minute} other{{count} minutes}}",
+  "@coreWaitMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "coreWaitHours": "{count, plural, =1{1 hour} other{{count} hours}}",
+  "@coreWaitHours": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "coreErrorDeletionBlocked": "Your account cannot be deleted yet. Resolve open campaigns or payments and try again.",
+  "coreErrorDeletionOpenCampaign": "Cancel or complete the campaigns you created before deleting your account.",
+  "coreErrorDeletionRefundPending": "A refund for one of your payments is still being processed. Try again once it completes.",
+  "coreErrorDeletionPaymentPending": "One of your payments is still being confirmed. Try again once it settles.",
+  "coreErrorDeletionCheckedIn": "Finish or leave the campaign you are checked in to before deleting your account.",
+  "coreErrorCampaignStarted": "This campaign has already started.",
+  "coreErrorCampaignExpired": "This campaign has expired.",
+  "coreErrorCampaignNotCompleted": "This is available once the campaign completes.",
+  "coreErrorCampaignFull": "This campaign is already full.",
+  "coreErrorCampaignClosed": "This campaign is closed.",
+  "coreErrorCampaignUnavailable": "This campaign is no longer available.",
+  "coreErrorCampaignNotFound": "This campaign could not be found.",
+  "coreErrorCampaignNotConfirmed": "This campaign is not confirmed yet.",
+  "coreErrorPayoutsExist": "A creator payout was already recorded, so this campaign cannot be changed.",
+  "coreErrorPayoutsManual": "Payouts are settled manually by FieldNote operations.",
+  "coreErrorInvalidFundingGoal": "Enter a valid funding goal.",
+  "coreErrorInvalidDuration": "Enter a valid campaign duration.",
+  "coreErrorInvalidCapacity": "Enter a valid volunteer capacity.",
+  "coreErrorInvalidAmount": "Enter a valid amount.",
+  "coreErrorInvalidCampaignDate": "Choose a valid campaign date.",
+  "coreErrorInvalidAvailability": "Check your availability settings and try again.",
+  "coreErrorInvalidContactPhone": "Enter a valid phone number.",
+  "coreErrorInvalidLocation": "That location is not valid. Choose another place.",
+  "coreErrorInvalidSummary": "Check the summary length and try again.",
+  "coreErrorInvalidPhotograph": "That photograph could not be used. Take or choose another one.",
+  "coreErrorInvalidTimezone": "Your device time zone was not recognised.",
+  "coreErrorInvalidInput": "Some of the details are invalid. Check them and try again.",
+  "coreErrorInputTooLong": "That text is too long. Shorten it and try again.",
+  "coreErrorClientRequestIdReused": "This request was already used for something else. Start again.",
+  "coreErrorDuplicatePaymentRequest": "This payment request was already handled. Start a new checkout.",
+  "coreErrorConsentRequired": "Accept the current consent to continue.",
+  "coreErrorUploadFailed": "The photograph could not be uploaded. Try again.",
+  "coreErrorPhotoRequired": "Add an evidence photograph first.",
+  "coreErrorOutsideGeofence": "Move closer to the campaign location and try again.",
+  "coreErrorCheckInWindow": "GPS check-in is available from 30 minutes before the event until it ends.",
+  "coreErrorCompletionWindowClosed": "The evidence window for this campaign has closed.",
+  "coreErrorJoinRequired": "Join this campaign first.",
+  "coreErrorCheckInRequired": "Check in on site first.",
+  "coreErrorAiUnavailable": "AI assistance is unavailable right now.",
+  "coreLocationServiceDisabled": "Location is turned off. Enable Location on this device and try again.",
+  "coreLocationPermissionDenied": "Location permission was not granted. Allow it and try again.",
+  "coreLocationPermissionBlocked": "Location permission is blocked. Enable Precise Location for FieldNote in device Settings.",
+  "coreLocationTimedOut": "A precise location could not be obtained in time. Move near a window and try again.",
+  "coreLocationUnavailable": "The device location is currently unavailable. Check Location settings and try again.",
+  "coreMapRetry": "Retry map",
+  "coreMapShowDetails": "Map not loading? Show location details",
+  "coreMapUnavailable": "Map preview is unavailable. Location details are still shown below.",
+  "corePlacesSearchLabel": "Search Google Places",
+  "corePickerSearchHint": "City, address, or landmark",
+  "corePickerNoMatches": "No matching places. Try a nearby landmark.",
+  "corePickerSearchUnavailable": "Place search is unavailable. Tap the map to set a pin.",
+  "corePickerOpenFailed": "Could not open that place. Try another result.",
+  "corePickerMapSemantics": "Google map. Tap to select an exact location.",
+  "corePickerTilesUnavailable": "Map tiles are unavailable. Search for a place above.",
+  "corePickerPrompt": "Search or tap the map to choose a location.",
+  "corePickerUseLocation": "Use this location",
+  "corePlaceLocation": "Location: {coordinates}",
+  "@corePlaceLocation": {
+    "placeholders": {
+      "coordinates": {
+        "type": "String"
+      }
+    }
+  },
+  "coreTravelTitle": "Travel to campaign",
+  "coreTravelWalk": "Walk",
+  "coreTravelDrive": "Drive",
+  "coreTravelCycle": "Cycle",
+  "coreTravelYourPosition": "Your current position",
+  "coreTravelFallback": "Destination: {place}. Live distance and route instructions remain below.",
+  "@coreTravelFallback": {
+    "placeholders": {
+      "place": {
+        "type": "String"
+      }
+    }
+  },
+  "coreTravelRouteUnavailable": "A road route is unavailable. The destination pin is still shown.",
+  "coreTravelDetailsChanged": "Campaign details changed. Return to My work before travelling.",
+  "coreTravelConfirmFailed": "Could not confirm the event. Try again online.",
+  "coreTravelOffRoute": "Off planned route · recalculating when available",
+  "coreTravelRouteSummary": "{distance} km route · about {minutes} min",
+  "@coreTravelRouteSummary": {
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "coreTravelRemaining": "{distance} km remaining · about {minutes} min",
+  "@coreTravelRemaining": {
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "coreTravelRouteSteps": "Route steps",
+  "coreTravelCloseSteps": "Close route steps",
+  "coreTravelStepDistance": "{meters} m",
+  "@coreTravelStepDistance": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "coreTravelViewSteps": "View route steps",
+  "coreTravelArrived": "Near the campaign pin. Return to My work for GPS check-in.",
+  "coreTravelJoinFirst": "Join this campaign and wait for event confirmation before travelling.",
+  "coreTravelStop": "Stop travel",
+  "coreTravelStart": "Start travel",
+  "coreTravelRetryRoute": "Retry road route",
+  "coreTravelRetryLocation": "Retry location",
+  "volunteerCheckInOpensAt": "Check-in opens at {time}",
+  "@volunteerCheckInOpensAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "volunteerCheckInOpensOn": "Check-in opens {date} at {time}",
+  "@volunteerCheckInOpensOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "volunteerStatusImpactSubmitted": "Impact submitted",
+  "volunteerStatusLeft": "You left this campaign",
+  "volunteerStatusLeftDetail": "Your place was freed. You can join again while it is open.",
+  "volunteerStatusNoShow": "Missed · no check-in",
+  "volunteerStatusNoShowDetail": "The campaign ended without a GPS check-in from you.",
+  "volunteerStatusIncomplete": "Incomplete · no evidence",
+  "volunteerStatusIncompleteDetail": "You checked in, but no evidence was sent before the deadline.",
+  "volunteerStatusCampaignCompleted": "Campaign completed",
+  "volunteerStatusEvidenceWindowClosed": "The evidence window has closed.",
+  "volunteerStatusCampaignFinished": "This campaign has finished.",
+  "volunteerStatusCheckedIn": "GPS checked in",
+  "volunteerStatusJoined": "Joined",
+  "volunteerStatusExpired": "Campaign expired",
+  "volunteerStatusExpiredDetail": "The proposed date passed without enough support. Do not travel.",
+  "volunteerStatusCancelled": "Campaign cancelled — do not travel",
+  "volunteerStatusCancelledDetail": "The organizer cancelled this campaign.",
+  "volunteerReviewAwaiting": "Awaiting sponsor review",
+  "volunteerReviewApproved": "Approved by sponsor",
+  "volunteerReviewChangesRequested": "Changes requested",
+  "volunteerReviewRejected": "Rejected by sponsor",
+  "volunteerGpsOutOfDate": "The GPS reading is out of date. Try again.",
+  "volunteerGpsAccuracyTooLow": "GPS accuracy is ±{accuracy} m; FieldNote needs {required} m or better. Move outdoors or near a window and try again.",
+  "@volunteerGpsAccuracyTooLow": {
+    "placeholders": {
+      "accuracy": {
+        "type": "String"
+      },
+      "required": {
+        "type": "int"
+      }
+    }
+  },
+  "volunteerTimesWithinDay": "Choose times within the day.",
+  "volunteerEndAfterStart": "The end time must be after the start time.",
+  "volunteerAreaMapTitle": "Choose travel area",
+  "volunteerAreaMapMinimize": "Minimize map",
+  "volunteerAreaMapSemantics": "Full screen map. Tap or drag to choose your travel area.",
+  "volunteerYourTravelArea": "Your travel area",
+  "volunteerAreaMapUnavailable": "The map is unavailable. Return to Availability and use your current GPS area.",
+  "volunteerAreaMapTapPrompt": "Tap the map to place your travel area pin.",
+  "volunteerAreaMapPinSelected": "Pin selected · {radius} km travel radius",
+  "@volunteerAreaMapPinSelected": {
+    "placeholders": {
+      "radius": {
+        "type": "int"
+      }
+    }
+  },
+  "volunteerAreaMapUseArea": "Use this area",
+  "volunteerLinkOpenFailed": "Could not open the campaign link. Try again.",
+  "volunteerLinkStartedInMyWork": "This campaign has started. Your place is in My work.",
+  "volunteerLinkNoLongerOpen": "This campaign is no longer open.",
+  "volunteerJoined": "You joined {campaign}.",
+  "@volunteerJoined": {
+    "placeholders": {
+      "campaign": {
+        "type": "String"
+      }
+    }
+  },
+  "volunteerJoinFailed": "Could not join this campaign.",
+  "volunteerJoinCampaignFailed": "Could not join the campaign.",
+  "volunteerInvitationTitle": "Campaign invitation",
+  "volunteerShareCampaign": "Share campaign",
+  "volunteerInvitationEyebrow": "FIELDNOTE CAMPAIGN",
+  "volunteerJoining": "Joining…",
+  "volunteerViewMyWork": "View my work",
+  "volunteerJoinCampaign": "Join campaign",
+  "volunteerJoin": "Join",
+  "volunteerFull": "Full",
+  "volunteerSignInToJoin": "Sign in with a volunteer account to join this campaign.",
+  "volunteerHistoryAppBar": "My impact",
+  "volunteerHistoryEyebrow": "Your record",
+  "volunteerHistoryTitle": "Impact & history",
+  "volunteerHistoryDescription": "Every campaign you joined, what happened, and how your evidence was reviewed.",
+  "volunteerHistoryStatJoined": "Campaigns joined",
+  "volunteerHistoryStatSubmitted": "Evidence submitted",
+  "volunteerHistoryStatApproved": "Approved by sponsors",
+  "volunteerHistoryEmptyTitle": "No history yet",
+  "volunteerHistoryEmptyMessage": "Campaigns you join will appear here.",
+  "volunteerSponsorNote": "Sponsor note: {note}",
+  "@volunteerSponsorNote": {
+    "placeholders": {
+      "note": {
+        "type": "String"
+      }
+    }
+  },
+  "volunteerSubmittedAt": "Submitted {time}",
+  "@volunteerSubmittedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "volunteerSubmittedAtAi": "Submitted {time} · AI-assisted summary",
+  "@volunteerSubmittedAtAi": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "volunteerViewEvidencePhoto": "View my evidence photo",
+  "volunteerPhotoLoadFailed": "Could not load the photo.",
+  "volunteerMatchesEyebrow": "Volunteer campaigns",
+  "volunteerMatchesTitle": "Find a campaign",
+  "volunteerMatchesDescription": "Browse nearby work and invitations.",
+  "volunteerTabList": "List",
+  "volunteerTabMap": "Map",
+  "volunteerTabInvites": "Invites",
+  "volunteerNoMatchesTitle": "No matches yet",
+  "volunteerNoMatchesWiden": "Try increasing your travel radius or choosing more available days.",
+  "volunteerNoMatchesTurnOn": "Turn on availability to let AI recommend campaigns.",
+  "volunteerEveryPlaceTaken": "Every place is taken",
+  "volunteerInvitedReason": "The campaign creator invited you to join",
+  "volunteerMapUnavailableTitle": "Map unavailable",
+  "volunteerMapUnavailableMessage": "Open List to browse and join campaigns.",
+  "volunteerMapEmptyTitle": "No campaigns on the map yet",
+  "volunteerMapEmptyMessage": "Check your availability and travel radius, then refresh.",
+  "volunteerInvitations": "Invitations",
+  "volunteerInvitationsCount": "Invitations ({count})",
+  "@volunteerInvitationsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "volunteerCheckInvitations": "Check for invitations",
+  "volunteerNoInvitations": "No invitations yet. Pull down to check again.",
+  "volunteerViewRoute": "View route",
+  "volunteerDistanceStraight": "{distance} km away (straight line)",
+  "@volunteerDistanceStraight": {
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "volunteerDistanceByRoad": "{minutes} min drive · {distance} km by road",
+  "@volunteerDistanceByRoad": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      },
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "volunteerMatchMapSemantics": "Map of matched campaigns inside your travel radius",
+  "volunteerYourArea": "Your area",
+  "volunteerMatchPinTitle": "{campaign} · {score}",
+  "@volunteerMatchPinTitle": {
+    "placeholders": {
+      "campaign": {
+        "type": "String"
+      },
+      "score": {
+        "type": "String"
+      }
+    }
+  },
+  "volunteerLegendStrong": "Strong match",
+  "volunteerLegendModerate": "Moderate match",
+  "volunteerLegendWeaker": "Weaker match",
+  "volunteerMatchMapHint": "Tap a pin for the full score explanation. The ring is your saved travel radius.",
+  "volunteerWorkEyebrow": "Your campaigns",
+  "volunteerWorkDescription": "See your joined campaigns, directions, and next steps.",
+  "volunteerOpenHistory": "My impact & history",
+  "volunteerNoJoinedCampaigns": "No joined campaigns yet",
+  "volunteerNoUpcomingCampaigns": "No upcoming campaigns",
+  "volunteerFindNearby": "Find a campaign nearby and join when it fits.",
+  "volunteerBrowseCampaigns": "Browse campaigns",
+  "volunteerPastAndClosed": "Past and closed",
+  "volunteerCampaignNumber": "Campaign #{id}",
+  "@volunteerCampaignNumber": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "volunteerJoinedOnRefresh": "Joined {date}. Pull down to refresh the campaign details.",
+  "@volunteerJoinedOnRefresh": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "volunteerViewMyEvidence": "View my evidence",
+  "volunteerCreatorNoPhone": "This campaign creator has no saved phone number yet.",
+  "volunteerContactLoadFailed": "Could not load contact. Try again.",
+  "volunteerDialerFailed": "Could not open the phone dialer.",
+  "volunteerCheckInConfirmed": "On-site GPS check-in confirmed.",
+  "volunteerCheckInFailed": "Live GPS check-in was not available.",
+  "volunteerLeaveTitle": "Leave this campaign?",
+  "volunteerLeaveBody": "Your place in {campaign} will be freed for another volunteer. You can join again later if places are still open.",
+  "@volunteerLeaveBody": {
+    "placeholders": {
+      "campaign": {
+        "type": "String"
+      }
+    }
+  },
+  "volunteerStay": "Stay",
+  "volunteerLeaveCampaign": "Leave campaign",
+  "volunteerLeft": "You left {campaign}.",
+  "@volunteerLeft": {
+    "placeholders": {
+      "campaign": {
+        "type": "String"
+      }
+    }
+  },
+  "volunteerLeaveFailed": "Could not leave the campaign.",
+  "volunteerReconfirmFailed": "Could not reconfirm your place.",
+  "volunteerReadinessConfirmed": "Event confirmed",
+  "volunteerReadinessPostponed": "Postponed · new proposed date",
+  "volunteerReadinessAwaitingSponsor": "Awaiting sponsor decision",
+  "volunteerReadinessTentative": "Date tentative",
+  "volunteerTimeRange": "{start}–{end}",
+  "@volunteerTimeRange": {
+    "placeholders": {
+      "start": {
+        "type": "String"
+      },
+      "end": {
+        "type": "String"
+      }
+    }
+  },
+  "volunteerOrganizerUpdate": "Organizer update: {update}",
+  "@volunteerOrganizerUpdate": {
+    "placeholders": {
+      "update": {
+        "type": "String"
+      }
+    }
+  },
+  "volunteerReconfirmNeeded": "The sponsor changed the date or work scope. Review the details, then reconfirm your place.",
+  "volunteerReconfirm": "Reconfirm my place",
+  "volunteerContactLoading": "Loading campaign contact…",
+  "volunteerContactRefresh": "Refresh creator contact",
+  "volunteerContactCall": "Call campaign creator",
+  "volunteerContactRetry": "Could not load the contact. Tap to retry.",
+  "volunteerContactMissing": "The creator of this campaign has not added a phone number yet. They can add it in their Profile.",
+  "volunteerFieldChecklist": "Field checklist",
+  "volunteerSubmitEvidence": "Submit photo + field note",
+  "volunteerAwaitConfirmation": "Await event confirmation",
+  "volunteerReconfirmFirst": "Reconfirm your place first",
+  "volunteerCheckInClosed": "Check-in has closed",
+  "volunteerCheckInOnSite": "GPS check in on site",
+  "volunteerCheckInWindowHint": "Check-in is open from 30 minutes before the start until the end of the event.",
+  "volunteerLeaving": "Leaving…",
+  "volunteerLiveLocationCheck": "Live location check",
+  "volunteerGpsStreaming": "GPS streaming",
+  "volunteerGpsNotStarted": "Not started",
+  "volunteerGpsPaused": "GPS paused",
+  "volunteerTrackingIntro": "Start tracking to request Precise Location and show live coordinates, accuracy, mock-location status, and geofence distance.",
+  "volunteerLiveLocationUnavailable": "Live location is unavailable.",
+  "volunteerAccuracyFact": "±{meters} m",
+  "@volunteerAccuracyFact": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "volunteerMockDetected": "Mock flag detected",
+  "volunteerNoMock": "No mock flag",
+  "volunteerCalculatingDistance": "Calculating distance",
+  "volunteerDistanceAccuracyLow": "{meters} m · accuracy too low",
+  "@volunteerDistanceAccuracyLow": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "volunteerDistanceInside": "{meters} m · inside geofence",
+  "@volunteerDistanceInside": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "volunteerDistanceOutside": "{meters} m · outside geofence",
+  "@volunteerDistanceOutside": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "volunteerFixAge": "{seconds} s old",
+  "@volunteerFixAge": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "volunteerStopTracking": "Stop live tracking",
+  "volunteerEnableTracking": "Enable live location",
+  "volunteerRouteUnavailable": "Route unavailable",
+  "volunteerTrackingPrivacy": "Tracking stays on this screen. Only the check-in snapshot is sent to the server.",
+  "volunteerApproachMapSemantics": "Map showing the campaign geofence and your live position",
+  "volunteerYouAreHere": "You are here",
+  "volunteerMetersFromPin": "{meters} m from the pin",
+  "@volunteerMetersFromPin": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "volunteerApproachFallbackNoFix": "Map preview is off. Enable live location for a distance readout, or add a Maps key to draw the geofence.",
+  "volunteerApproachFallback": "Map preview is off. You are {meters} m from the campaign pin (geofence {geofence} m).",
+  "@volunteerApproachFallback": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      },
+      "geofence": {
+        "type": "String"
+      }
+    }
+  },
+  "volunteerLegendCampaignPin": "Campaign pin",
+  "volunteerLegendGeofence": "Geofence {meters} m",
+  "@volunteerLegendGeofence": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "volunteerLegendAccuracy": "Your GPS accuracy",
+  "volunteerCameraUnavailable": "The camera is unavailable. Allow camera access or choose from the gallery.",
+  "volunteerGalleryFailed": "Could not open the photo library.",
+  "volunteerOpenSettings": "Open settings",
+  "volunteerMicPermission": "Microphone access is off. Allow microphone and speech recognition for FieldNote in Settings, or type your note.",
+  "volunteerNoSpeech": "No speech was heard. Try again or type your note.",
+  "volunteerDictationStopped": "Dictation stopped. Try again or type your note.",
+  "volunteerSpeechUnavailable": "Speech recognition is unavailable on this device. Type your note instead.",
+  "volunteerDictationFailed": "Dictation could not start. Type your note instead.",
+  "volunteerPhotoFirst": "Take or choose an evidence photograph first.",
+  "volunteerNoteTooShort": "Add or dictate a field note of at least {min} characters.",
+  "@volunteerNoteTooShort": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "volunteerAnalyzeFailed": "AI could not analyze this note. Write the summary yourself below.",
+  "volunteerSummaryLength": "Write a summary of the completed work ({min}–{max} characters).",
+  "@volunteerSummaryLength": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "volunteerNoteTooLong": "Keep the field note under {max} characters.",
+  "@volunteerNoteTooLong": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "volunteerEvidenceSent": "Impact evidence sent to the sponsor.",
+  "volunteerSubmitFailed": "Could not submit evidence.",
+  "volunteerEvidenceEyebrow": "Evidence",
+  "volunteerEvidenceEyebrowAi": "AI evidence assistant",
+  "volunteerEvidenceTitle": "Show what changed",
+  "volunteerEvidenceDescription": "Capture one photo, describe the result, then confirm your summary.",
+  "volunteerEvidenceDescriptionAi": "Capture one photo, describe the result, then confirm the structured summary.",
+  "volunteerEvidenceWindowClosed": "The evidence window for this campaign has closed.",
+  "volunteerTakePhoto": "Take evidence photograph",
+  "volunteerChooseGallery": "Choose from gallery",
+  "volunteerNoteLabel": "What did your team complete?",
+  "volunteerNoteHint": "We planted 12 saplings and cleared 8 bags of waste…",
+  "volunteerStopListening": "Stop listening",
+  "volunteerDictateNote": "Dictate note",
+  "volunteerAnalyzing": "Analyzing…",
+  "volunteerAnalyze": "AI analyze field note",
+  "volunteerWriteMyself": "Write the summary myself",
+  "volunteerSummaryManualPill": "Your summary · not AI generated",
+  "volunteerSummaryAiPill": "AI draft · volunteer confirms",
+  "volunteerAiUnavailableDescribe": "AI analysis is unavailable. Describe the completed work in your own words.",
+  "volunteerDescribeOwnWords": "Describe the completed work in your own words.",
+  "volunteerConfirmedSummary": "Confirmed impact summary",
+  "volunteerSummaryHelper": "At least {min} characters. The sponsor sees this.",
+  "@volunteerSummaryHelper": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "volunteerCheckingGps": "Checking your GPS position…",
+  "volunteerUploading": "Uploading photo and submitting evidence…",
+  "volunteerSubmitting": "Submitting…",
+  "volunteerConfirmSubmit": "Confirm and submit evidence",
+  "volunteerNoPlacesFound": "No matching places found.",
+  "volunteerPlaceSearchUnavailable": "Place search is unavailable. Move the pin or use GPS.",
+  "volunteerPlaceSelectFailed": "Could not select that place. Try another result.",
+  "volunteerAvailableFrom": "Available from",
+  "volunteerAvailableUntil": "Available until",
+  "volunteerSelectSearchResult": "Select a search result, or clear the search to keep the current pin.",
+  "volunteerAvailabilitySaved": "Availability saved.",
+  "volunteerAvailabilityFailed": "Could not update availability.",
+  "volunteerAvailabilityEyebrow": "Volunteer preferences",
+  "volunteerAvailabilityDescription": "Choose when and how far you can travel.",
+  "volunteerAvailableToggle": "I am available for campaigns",
+  "volunteerAvailableToggleHint": "Pause this without deleting your preferences.",
+  "volunteerTodayToggle": "I can help today",
+  "volunteerTodayToggleHint": "Turns off automatically at midnight.",
+  "volunteerRegularDays": "Regular days",
+  "volunteerTimeWindow": "Time window",
+  "volunteerFromTime": "From {time}",
+  "@volunteerFromTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "volunteerUntilTime": "Until {time}",
+  "@volunteerUntilTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "volunteerTravelFrom": "Where you can travel from",
+  "volunteerTravelFromHint": "Drag the pin to the area you actually set out from. The ring is the radius below, drawn to scale.",
+  "volunteerPlaceSearchHint": "Address, landmark, or city",
+  "volunteerMaximumTravel": "Maximum travel · {km} km",
+  "@volunteerMaximumTravel": {
+    "placeholders": {
+      "km": {
+        "type": "String"
+      }
+    }
+  },
+  "volunteerKm": "{km} km",
+  "@volunteerKm": {
+    "placeholders": {
+      "km": {
+        "type": "String"
+      }
+    }
+  },
+  "volunteerCurrentLocationFailed": "Could not get your current location.",
+  "volunteerUseGpsArea": "Use my current GPS area",
+  "volunteerLiveGpsSelected": "Live GPS area selected",
+  "volunteerUseGpsAreaInstead": "Use my current GPS area instead",
+  "volunteerSave": "Save",
+  "volunteerAreaMapPinSemantics": "Draggable map pin for your travel area",
+  "volunteerAreaFallbackNoArea": "Map preview is off. Use the GPS button below to set your area.",
+  "volunteerAreaFallback": "Map preview is off. Saved area: {coordinates} ({km} km radius).",
+  "@volunteerAreaFallback": {
+    "placeholders": {
+      "coordinates": {
+        "type": "String"
+      },
+      "km": {
+        "type": "String"
+      }
+    }
+  },
+  "volunteerExpandMap": "Expand map",
+  "volunteerOpenLocationSettings": "Open location settings",
+  "volunteerOpenAppSettings": "Open app settings",
+  "exportSectionProfile": "Profile",
+  "exportSectionPrivacy": "Privacy choices",
+  "exportSectionAvailability": "Volunteer availability",
+  "exportSectionCreatedCampaigns": "Campaigns you created",
+  "exportSectionSponsorships": "Sponsorships",
+  "exportSectionVolunteerWork": "Volunteer work",
+  "exportSectionEvidence": "Evidence you submitted",
+  "exportSectionPosts": "Campaign updates you posted",
+  "exportSectionPayouts": "Test payout simulations",
+  "exportSectionRefunds": "Test refunds",
+  "exportSectionSecurity": "Security activity",
+  "exportFieldRole": "Role: {value}",
+  "@exportFieldRole": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldCity": "City: {value}",
+  "@exportFieldCity": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldContactPhone": "Contact phone: {value}",
+  "@exportFieldContactPhone": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldOrganization": "Organization: {value}",
+  "@exportFieldOrganization": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldInterests": "Interests: {value}",
+  "@exportFieldInterests": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldSkills": "Skills: {value}",
+  "@exportFieldSkills": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportConsentAccepted": "Consent accepted {date}",
+  "@exportConsentAccepted": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldLocation": "Location: {value}",
+  "@exportFieldLocation": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldAiProcessing": "AI processing: {value}",
+  "@exportFieldAiProcessing": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldEvidenceSharing": "Evidence sharing: {value}",
+  "@exportFieldEvidenceSharing": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldPrivacyPolicy": "Privacy policy: {value}",
+  "@exportFieldPrivacyPolicy": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldTerms": "Terms: {value}",
+  "@exportFieldTerms": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldAvailable": "Available: {value}",
+  "@exportFieldAvailable": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldAvailableToday": "Available today: {value}",
+  "@exportFieldAvailableToday": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldTravelRadius": "Travel radius: {value} km",
+  "@exportFieldTravelRadius": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldDays": "Days: {value}",
+  "@exportFieldDays": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldUpdated": "Updated: {value}",
+  "@exportFieldUpdated": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldStarts": "Starts: {value}",
+  "@exportFieldStarts": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldStatus": "Status: {value}",
+  "@exportFieldStatus": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldFundingGoal": "Funding goal: INR {value}",
+  "@exportFieldFundingGoal": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldDescription": "Description: {value}",
+  "@exportFieldDescription": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldAmount": "Amount: INR {value}",
+  "@exportFieldAmount": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldPaymentStatus": "Payment status: {value}",
+  "@exportFieldPaymentStatus": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldDate": "Date: {value}",
+  "@exportFieldDate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldMessage": "Message: {value}",
+  "@exportFieldMessage": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldJoined": "Joined: {value}",
+  "@exportFieldJoined": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldCheckedIn": "Checked in: {value}",
+  "@exportFieldCheckedIn": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldCompleted": "Completed: {value}",
+  "@exportFieldCompleted": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldSubmitted": "Submitted: {value}",
+  "@exportFieldSubmitted": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldYourNote": "Your note: {value}",
+  "@exportFieldYourNote": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldConfirmedSummary": "Confirmed summary: {value}",
+  "@exportFieldConfirmedSummary": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldLocationCheck": "Location check: {value}",
+  "@exportFieldLocationCheck": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldPosted": "Posted: {value}",
+  "@exportFieldPosted": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldSimulated": "Simulated: {value}",
+  "@exportFieldSimulated": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldRecorded": "Recorded: {value}",
+  "@exportFieldRecorded": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldWhen": "When: {value}",
+  "@exportFieldWhen": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFieldResult": "Result: {value}",
+  "@exportFieldResult": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportInrAmount": "INR {value}",
+  "@exportInrAmount": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "exportNoBankTransfer": "No bank transfer was made.",
+  "exportEventPaymentStarted": "Payment started",
+  "exportEventPaymentVerified": "Payment verified",
+  "exportEventLocationCheck": "Location check",
+  "exportEventEvidenceSubmitted": "Evidence submitted",
+  "exportEventConsentAccepted": "Privacy choices accepted",
+  "exportEventDeletionRequested": "Account deletion requested",
+  "exportPdfFooter": "FieldNote account report  •  Page {page} of {pages}",
+  "@exportPdfFooter": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      },
+      "pages": {
+        "type": "int"
+      }
+    }
+  },
+  "exportPdfTitle": "My FieldNote data",
+  "exportPdfPrepared": "Prepared {time}",
+  "@exportPdfPrepared": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "exportPdfPhotosNotice": "Private photographs are not embedded in this report."
+}

@@ -2,6 +2,7 @@ import 'package:fieldnotes_client/fieldnotes_client.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/widgets.dart';
 import '../shell/fieldnote_view_model.dart';
@@ -35,8 +36,9 @@ class _PaymentHistoryViewState extends State<PaymentHistoryView> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
-      appBar: AppBar(title: const Text('Payment history')),
+      appBar: AppBar(title: Text(l10n.sponsorPaymentHistoryTitle)),
       body: ListenableBuilder(
         listenable: widget.viewModel,
         builder: (context, _) {
@@ -49,9 +51,7 @@ class _PaymentHistoryViewState extends State<PaymentHistoryView> {
               maxWidth: 760,
               children: [
                 Text(
-                  'Razorpay Test Mode. Payments are credited only after the '
-                  'server verifies them; anything that could not be credited '
-                  'is refunded automatically.',
+                  l10n.sponsorPaymentHistoryIntro,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: 14),
@@ -73,16 +73,16 @@ class _PaymentHistoryViewState extends State<PaymentHistoryView> {
                             _load();
                           },
                           icon: const Icon(Icons.refresh),
-                          label: const Text('Try again'),
+                          label: Text(l10n.commonTryAgain),
                         ),
                       ],
                     ),
                   )
                 else if (entries.isEmpty)
-                  const EmptyPanel(
+                  EmptyPanel(
                     icon: Icons.receipt_long_outlined,
-                    title: 'No payments yet',
-                    message: 'Sponsor a campaign and it will be listed here.',
+                    title: l10n.sponsorPaymentHistoryEmptyTitle,
+                    message: l10n.sponsorPaymentHistoryEmptyMessage,
                   )
                 else
                   for (final entry in entries) ...[
@@ -107,10 +107,20 @@ class PaymentHistoryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final sponsorship = entry.sponsorship;
     final refund = entry.refund;
-    final style = paymentStatusStyle(sponsorship.paymentStatus, refund: refund);
-    final date = DateFormat(
-      'd MMM yyyy · h:mm a',
-    ).format((sponsorship.verifiedAt ?? sponsorship.createdAt).toLocal());
+    final l10n = context.l10n;
+    final localeTag = context.localeTag;
+    String money(int paise) => formatPaise(paise, localeTag: localeTag);
+    final style = paymentStatusStyle(
+      sponsorship.paymentStatus,
+      refund: refund,
+      l10n: l10n,
+    );
+    final date =
+        DateFormat.yMMMd(
+          localeTag,
+        ).add_jm().format(
+          (sponsorship.verifiedAt ?? sponsorship.createdAt).toLocal(),
+        );
     final failure = sponsorship.failureReason?.trim();
     return SurfaceCard(
       padding: const EdgeInsets.all(16),
@@ -130,7 +140,7 @@ class PaymentHistoryTile extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Text(
-                formatRupees(sponsorship.amount),
+                money(sponsorshipPaise(sponsorship)),
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ],
@@ -149,8 +159,8 @@ class PaymentHistoryTile extends StatelessWidget {
               ),
               if (refund != null)
                 StatusPill(
-                  label: refundReasonLabel(refund.reason),
-                  color: FieldnoteColors.moss,
+                  label: refundReasonLabel(refund.reason, l10n: l10n),
+                  color: context.fieldnoteColors.moss,
                   icon: Icons.info_outline,
                 ),
             ],
@@ -159,36 +169,36 @@ class PaymentHistoryTile extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               switch (refund.status) {
-                'processed' =>
-                  '${formatRupees(refund.amount)} refunded'
-                      '${refund.processedAt == null ? '' : ' on ${DateFormat('d MMM yyyy').format(refund.processedAt!.toLocal())}'}.',
-                'failed' =>
-                  'The refund of ${formatRupees(refund.amount)} failed. '
-                      'FieldNote will contact you to resolve it.',
-                _ =>
-                  'A refund of ${formatRupees(refund.amount)} is on its way '
-                      'to the original payment method.',
+                'processed' when refund.processedAt != null =>
+                  l10n.sponsorPaymentRefundedOn(
+                    money(refundPaise(refund)),
+                    DateFormat.yMMMd(
+                      localeTag,
+                    ).format(refund.processedAt!.toLocal()),
+                  ),
+                'processed' => l10n.sponsorPaymentRefunded(
+                  money(refundPaise(refund)),
+                ),
+                'failed' => l10n.sponsorPaymentRefundFailedDetail(
+                  money(refundPaise(refund)),
+                ),
+                _ => l10n.sponsorPaymentRefundOnItsWay(
+                  money(refundPaise(refund)),
+                ),
               },
             ),
           ] else if (sponsorship.paymentStatus == 'verified_uncredited') ...[
             const SizedBox(height: 8),
-            const Text(
-              'The payment was verified but could not be credited (for '
-              'example the campaign closed or was already fully funded). It '
-              'will be refunded automatically.',
-            ),
+            Text(l10n.sponsorPaymentUncreditedDetail),
           ] else if (failure != null && failure.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
               failure,
-              style: const TextStyle(color: FieldnoteColors.danger),
+              style: TextStyle(color: context.fieldnoteColors.danger),
             ),
           ] else if (sponsorship.paymentStatus == 'created') ...[
             const SizedBox(height: 8),
-            const Text(
-              'Waiting for Razorpay to confirm this payment. It updates '
-              'automatically.',
-            ),
+            Text(l10n.sponsorPaymentAwaitingConfirmation),
           ],
         ],
       ),

@@ -129,8 +129,8 @@ class CampaignLifecycleService {
         );
       } else {
         campaign.readinessState = const CampaignReadinessPolicy().evaluate(
-          fundingGoal: campaign.fundingGoal,
-          sponsoredAmount: campaign.sponsoredAmount,
+          fundingGoalPaise: campaign.fundingGoalPaise,
+          sponsoredPaise: campaign.sponsoredAmountPaise,
           minimumVolunteers: campaign.minimumVolunteers,
           joinedVolunteers: joinedCount,
         );

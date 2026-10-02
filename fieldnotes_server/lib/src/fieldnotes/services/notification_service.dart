@@ -9,6 +9,7 @@ import 'package:serverpod_auth_idp_server/providers/email.dart' as email_idp;
 
 import '../../generated/protocol.dart';
 import 'fieldnote_time.dart';
+import 'money.dart';
 
 /// Sends one transactional email. Tests install a fake via
 /// [NotificationRuntime.mailerResolver].
@@ -179,8 +180,7 @@ class NotificationService {
             if (terminal) ParticipationStatus.cancelled,
           }),
     );
-    final when = _when(campaign.startsAt);
-    final (subject, text) = switch (kind) {
+    (String, String) message(String when) => switch (kind) {
       NotificationKind.campaignCancelled => (
         'Cancelled: ${campaign.name}. Do not travel',
         'The organizer cancelled "${campaign.name}" ($when at ${campaign.locationName}).\n\n'
@@ -212,8 +212,15 @@ class NotificationService {
       NotificationKind.campaignExpired => 'campaign:${campaign.id}:$kind',
       _ => 'campaign:${campaign.id}:rev${campaign.revision}:$kind',
     };
+    final zones = await _volunteerZones(
+      session,
+      participations.map((p) => p.volunteerAuthUserId),
+    );
     var queued = 0;
     for (final participation in participations) {
+      final (subject, text) = message(
+        _when(campaign.startsAt, zones[participation.volunteerAuthUserId]),
+      );
       if (await enqueue(
         session,
         recipient: participation.volunteerAuthUserId,
@@ -233,6 +240,7 @@ class NotificationService {
     Campaign campaign,
     Iterable<UuidValue> volunteers,
   ) async {
+    final zones = await _volunteerZones(session, volunteers);
     var queued = 0;
     for (final volunteer in volunteers) {
       if (await enqueue(
@@ -243,7 +251,7 @@ class NotificationService {
         subject: 'You are invited: ${campaign.name}',
         text:
             'The organizer of "${campaign.name}" invited you to help on '
-            '${_when(campaign.startsAt)} at ${campaign.locationName}.\n\n'
+            '${_when(campaign.startsAt, zones[volunteer])} at ${campaign.locationName}.\n\n'
             'Open FieldNote to see the details and decide whether to join.',
       )) {
         queued++;
@@ -264,7 +272,7 @@ class NotificationService {
       dedupeKey: 'payment:${sponsorship.id}:verified',
       subject: 'Payment received for ${campaign?.name ?? 'your campaign'}',
       text:
-          'Your sponsorship of ₹${sponsorship.amount.toStringAsFixed(2)} for '
+          'Your sponsorship of ${Money.format(sponsorship.amountPaise)} for '
           '"${campaign?.name ?? 'a FieldNote campaign'}" was verified.\n\n'
           'Razorpay payment: ${sponsorship.providerPaymentId ?? '-'}',
     );
@@ -283,7 +291,7 @@ class NotificationService {
       dedupeKey: 'refund:${refund.id}:processed',
       subject: 'Refund processed',
       text:
-          'A refund of ₹${refund.amount.toStringAsFixed(2)} for '
+          'A refund of ${Money.format(refund.amountPaise)} for '
           '"${campaign?.name ?? 'a FieldNote campaign'}" was processed'
           '${refund.testMode ? ' in Razorpay Test Mode (no real money moved)' : ''}.\n\n'
           'Banks usually show refunds within 5–7 working days.',
@@ -476,16 +484,27 @@ class NotificationService {
     return profile?.email;
   }
 
-  static String _when(DateTime startsAt) {
-    // FieldNote launches in India; email times are shown in IST.
-    final ist = FieldnoteTime.wallClock(
-      startsAt,
-      FieldnoteTime.defaultUtcOffsetMinutes,
+  /// Each volunteer's saved zone and offset, for email times.
+  static Future<Map<UuidValue, VolunteerAvailability>> _volunteerZones(
+    Session session,
+    Iterable<UuidValue> volunteers,
+  ) async {
+    final ids = volunteers.toSet();
+    if (ids.isEmpty) return const {};
+    final rows = await VolunteerAvailability.db.find(
+      session,
+      where: (t) => t.volunteerAuthUserId.inSet(ids),
     );
-    String two(int v) => v.toString().padLeft(2, '0');
-    return '${ist.year}-${two(ist.month)}-${two(ist.day)} '
-        '${two(ist.hour)}:${two(ist.minute)} IST';
+    return {for (final row in rows) row.volunteerAuthUserId: row};
   }
+
+  /// The start time in the recipient's own zone when known, else IST.
+  static String _when(DateTime startsAt, [VolunteerAvailability? zone]) =>
+      FieldnoteTime.describe(
+        startsAt,
+        zone: zone?.timezone,
+        utcOffsetMinutes: zone?.utcOffsetMinutes,
+      );
 
   static String _html(String subject, String text) {
     const escape = HtmlEscape();

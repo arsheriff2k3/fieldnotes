@@ -2,6 +2,7 @@ import 'package:fieldnotes_client/fieldnotes_client.dart';
 import 'package:flutter/material.dart';
 
 import '../../../data/repositories/fieldnote_repository.dart';
+import '../../../l10n/l10n.dart';
 import '../../core/error_messages.dart';
 import '../../core/fieldnote_map.dart';
 import '../../core/fieldnote_theme.dart';
@@ -56,7 +57,7 @@ class _CampaignVolunteerReachViewState
         setState(
           () => _error = userMessageFor(
             error,
-            fallback: 'Could not load nearby volunteers.',
+            fallback: context.l10n.sponsorReachLoadFailed,
           ),
         );
       }
@@ -86,20 +87,18 @@ class _CampaignVolunteerReachViewState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Invite this area?'),
+        title: Text(context.l10n.sponsorReachInviteTitle),
         content: Text(
-          'Send an in-app invitation to ${widget.campaign.name} to the '
-          '${count > 0 ? '$count ' : ''}available volunteers in this area? '
-          'Their identities stay private until they choose to join.',
+          context.l10n.sponsorReachInviteBody(count, widget.campaign.name),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.sponsorReachCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Invite area'),
+            child: Text(context.l10n.sponsorReachInviteArea),
           ),
         ],
       ),
@@ -117,8 +116,8 @@ class _CampaignVolunteerReachViewState
         SnackBar(
           content: Text(
             sent == 0
-                ? 'Everyone in this area has already been invited.'
-                : 'Invited $sent volunteer${sent == 1 ? '' : 's'} in this area.',
+                ? context.l10n.sponsorReachAllAlreadyInvited
+                : context.l10n.sponsorReachInvitedCount(sent),
           ),
         ),
       );
@@ -128,7 +127,10 @@ class _CampaignVolunteerReachViewState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            userMessageFor(error, fallback: 'Could not send the invitations.'),
+            userMessageFor(
+              error,
+              fallback: context.l10n.sponsorReachInviteFailed,
+            ),
           ),
         ),
       );
@@ -150,11 +152,11 @@ class _CampaignVolunteerReachViewState
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Joined in this area',
+                context.l10n.sponsorReachJoinedInArea,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 6),
-              const Text('Pins show approximate areas, not live locations.'),
+              Text(context.l10n.sponsorReachApproximateNote),
               const SizedBox(height: 12),
               Flexible(
                 child: ListView.separated(
@@ -198,8 +200,12 @@ class _CampaignVolunteerReachViewState
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: _statusColor('joined').withValues(alpha: .16),
-            foregroundColor: _statusColor('joined'),
+            backgroundColor: context.fieldnoteColors
+                .adapt(_statusColor('joined'))
+                .withValues(alpha: .16),
+            foregroundColor: context.fieldnoteColors.adapt(
+              _statusColor('joined'),
+            ),
             child: Text(
               person.displayName.isEmpty
                   ? '?'
@@ -227,7 +233,7 @@ class _CampaignVolunteerReachViewState
           ),
           const SizedBox(width: 8),
           StatusPill(
-            label: 'Joined',
+            label: context.l10n.sponsorReachJoined,
             color: _statusColor('joined'),
             icon: Icons.check_circle_outline,
           ),
@@ -249,10 +255,12 @@ class _CampaignVolunteerReachViewState
         child: Row(
           children: [
             CircleAvatar(
-              backgroundColor: _statusColor(
-                bucket.status,
-              ).withValues(alpha: .16),
-              foregroundColor: _statusColor(bucket.status),
+              backgroundColor: context.fieldnoteColors
+                  .adapt(_statusColor(bucket.status))
+                  .withValues(alpha: .16),
+              foregroundColor: context.fieldnoteColors.adapt(
+                _statusColor(bucket.status),
+              ),
               child: const Icon(Icons.groups_outlined),
             ),
             const SizedBox(width: 10),
@@ -261,9 +269,7 @@ class _CampaignVolunteerReachViewState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    count > 0
-                        ? '$count volunteer${count == 1 ? '' : 's'} in this area'
-                        : 'Volunteers in this area',
+                    context.l10n.sponsorReachBucketTitle(count),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleSmall,
@@ -282,11 +288,13 @@ class _CampaignVolunteerReachViewState
                 onPressed: _sending
                     ? null
                     : onInvite ?? () => _inviteArea(bucket),
-                child: const Text('Invite area'),
+                child: Text(context.l10n.sponsorReachInviteArea),
               )
             else
               StatusPill(
-                label: invited ? 'All invited' : 'Closed',
+                label: invited
+                    ? context.l10n.sponsorReachAllInvited
+                    : context.l10n.sponsorReachClosed,
                 color: _statusColor(bucket.status),
                 icon: Icons.mark_email_read_outlined,
               ),
@@ -298,6 +306,7 @@ class _CampaignVolunteerReachViewState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final campaignPoint = LatLng(
       widget.campaign.latitude,
       widget.campaign.longitude,
@@ -314,7 +323,7 @@ class _CampaignVolunteerReachViewState
       (sum, bucket) => sum + _bucketSize(bucket),
     );
     return Scaffold(
-      appBar: AppBar(title: const Text('Nearby volunteers')),
+      appBar: AppBar(title: Text(l10n.sponsorReachTitle)),
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
@@ -328,9 +337,7 @@ class _CampaignVolunteerReachViewState
             ),
             const SizedBox(height: 8),
             Text(
-              'Joined volunteers are named. Everyone else is shown only as an '
-              'area of at least three people, never individually. Pins show '
-              'approximate areas.',
+              l10n.sponsorReachPrivacyNote,
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 12),
@@ -340,7 +347,10 @@ class _CampaignVolunteerReachViewState
               Column(
                 children: [
                   Text(_error!, textAlign: TextAlign.center),
-                  TextButton(onPressed: _load, child: const Text('Try again')),
+                  TextButton(
+                    onPressed: _load,
+                    child: Text(l10n.commonTryAgain),
+                  ),
                 ],
               )
             else ...[
@@ -349,19 +359,18 @@ class _CampaignVolunteerReachViewState
                 runSpacing: 8,
                 children: [
                   StatusPill(
-                    label: '$joined joined',
-                    color: FieldnoteColors.forest,
+                    label: l10n.sponsorReachJoinedCount(joined),
+                    color: context.fieldnoteColors.forest,
                     icon: Icons.check_circle_outline,
                   ),
                   StatusPill(
-                    label: '$inReach in reach',
-                    color: FieldnoteColors.clay,
+                    label: l10n.sponsorReachInReachCount(inReach),
+                    color: context.fieldnoteColors.clay,
                     icon: Icons.person_add_alt_1_outlined,
                   ),
                   StatusPill(
-                    label:
-                        '${buckets.length} area${buckets.length == 1 ? '' : 's'}',
-                    color: FieldnoteColors.moss,
+                    label: l10n.sponsorReachAreaCount(buckets.length),
+                    color: context.fieldnoteColors.moss,
                     icon: Icons.groups_outlined,
                   ),
                 ],
@@ -378,12 +387,10 @@ class _CampaignVolunteerReachViewState
                     if (bucket.latitude != null && bucket.longitude != null)
                       LatLng(bucket.latitude!, bucket.longitude!),
                 ],
-                semanticLabel: 'Campaign and approximate volunteer areas',
-                fallback: const Padding(
-                  padding: EdgeInsets.all(20),
-                  child: Text(
-                    'Map unavailable. Volunteers and invite buttons are listed below.',
-                  ),
+                semanticLabel: l10n.sponsorReachMapSemantics,
+                fallback: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Text(l10n.sponsorReachMapFallback),
                 ),
                 markers: {
                   Marker(
@@ -404,8 +411,8 @@ class _CampaignVolunteerReachViewState
                         _markerHue(area.status),
                       ),
                       infoWindow: InfoWindow(
-                        title: '${area.people.length} joined',
-                        snippet: 'Tap to view volunteers',
+                        title: l10n.sponsorReachJoinedCount(area.people.length),
+                        snippet: l10n.sponsorReachMarkerTapHint,
                       ),
                       onTap: () => _showJoinedArea(area),
                     ),
@@ -423,7 +430,9 @@ class _CampaignVolunteerReachViewState
                           _markerHue(bucket.status),
                         ),
                         infoWindow: InfoWindow(
-                          title: '${_bucketSize(bucket)} volunteers',
+                          title: l10n.sponsorReachMarkerVolunteers(
+                            _bucketSize(bucket),
+                          ),
                           snippet: bucket.areaLabel,
                         ),
                         onTap: () => _showBucket(bucket),
@@ -434,18 +443,33 @@ class _CampaignVolunteerReachViewState
               Wrap(
                 spacing: 12,
                 runSpacing: 6,
-                children: const [
-                  _MapLegend(color: Colors.green, label: 'Campaign'),
-                  _MapLegend(color: Colors.purple, label: 'Joined'),
-                  _MapLegend(color: Colors.blue, label: 'Volunteer area'),
-                  _MapLegend(color: Colors.orange, label: 'Area invited'),
+                children: [
+                  _MapLegend(
+                    color: Colors.green,
+                    label: l10n.sponsorReachLegendCampaign,
+                  ),
+                  _MapLegend(
+                    color: Colors.purple,
+                    label: l10n.sponsorReachJoined,
+                  ),
+                  _MapLegend(
+                    color: Colors.blue,
+                    label: l10n.sponsorReachLegendVolunteerArea,
+                  ),
+                  _MapLegend(
+                    color: Colors.orange,
+                    label: l10n.sponsorReachLegendAreaInvited,
+                  ),
                 ],
               ),
               const SizedBox(height: 22),
-              Text('Joined', style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                l10n.sponsorReachJoined,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
               const SizedBox(height: 8),
               if (joinedPeople.isEmpty)
-                const Text('No volunteers have joined yet.')
+                Text(l10n.sponsorReachNoneJoined)
               else
                 for (final person in joinedPeople) ...[
                   _personTile(person),
@@ -453,17 +477,15 @@ class _CampaignVolunteerReachViewState
                 ],
               const SizedBox(height: 18),
               Text(
-                'Nearby volunteer areas',
+                l10n.sponsorReachNearbyAreas,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 8),
               if (buckets.isEmpty)
                 Text(
                   _invitationsOpen
-                      ? 'No area has enough available volunteers to show yet. '
-                            'Areas appear once at least three volunteers '
-                            'nearby publish availability.'
-                      : 'Invitations are closed for this campaign.',
+                      ? l10n.sponsorReachNoAreas
+                      : l10n.sponsorReachInvitationsClosed,
                 )
               else
                 for (final bucket in buckets) ...[

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../data/repositories/fieldnote_repository.dart';
+import '../../../l10n/l10n.dart';
 import '../../core/fieldnote_map.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/in_app_maps.dart';
@@ -69,7 +70,9 @@ class _CampaignProofMapState extends State<CampaignProofMap> {
     } on FieldnoteException catch (error) {
       if (mounted) setState(() => _error = error.message);
     } on Object {
-      if (mounted) setState(() => _error = 'Could not load the campaign map.');
+      if (mounted) {
+        setState(() => _error = context.l10n.sponsorCampaignMapLoadFailed);
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -77,6 +80,7 @@ class _CampaignProofMapState extends State<CampaignProofMap> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final overview = _overview;
     final campaignPoint = LatLng(
       widget.campaign.latitude,
@@ -93,7 +97,7 @@ class _CampaignProofMapState extends State<CampaignProofMap> {
           children: [
             Expanded(
               child: Text(
-                'Where the work happened',
+                l10n.sponsorCampaignMapTitle,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ),
@@ -109,7 +113,7 @@ class _CampaignProofMapState extends State<CampaignProofMap> {
           target: campaignPoint,
           zoom: zoomForRadius(widget.campaign.geofenceMeters),
           height: 300,
-          semanticLabel: 'Map of volunteer check-ins and evidence locations',
+          semanticLabel: l10n.sponsorCampaignMapSemantics,
           fitBounds: [
             campaignPoint,
             for (final pin in pins) LatLng(pin.latitude, pin.longitude),
@@ -140,13 +144,16 @@ class _CampaignProofMapState extends State<CampaignProofMap> {
                 ),
                 infoWindow: InfoWindow(
                   title: pin.isDemo
-                      ? 'Unverified · ${pin.kind == 'evidence' ? 'evidence' : 'check-in'}'
+                      ? pin.kind == 'evidence'
+                            ? l10n.sponsorCampaignMapPinUnverifiedEvidence
+                            : l10n.sponsorCampaignMapPinUnverifiedCheckIn
                       : pin.kind == 'evidence'
-                      ? 'Evidence'
-                      : 'Check-in',
-                  snippet:
-                      '${pin.distanceMeters.round()} m from the pin · '
-                      '±${pin.accuracyMeters.round()} m',
+                      ? l10n.sponsorCampaignMapPinEvidence
+                      : l10n.sponsorCampaignMapPinCheckIn,
+                  snippet: l10n.sponsorCampaignMapPinSnippet(
+                    pin.distanceMeters.round(),
+                    pin.accuracyMeters.round(),
+                  ),
                 ),
               ),
           },
@@ -169,18 +176,27 @@ class _CampaignProofMapState extends State<CampaignProofMap> {
                 ),
           },
           fallback: MapUnavailableNotice(
-            message:
-                'Map preview is off. ${pins.length} location-verified points '
-                'recorded within ${widget.campaign.geofenceMeters.round()} m '
-                'of the campaign pin.',
+            message: l10n.sponsorCampaignMapFallback(
+              pins.length,
+              widget.campaign.geofenceMeters.round(),
+            ),
           ),
         ),
         const SizedBox(height: 10),
-        const MapLegend(
+        MapLegend(
           entries: [
-            (color: FieldnoteColors.forest, label: 'Campaign pin & geofence'),
-            (color: Color(0xFF8E5BD4), label: 'Evidence submitted'),
-            (color: FieldnoteColors.clay, label: 'Unverified legacy point'),
+            (
+              color: FieldnoteColors.forest,
+              label: l10n.sponsorCampaignMapLegendCampaign,
+            ),
+            (
+              color: const Color(0xFF8E5BD4),
+              label: l10n.sponsorCampaignMapLegendEvidence,
+            ),
+            (
+              color: FieldnoteColors.clay,
+              label: l10n.sponsorCampaignMapLegendUnverified,
+            ),
           ],
         ),
         if (overview != null) ...[
@@ -190,24 +206,30 @@ class _CampaignProofMapState extends State<CampaignProofMap> {
             runSpacing: 8,
             children: [
               StatusPill(
-                label: '${overview.joinedCount} joined',
-                color: FieldnoteColors.moss,
+                label: l10n.sponsorCampaignMapJoinedCount(overview.joinedCount),
+                color: context.fieldnoteColors.moss,
                 icon: Icons.how_to_reg_outlined,
               ),
               StatusPill(
-                label: '${overview.checkedInCount} checked in',
-                color: FieldnoteColors.forest,
+                label: l10n.sponsorCampaignMapCheckedInCount(
+                  overview.checkedInCount,
+                ),
+                color: context.fieldnoteColors.forest,
                 icon: Icons.gps_fixed,
               ),
               StatusPill(
-                label: '${overview.completedCount} completed',
-                color: FieldnoteColors.forest,
+                label: l10n.sponsorCampaignMapCompletedCount(
+                  overview.completedCount,
+                ),
+                color: context.fieldnoteColors.forest,
                 icon: Icons.verified_outlined,
               ),
               if (overview.demoCount > 0)
                 StatusPill(
-                  label: '${overview.demoCount} unverified',
-                  color: FieldnoteColors.clay,
+                  label: l10n.sponsorCampaignMapUnverifiedCount(
+                    overview.demoCount,
+                  ),
+                  color: context.fieldnoteColors.clay,
                   icon: Icons.science_outlined,
                 ),
             ],
@@ -215,8 +237,7 @@ class _CampaignProofMapState extends State<CampaignProofMap> {
           if (overview.demoCount > 0) ...[
             const SizedBox(height: 8),
             Text(
-              'Legacy unverified points are retained for audit history and are '
-              'never counted as verified field locations.',
+              l10n.sponsorCampaignMapLegacyNote,
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
@@ -236,7 +257,7 @@ class _CampaignProofMapState extends State<CampaignProofMap> {
               ),
             ),
             icon: const Icon(Icons.map_outlined, size: 18),
-            label: const Text('View campaign pin'),
+            label: Text(l10n.sponsorCampaignMapViewPin),
           ),
         ),
       ],
@@ -266,6 +287,7 @@ class EvidenceProvenanceSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final evidencePoint = LatLng(evidence.latitude, evidence.longitude);
     final campaignPoint = LatLng(campaign.latitude, campaign.longitude);
     final distance = _distanceMeters(
@@ -282,8 +304,8 @@ class EvidenceProvenanceSheet extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SectionHeading(
-              eyebrow: 'Evidence provenance',
-              title: 'Verified in place',
+              eyebrow: l10n.sponsorCampaignMapProvenanceEyebrow,
+              title: l10n.sponsorCampaignMapProvenanceTitle,
               description: evidence.confirmedSummary,
             ),
             const SizedBox(height: 18),
@@ -292,7 +314,7 @@ class EvidenceProvenanceSheet extends StatelessWidget {
               zoom: zoomForRadius(campaign.geofenceMeters),
               height: 240,
               interactive: false,
-              semanticLabel: 'Map of where this evidence was captured',
+              semanticLabel: l10n.sponsorCampaignMapProvenanceSemantics,
               fitBounds: [evidencePoint, campaignPoint],
               markers: {
                 Marker(
@@ -330,20 +352,22 @@ class EvidenceProvenanceSheet extends StatelessWidget {
                 ),
               },
               fallback: MapUnavailableNotice(
-                message:
-                    'Map preview is off. Captured ${distance.round()} m from '
-                    'the campaign pin with ±'
-                    '${evidence.locationAccuracyMeters.round()} m accuracy.',
+                message: l10n.sponsorCampaignMapProvenanceFallback(
+                  distance.round(),
+                  evidence.locationAccuracyMeters.round(),
+                ),
               ),
             ),
             const SizedBox(height: 16),
             StatusPill(
               label: evidence.locationIsDemo
-                  ? 'Legacy location · not verified'
-                  : 'Location integrity ${evidence.locationIntegrityStatus}',
+                  ? l10n.sponsorCampaignMapLegacyLocation
+                  : l10n.sponsorCampaignMapLocationIntegrity(
+                      evidence.locationIntegrityStatus,
+                    ),
               color: evidence.locationIsDemo
-                  ? FieldnoteColors.clay
-                  : FieldnoteColors.forest,
+                  ? context.fieldnoteColors.clay
+                  : context.fieldnoteColors.forest,
               icon: evidence.locationIsDemo
                   ? Icons.science_outlined
                   : Icons.gps_fixed,
@@ -352,25 +376,28 @@ class EvidenceProvenanceSheet extends StatelessWidget {
             _fact(
               context,
               Icons.straighten,
-              '${distance.round()} m from the campaign pin '
-              '(geofence ${campaign.geofenceMeters.round()} m)',
+              l10n.sponsorCampaignMapDistanceFact(
+                distance.round(),
+                campaign.geofenceMeters.round(),
+              ),
             ),
             _fact(
               context,
               Icons.gps_fixed,
-              'Captured with ±${evidence.locationAccuracyMeters.round()} m '
-              'GPS accuracy',
+              l10n.sponsorCampaignMapAccuracyFact(
+                evidence.locationAccuracyMeters.round(),
+              ),
             ),
             _fact(
               context,
               Icons.schedule,
-              DateFormat(
-                'EEE, d MMM · h:mm a',
-              ).format(evidence.submittedAt.toLocal()),
+              DateFormat.MMMEd(
+                context.localeTag,
+              ).add_jm().format(evidence.submittedAt.toLocal()),
             ),
             const SizedBox(height: 12),
             Text(
-              'Server checks',
+              l10n.sponsorCampaignMapServerChecks,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 6),
@@ -384,10 +411,10 @@ class EvidenceProvenanceSheet extends StatelessWidget {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.check_circle_outline,
                           size: 17,
-                          color: FieldnoteColors.moss,
+                          color: context.fieldnoteColors.moss,
                         ),
                         const SizedBox(width: 8),
                         Expanded(child: Text(reason)),
@@ -400,14 +427,14 @@ class EvidenceProvenanceSheet extends StatelessWidget {
               onPressed: () => Navigator.of(context).push<void>(
                 MaterialPageRoute(
                   builder: (_) => PlaceMapScreen(
-                    title: 'Evidence location',
+                    title: l10n.sponsorCampaignMapEvidenceLocation,
                     latitude: evidence.latitude,
                     longitude: evidence.longitude,
                   ),
                 ),
               ),
               icon: const Icon(Icons.map_outlined),
-              label: const Text('View evidence point'),
+              label: Text(l10n.sponsorCampaignMapViewEvidence),
             ),
             if (reviewPanel != null) ...[
               const Divider(height: 32),
@@ -424,7 +451,7 @@ class EvidenceProvenanceSheet extends StatelessWidget {
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: FieldnoteColors.moss),
+        Icon(icon, size: 18, color: context.fieldnoteColors.moss),
         const SizedBox(width: 8),
         Expanded(child: Text(text)),
       ],

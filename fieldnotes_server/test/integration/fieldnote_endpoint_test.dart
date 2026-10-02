@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:fieldnotes_server/src/fieldnotes/services/money.dart';
 import 'package:fieldnotes_server/src/fieldnotes/services/payment_credit_service.dart';
 import 'package:fieldnotes_server/src/generated/protocol.dart';
 import 'package:test/test.dart';
@@ -517,7 +518,7 @@ void main() {
         stored.startsAt = DateTime.now().toUtc().add(
           const Duration(minutes: 30),
         );
-        stored.sponsoredAmount = stored.fundingGoal;
+        stored.setSponsoredPaise(stored.fundingGoalPaise);
         await Campaign.db.updateRow(session, stored);
         final sponsorship = await Sponsorship.db.insertRow(
           session,
@@ -525,6 +526,7 @@ void main() {
             campaignId: campaign.id!,
             sponsorAuthUserId: stored.createdBy,
             amount: stored.fundingGoal,
+            amountPaise: stored.fundingGoalPaise,
             paymentStatus: 'verified',
             providerOrderId: 'order_readiness',
             providerPaymentId: 'pay_readiness',
@@ -748,6 +750,7 @@ void main() {
           campaignId: campaign.id!,
           sponsorAuthUserId: otherId,
           amount: 100,
+          amountPaise: 10000,
           paymentStatus: 'verified',
           providerOrderId: 'order_test_sponsor_access',
         ),
@@ -791,6 +794,7 @@ void main() {
           campaignId: campaign.id!,
           sponsorAuthUserId: sponsorId,
           amount: 20000,
+          amountPaise: 2000000,
           paymentStatus: 'created',
           providerOrderId: 'order_test_first',
         ),
@@ -801,6 +805,7 @@ void main() {
           campaignId: campaign.id!,
           sponsorAuthUserId: sponsorId,
           amount: 20000,
+          amountPaise: 2000000,
           paymentStatus: 'created',
           providerOrderId: 'order_test_second',
         ),
@@ -833,6 +838,7 @@ void main() {
       final updatedCampaign = await Campaign.db.findById(session, campaign.id!);
       final updatedSecond = await Sponsorship.db.findById(session, second.id!);
       expect(updatedCampaign!.sponsoredAmount, 20000);
+      expect(updatedCampaign.sponsoredAmountPaise, 2000000);
       expect(updatedSecond!.paymentStatus, 'verified_uncredited');
       expect(firstCredit.uncredited, isFalse);
       expect(repeatedCredit.alreadyVerified, isTrue);
