@@ -390,12 +390,14 @@ class _OnboardingViewState extends State<OnboardingView> {
                 Row(
                   children: [
                     Icon(Icons.eco, color: context.fieldnoteColors.forest),
-                    const SizedBox(width: 8),
-                    Text(
-                      l10n.onboardingBrandHeader,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1,
+                    const SizedBox(width: FieldnoteSpacing.xs),
+                    Expanded(
+                      child: Text(
+                        l10n.onboardingBrandHeader,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1,
+                        ),
                       ),
                     ),
                   ],
@@ -413,7 +415,7 @@ class _OnboardingViewState extends State<OnboardingView> {
                       ? l10n.onboardingSponsorDescription
                       : l10n.onboardingVolunteerDescription,
                 ),
-                const SizedBox(height: 22),
+                const SizedBox(height: FieldnoteSpacing.lg),
                 if (_role == null) _rolePicker(),
                 if (_role != null)
                   SurfaceCard(
@@ -427,18 +429,18 @@ class _OnboardingViewState extends State<OnboardingView> {
                             prefixIcon: const Icon(Icons.person_outline),
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: FieldnoteSpacing.sm),
                         if (_role == AccountRole.sponsor) ...[
                           _sponsorCityField(),
-                          const SizedBox(height: 18),
+                          const SizedBox(height: FieldnoteSpacing.md),
                         ],
                         if (_role == AccountRole.sponsor)
                           _sponsorFields()
                         else
                           _volunteerFields(),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: FieldnoteSpacing.lg),
                         _consentFields(),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: FieldnoteSpacing.lg),
                         SizedBox(
                           width: double.infinity,
                           child: FilledButton.icon(
@@ -531,14 +533,14 @@ class _OnboardingViewState extends State<OnboardingView> {
                 : Icon(Icons.check_circle, color: c.moss),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: FieldnoteSpacing.xs),
         OutlinedButton.icon(
           onPressed: _openLocationMap,
           icon: const Icon(Icons.map_outlined),
           label: Text(l10n.onboardingChooseOnMap),
         ),
         if (_citySuggestions.isNotEmpty) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: FieldnoteSpacing.xs),
           Container(
             decoration: BoxDecoration(
               color: c.raised,
@@ -563,7 +565,7 @@ class _OnboardingViewState extends State<OnboardingView> {
             ),
           ),
         ],
-        const SizedBox(height: 6),
+        const SizedBox(height: FieldnoteSpacing.xs),
         Text(
           _citySearchAvailable
               ? l10n.onboardingPlacesHint
@@ -587,6 +589,7 @@ class _OnboardingViewState extends State<OnboardingView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         DropdownButtonFormField<String>(
+          isExpanded: true,
           initialValue: _sponsorType,
           decoration: InputDecoration(labelText: l10n.onboardingSponsorType),
           items: sponsorTypes.entries
@@ -600,14 +603,14 @@ class _OnboardingViewState extends State<OnboardingView> {
           onChanged: (value) =>
               setState(() => _sponsorType = value ?? 'Individual'),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: FieldnoteSpacing.sm),
         FieldnoteTextField(
           controller: _organization,
           decoration: InputDecoration(
             labelText: l10n.onboardingOrganization,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: FieldnoteSpacing.sm),
         FieldnoteTextField(
           controller: _contactPhone,
           keyboardType: TextInputType.phone,
@@ -618,7 +621,7 @@ class _OnboardingViewState extends State<OnboardingView> {
             helperText: l10n.onboardingContactPhoneHelper,
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: FieldnoteSpacing.md),
         _choiceChips(
           title: l10n.onboardingPreferredCauses,
           values: const ['environment', 'tree care', 'cleanup', 'community'],
@@ -653,12 +656,12 @@ class _OnboardingViewState extends State<OnboardingView> {
           title: Text(l10n.onboardingAvailableToday),
           onChanged: (value) => setState(() => _availableToday = value),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: FieldnoteSpacing.xs),
         Text(
           l10n.onboardingAvailableDays,
           style: Theme.of(context).textTheme.labelLarge,
         ),
-        const SizedBox(height: 7),
+        const SizedBox(height: FieldnoteSpacing.xs),
         Wrap(
           spacing: 7,
           children: days.entries
@@ -684,9 +687,9 @@ class _OnboardingViewState extends State<OnboardingView> {
           divisions: 24,
           onChanged: (value) => setState(() => _radius = value),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: FieldnoteSpacing.xs),
         Text(l10n.onboardingTravelAreaHint),
-        const SizedBox(height: 10),
+        const SizedBox(height: FieldnoteSpacing.sm),
         OutlinedButton.icon(
           onPressed: _locating ? null : _locate,
           icon: _locating
@@ -707,14 +710,14 @@ class _OnboardingViewState extends State<OnboardingView> {
                 : l10n.onboardingUseGps,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: FieldnoteSpacing.xs),
         OutlinedButton.icon(
           onPressed: _openTravelMap,
           icon: const Icon(Icons.map_outlined),
           label: Text(l10n.onboardingChooseTravelAreaOnMap),
         ),
         if (_locationError != null) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: FieldnoteSpacing.xs),
           Text(_locationError!.message),
           if (_locationError!.issue == LocationAccessIssue.serviceDisabled)
             TextButton.icon(
@@ -730,25 +733,25 @@ class _OnboardingViewState extends State<OnboardingView> {
               label: Text(l10n.locationOpenPermissions),
             ),
         ],
-        const SizedBox(height: 10),
+        const SizedBox(height: FieldnoteSpacing.sm),
         // Drawn to scale, so the radius is an informed choice rather than a
         // number picked in the abstract.
         _areaMap(),
         if (_deviceLocation != null) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: FieldnoteSpacing.xs),
           Text(
             _resolvingArea
                 ? l10n.onboardingFindingAreaName
                 : l10n.onboardingSelectedArea(_city.text),
           ),
         ],
-        const SizedBox(height: 18),
+        const SizedBox(height: FieldnoteSpacing.md),
         _choiceChips(
           title: l10n.onboardingInterests,
           values: const ['environment', 'tree care', 'cleanup', 'community'],
           selected: _interests,
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: FieldnoteSpacing.md),
         _choiceChips(
           title: l10n.onboardingSkills,
           values: const ['outdoors', 'gardening', 'organizing', 'photography'],
@@ -813,7 +816,7 @@ class _OnboardingViewState extends State<OnboardingView> {
             l10n.onboardingPrivacyChoices,
             style: Theme.of(context).textTheme.titleMedium,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: FieldnoteSpacing.xs),
           Text(l10n.onboardingPrivacyChoicesBody),
           ConsentChecklist(
             values: _consents,
@@ -849,7 +852,7 @@ class _OnboardingViewState extends State<OnboardingView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(title, style: Theme.of(context).textTheme.labelLarge),
-        const SizedBox(height: 7),
+        const SizedBox(height: FieldnoteSpacing.xs),
         Wrap(
           spacing: 7,
           children: values

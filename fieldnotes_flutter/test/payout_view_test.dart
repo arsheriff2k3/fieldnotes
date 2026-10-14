@@ -46,6 +46,19 @@ class _PayoutRepository extends FieldnoteRepository {
 
   @override
   Future<bool> isPayoutSimulationAvailable() async => simulationAvailable;
+
+  @override
+  Future<ManualPayoutSummary> manualPayoutSummary(int campaignId) async =>
+      ManualPayoutSummary(
+        campaignId: campaignId,
+        liveMode: !simulationAvailable,
+        completed: true,
+        eligiblePaise: 0,
+        availablePaise: 0,
+        reservedPaise: 0,
+        paidPaise: 0,
+        requests: [],
+      );
 }
 
 Future<FieldnoteViewModel> _pump(WidgetTester tester, bool available) async {

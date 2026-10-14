@@ -14,8 +14,22 @@ It has exactly two account roles:
 A Trust area shows versioned consent, an audit trail of payment, location and
 moderation events, a data export and a deletion request.
 
+Sponsors can open **Campaign impact report** from a campaign in Impact and
+save or share a PDF. Reports separate submitted, sponsor-approved, pending,
+changes-requested and rejected evidence, show net funding and processed refunds,
+and identify Test Mode payments and demo GPS. Only approved summaries are
+exported; private photos, original notes and exact coordinates are omitted.
+PDF labels are English. Refresh or export retrieves the latest review state.
+
 The current state of production readiness is tracked in
 [`docs/PRODUCTION_GAPS.md`](docs/PRODUCTION_GAPS.md).
+
+Both roles have a private notification inbox and unread bell. Android device
+alerts use Firebase Cloud Messaging, triggered by Serverpod through its outbox
+worker. The app registers tokens and fetches notification details through
+Serverpod; email preferences remain independent. See
+[`docs/IN_APP_NOTIFICATIONS_PLAN.md`](docs/IN_APP_NOTIFICATIONS_PLAN.md)
+for Android configuration, event coverage and expected timing.
 
 ## Architecture
 
@@ -31,7 +45,7 @@ docs/                 Plans, gap audit, secrets guide, deployment guide
   `.spy.yaml` data models in `models/`, the RPC boundary in `fieldnote_endpoint.dart`,
   and integrations in `services/`:
   - Gemini and Groq AI, behind `ai_provider_router.dart`
-  - Razorpay payments
+  - Razorpay payments and creator manual payout requests
   - Google Maps Places, Geocoding and Routes
   - location integrity checks
   - content moderation

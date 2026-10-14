@@ -16,7 +16,9 @@ import '../../core/fieldnote_theme.dart';
 import '../../core/location_picker.dart';
 import '../../core/widgets.dart';
 import '../shell/fieldnote_view_model.dart';
+import '../discussion/campaign_discussion_view.dart';
 import 'campaign_map_view.dart';
+import 'campaign_impact_report_view.dart';
 import 'campaign_pin_picker.dart';
 import 'payout_view.dart';
 import 'campaign_readiness_view.dart';
@@ -66,7 +68,7 @@ class SponsorDiscoverView extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: FieldnoteSpacing.xxs),
           Expanded(
             child: TabBarView(
               children: [
@@ -93,7 +95,7 @@ class SponsorDiscoverView extends StatelessWidget {
             color: context.fieldnoteColors.ink.withValues(alpha: .72),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: FieldnoteSpacing.sm),
         if (viewModel.campaigns.isEmpty)
           EmptyPanel(
             icon: Icons.explore_outlined,
@@ -143,21 +145,21 @@ class SponsorDiscoverView extends StatelessWidget {
             color: context.fieldnoteColors.ink.withValues(alpha: .72),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: FieldnoteSpacing.sm),
         if (viewModel.createdCampaigns.isEmpty)
           SurfaceCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Icon(Icons.campaign_outlined, size: 36),
-                const SizedBox(height: 14),
+                const SizedBox(height: FieldnoteSpacing.md),
                 Text(
                   context.l10n.sponsorDiscoverNoCreatedTitle,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: FieldnoteSpacing.xs),
                 Text(context.l10n.sponsorDiscoverNoCreatedMessage),
-                const SizedBox(height: 16),
+                const SizedBox(height: FieldnoteSpacing.md),
                 FilledButton.icon(
                   onPressed: () => viewModel.selectSection(1),
                   icon: const Icon(Icons.add),
@@ -181,7 +183,7 @@ class SponsorDiscoverView extends StatelessWidget {
               ),
               onShare: () => shareCampaign(context, campaign),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: FieldnoteSpacing.sm),
           ],
       ],
     ),
@@ -199,14 +201,14 @@ class SponsorDiscoverView extends StatelessWidget {
               size: 38,
               color: Theme.of(context).colorScheme.primary,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: FieldnoteSpacing.sm),
             Text(
               context.l10n.sponsorDiscoverStartTitle,
               style: Theme.of(context).textTheme.headlineSmall,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: FieldnoteSpacing.xs),
             Text(context.l10n.sponsorDiscoverStartBody),
-            const SizedBox(height: 16),
+            const SizedBox(height: FieldnoteSpacing.md),
             FilledButton.icon(
               onPressed: () => viewModel.selectSection(1),
               icon: const Icon(Icons.add_circle_outline),
@@ -349,7 +351,7 @@ class _OwnedCampaignCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: FieldnoteSpacing.sm),
                 Text(
                   campaign.name,
                   maxLines: 2,
@@ -360,7 +362,7 @@ class _OwnedCampaignCard extends StatelessWidget {
                     height: 1.2,
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: FieldnoteSpacing.sm),
                 _infoLine(
                   context,
                   Icons.event_outlined,
@@ -368,9 +370,9 @@ class _OwnedCampaignCard extends StatelessWidget {
                     localeTag,
                   ).add_jm().format(campaign.startsAt.toLocal()),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: FieldnoteSpacing.xs),
                 _infoLine(context, Icons.place_outlined, campaign.locationName),
-                const SizedBox(height: 14),
+                const SizedBox(height: FieldnoteSpacing.md),
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -382,7 +384,7 @@ class _OwnedCampaignCard extends StatelessWidget {
                       Row(
                         children: [
                           const Icon(Icons.groups_outlined, size: 18),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: FieldnoteSpacing.xs),
                           Expanded(
                             child: Text(
                               impact == null
@@ -412,7 +414,7 @@ class _OwnedCampaignCard extends StatelessWidget {
                         ],
                       ),
                       if (refunded > 0) ...[
-                        const SizedBox(height: 6),
+                        const SizedBox(height: FieldnoteSpacing.xs),
                         Align(
                           alignment: AlignmentDirectional.centerEnd,
                           child: Text(
@@ -426,7 +428,7 @@ class _OwnedCampaignCard extends StatelessWidget {
                           ),
                         ),
                       ],
-                      const SizedBox(height: 10),
+                      const SizedBox(height: FieldnoteSpacing.sm),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(4),
                         child: LinearProgressIndicator(
@@ -439,7 +441,7 @@ class _OwnedCampaignCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: FieldnoteSpacing.sm),
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final mapButton = FilledButton.icon(
@@ -457,7 +459,7 @@ class _OwnedCampaignCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           mapButton,
-                          const SizedBox(height: 8),
+                          const SizedBox(height: FieldnoteSpacing.xs),
                           shareButton,
                         ],
                       );
@@ -465,7 +467,7 @@ class _OwnedCampaignCard extends StatelessWidget {
                     return Row(
                       children: [
                         Expanded(child: mapButton),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: FieldnoteSpacing.sm),
                         shareButton,
                       ],
                     );
@@ -483,7 +485,7 @@ class _OwnedCampaignCard extends StatelessWidget {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Icon(icon, size: 18, color: context.fieldnoteColors.moss),
-      const SizedBox(width: 9),
+      const SizedBox(width: FieldnoteSpacing.xs),
       Expanded(
         child: Text(
           text,
@@ -850,7 +852,7 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
     final canOpenSettings = opensLocationSettings || opensAppSettings;
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => fieldnoteDialog(
         title: Text(
           opensLocationSettings
               ? dialogContext.l10n.sponsorLocationTurnOnTitle
@@ -960,7 +962,7 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
           title: context.l10n.sponsorCreateTitle,
           description: context.l10n.sponsorCreateDescription,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: FieldnoteSpacing.md),
         LayoutBuilder(
           builder: (context, constraints) {
             final wide = constraints.maxWidth >= 900;
@@ -976,14 +978,14 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
                       color: c.onFill,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: FieldnoteSpacing.xs),
                   Text(
                     context.l10n.sponsorCreatePromptHelp,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: c.onFill.withValues(alpha: .7),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: FieldnoteSpacing.md),
                   FieldnoteTextField(
                     controller: _prompt,
                     focusNode: _promptFocus,
@@ -1016,7 +1018,7 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
                     ),
                   ),
                   if (_prompt.text.isEmpty && !_recording) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: FieldnoteSpacing.xs),
                     Align(
                       alignment: Alignment.centerLeft,
                       child: TextButton(
@@ -1037,7 +1039,7 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
                       ),
                     ),
                   ],
-                  const SizedBox(height: 12),
+                  const SizedBox(height: FieldnoteSpacing.sm),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
@@ -1068,7 +1070,7 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: FieldnoteSpacing.xs),
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
@@ -1086,7 +1088,7 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
                       label: Text(context.l10n.sponsorCreateManualButton),
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: FieldnoteSpacing.xs),
                   Text(
                     context.l10n.sponsorCreateManualNote,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -1105,7 +1107,7 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
                           color: context.fieldnoteColors.moss,
                           size: 26,
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: FieldnoteSpacing.sm),
                         Expanded(
                           child: Text(
                             context.l10n.sponsorCreateProposalPlaceholder,
@@ -1148,7 +1150,11 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
               );
             }
             return Column(
-              children: [prompt, const SizedBox(height: 16), result],
+              children: [
+                prompt,
+                const SizedBox(height: FieldnoteSpacing.md),
+                result,
+              ],
             );
           },
         ),
@@ -1205,14 +1211,14 @@ class _ProposalCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: FieldnoteSpacing.md),
           Text(
             proposal.title,
             style: Theme.of(context).textTheme.headlineMedium,
           ),
-          const SizedBox(height: 7),
+          const SizedBox(height: FieldnoteSpacing.xs),
           Text(proposal.description),
-          const SizedBox(height: 16),
+          const SizedBox(height: FieldnoteSpacing.md),
           _detail(
             context,
             Icons.schedule,
@@ -1249,7 +1255,7 @@ class _ProposalCard extends StatelessWidget {
             l10n.sponsorWorkChecklist,
             style: Theme.of(context).textTheme.titleMedium,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: FieldnoteSpacing.xs),
           ...proposal.checklist.map(
             (item) => Padding(
               padding: const EdgeInsets.only(bottom: 7),
@@ -1260,19 +1266,19 @@ class _ProposalCard extends StatelessWidget {
                     size: 18,
                     color: context.fieldnoteColors.forest,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: FieldnoteSpacing.xs),
                   Expanded(child: Text(item)),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: FieldnoteSpacing.xs),
           Text(
             proposal.rationale,
             style: Theme.of(context).textTheme.bodySmall,
           ),
-          const SizedBox(height: 18),
-          Row(
+          const SizedBox(height: FieldnoteSpacing.md),
+          FieldnoteActionRow(
             children: [
               Expanded(
                 child: OutlinedButton.icon(
@@ -1281,7 +1287,7 @@ class _ProposalCard extends StatelessWidget {
                   label: Text(l10n.sponsorProposalEdit),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: FieldnoteSpacing.sm),
               Expanded(
                 child: FilledButton.icon(
                   onPressed: onPublish,
@@ -1301,7 +1307,7 @@ class _ProposalCard extends StatelessWidget {
     child: Row(
       children: [
         Icon(icon, size: 18, color: context.fieldnoteColors.moss),
-        const SizedBox(width: 8),
+        const SizedBox(width: FieldnoteSpacing.xs),
         Expanded(child: Text(text)),
       ],
     ),
@@ -1349,7 +1355,7 @@ class SponsorImpactView extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: FieldnoteSpacing.md),
           if (campaigns.isEmpty)
             EmptyPanel(
               icon: Icons.insights_outlined,
@@ -1463,7 +1469,7 @@ class _ImpactCard extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: FieldnoteSpacing.xs),
           Wrap(
             spacing: 8,
             runSpacing: 6,
@@ -1477,7 +1483,7 @@ class _ImpactCard extends StatelessWidget {
                 CampaignLiveIndicator(state: viewModel.liveStateFor(id)),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: FieldnoteSpacing.sm),
           if (value != null)
             Text(value.summary)
           else if (impactError != null)
@@ -1488,7 +1494,7 @@ class _ImpactCard extends StatelessWidget {
                   size: 18,
                   color: context.fieldnoteColors.danger,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: FieldnoteSpacing.xs),
                 Expanded(
                   child: Text(localizeStoredMessage(context, impactError!)),
                 ),
@@ -1502,7 +1508,7 @@ class _ImpactCard extends StatelessWidget {
             Text(l10n.sponsorImpactLoading),
           if (phase == CampaignPhase.cancelled ||
               phase == CampaignPhase.expired) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: FieldnoteSpacing.xs),
             Text(
               phase == CampaignPhase.cancelled
                   ? l10n.sponsorImpactCancelledNote
@@ -1510,7 +1516,7 @@ class _ImpactCard extends StatelessWidget {
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
-          const SizedBox(height: 14),
+          const SizedBox(height: FieldnoteSpacing.md),
           Wrap(
             spacing: 10,
             runSpacing: 10,
@@ -1546,6 +1552,35 @@ class _ImpactCard extends StatelessWidget {
               ),
             ],
           ),
+          if (value != null) ...[
+            const SizedBox(height: FieldnoteSpacing.md),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => CampaignImpactReportView(
+                    campaignId: id,
+                    repository: viewModel.repository,
+                  ),
+                ),
+              ),
+              icon: const Icon(Icons.description_outlined),
+              label: Text(l10n.impactReportTitle),
+            ),
+          ],
+          if (isCreator)
+            OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).push<void>(
+                MaterialPageRoute(
+                  builder: (_) => CampaignDiscussionView(
+                    campaign: campaign,
+                    repository: viewModel.repository,
+                    currentUserId: viewModel.profile?.authUserId,
+                  ),
+                ),
+              ),
+              icon: const Icon(Icons.forum_outlined),
+              label: Text(context.l10n.campaignDiscussionTitle),
+            ),
           if (isCreator) ...[
             const Divider(height: 24),
             LayoutBuilder(
@@ -1646,7 +1681,7 @@ class _ImpactCard extends StatelessWidget {
                 );
               },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: FieldnoteSpacing.md),
             CampaignProofMap(
               repository: viewModel.repository,
               campaign: campaign,
@@ -1663,20 +1698,23 @@ class _ImpactCard extends StatelessWidget {
               l10n.sponsorEvidenceTitle,
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: FieldnoteSpacing.xxs),
             Text(
               isCreator
                   ? l10n.sponsorEvidenceTapToReview
                   : l10n.sponsorEvidenceTapToSee,
               style: Theme.of(context).textTheme.bodySmall,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: FieldnoteSpacing.sm),
             SizedBox(
-              height: 236,
+              height:
+                  320 +
+                  (MediaQuery.textScalerOf(context).scale(16) / 16 - 1) * 140,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
-                itemCount: value.recentEvidence.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 10),
+                itemCount: value.recentEvidence.length.clamp(0, 6),
+                separatorBuilder: (_, _) =>
+                    const SizedBox(width: FieldnoteSpacing.sm),
                 itemBuilder: (context, index) {
                   final evidence = value.recentEvidence[index];
                   return SizedBox(
@@ -1734,7 +1772,7 @@ class _EvidenceTileState extends State<_EvidenceTile> {
   void _retryPhoto() => setState(() => _photoUrl = _fetchUrl());
 
   void _openProvenance() {
-    showModalBottomSheet<void>(
+    showFieldnoteBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
@@ -1848,7 +1886,7 @@ class _EvidenceTileState extends State<_EvidenceTile> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: FieldnoteSpacing.xs),
                       Text(
                         widget.evidence.confirmedSummary,
                         maxLines: 2,
@@ -1865,7 +1903,7 @@ class _EvidenceTileState extends State<_EvidenceTile> {
                             size: 15,
                             color: context.fieldnoteColors.moss,
                           ),
-                          const SizedBox(width: 5),
+                          const SizedBox(width: FieldnoteSpacing.xs),
                           Expanded(
                             child: Text(
                               widget.canReview
@@ -2005,17 +2043,17 @@ class _EvidenceReviewPanelState extends State<EvidenceReviewPanel> {
           ],
         ),
         if (widget.evidence.aiGenerated) ...[
-          const SizedBox(height: 6),
+          const SizedBox(height: FieldnoteSpacing.xs),
           Text(
             l10n.sponsorEvidenceAiDrafted,
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
         if (_savedNote != null && _savedNote!.isNotEmpty) ...[
-          const SizedBox(height: 6),
+          const SizedBox(height: FieldnoteSpacing.xs),
           Text(l10n.sponsorEvidenceSavedNote(_savedNote!)),
         ],
-        const SizedBox(height: 10),
+        const SizedBox(height: FieldnoteSpacing.sm),
         FieldnoteTextField(
           controller: _note,
           enabled: !_saving,
@@ -2029,14 +2067,14 @@ class _EvidenceReviewPanelState extends State<EvidenceReviewPanel> {
           ),
         ),
         if (_error != null) ...[
-          const SizedBox(height: 6),
+          const SizedBox(height: FieldnoteSpacing.xs),
           Text(
             _error!,
             style: TextStyle(color: context.fieldnoteColors.danger),
           ),
         ],
-        const SizedBox(height: 10),
-        Row(
+        const SizedBox(height: FieldnoteSpacing.sm),
+        FieldnoteActionRow(
           children: [
             Expanded(
               child: OutlinedButton.icon(
@@ -2048,7 +2086,7 @@ class _EvidenceReviewPanelState extends State<EvidenceReviewPanel> {
                 label: Text(l10n.sponsorEvidenceReject),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: FieldnoteSpacing.sm),
             Expanded(
               child: FilledButton.icon(
                 onPressed: _saving ? null : () => _review(true),
@@ -2121,7 +2159,10 @@ class CampaignCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Wrap(
+            spacing: FieldnoteSpacing.sm,
+            runSpacing: FieldnoteSpacing.xs,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               if (score != null)
                 StatusPill(
@@ -2150,25 +2191,24 @@ class CampaignCard extends StatelessWidget {
                     );
                   },
                 ),
-              const Spacer(),
               Text(l10n.sponsorCampaignPlaces(campaign.volunteerCapacity)),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: FieldnoteSpacing.sm),
           Text(
             campaign.name,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.titleMedium,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: FieldnoteSpacing.xs),
           Text(
             campaign.description,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.bodyMedium,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: FieldnoteSpacing.sm),
           Text(
             l10n.sponsorCardPlaceAndDate(
               campaign.locationName,
@@ -2181,7 +2221,7 @@ class CampaignCard extends StatelessWidget {
             style: Theme.of(context).textTheme.bodySmall,
           ),
           if (reasons.isNotEmpty) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: FieldnoteSpacing.sm),
             ...reasons
                 .take(2)
                 .map(
@@ -2194,7 +2234,7 @@ class CampaignCard extends StatelessWidget {
                           size: 15,
                           color: context.fieldnoteColors.moss,
                         ),
-                        const SizedBox(width: 5),
+                        const SizedBox(width: FieldnoteSpacing.xs),
                         Expanded(
                           child: Text(
                             reason,
@@ -2208,15 +2248,15 @@ class CampaignCard extends StatelessWidget {
                 ),
           ],
           if (showFunding) ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: FieldnoteSpacing.md),
             _AnimatedFundingProgress(
               sponsoredPaise: campaignSponsoredPaise(campaign),
               goalPaise: campaignGoalPaise(campaign),
               refundedPaise: campaignRefundedPaise(campaign),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: FieldnoteSpacing.sm),
           ] else
-            const SizedBox(height: 14),
+            const SizedBox(height: FieldnoteSpacing.md),
           SizedBox(
             width: double.infinity,
             child: FilledButton(onPressed: onAction, child: Text(actionLabel)),
@@ -2283,7 +2323,7 @@ class _AnimatedFundingProgressState extends State<_AnimatedFundingProgress> {
                 alpha: .12,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: FieldnoteSpacing.xs),
             Text(
               widget.refundedPaise > 0
                   ? context.l10n.sponsorFundingOfGoalRefunded(
@@ -2627,11 +2667,7 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
       numbers.format(minimum),
       numbers.format(maximum),
     );
-    return AlertDialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-      titlePadding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
-      contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-      actionsPadding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+    return fieldnoteDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       title: Text(
         widget.heading,
@@ -2640,10 +2676,12 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
       content: SizedBox(
         width: 560,
         height:
-            (MediaQuery.sizeOf(context).height -
-                    MediaQuery.viewInsetsOf(context).bottom -
-                    240)
-                .clamp(180.0, 620.0),
+            ((MediaQuery.sizeOf(context).height -
+                        MediaQuery.viewInsetsOf(context).bottom -
+                        MediaQuery.paddingOf(context).vertical -
+                        48) *
+                    .65)
+                .clamp(0.0, 620.0),
         child: SingleChildScrollView(
           padding: const EdgeInsets.only(bottom: 12),
           child: Column(
@@ -2654,7 +2692,7 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
                 l10n.sponsorProposalFormBasics,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: FieldnoteSpacing.sm),
               FieldnoteTextField(
                 controller: _title,
                 textCapitalization: TextCapitalization.sentences,
@@ -2664,7 +2702,7 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
                   l10n.sponsorProposalFormTitle,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: FieldnoteSpacing.sm),
               FieldnoteTextField(
                 controller: _description,
                 minLines: 3,
@@ -2676,7 +2714,7 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
                   l10n.sponsorProposalFormDescription,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: FieldnoteSpacing.sm),
               FieldnoteTextField(
                 controller: _locationName,
                 onChanged: (_) => _selectedLocation = null,
@@ -2686,24 +2724,24 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
                 ),
               ),
               if (widget.repository != null) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: FieldnoteSpacing.xs),
                 OutlinedButton.icon(
                   onPressed: _chooseLocation,
                   icon: const Icon(Icons.map_outlined),
                   label: Text(l10n.sponsorProposalFormChooseOnMap),
                 ),
               ],
-              const SizedBox(height: 18),
+              const SizedBox(height: FieldnoteSpacing.md),
               Text(
                 l10n.sponsorProposalFormSchedule,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: FieldnoteSpacing.sm),
               Text(
                 l10n.sponsorProposalFormStartsAt,
                 style: Theme.of(context).textTheme.labelLarge,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: FieldnoteSpacing.xs),
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
@@ -2715,7 +2753,7 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
                 ),
               ),
               if (startInPast || _errors[CampaignField.startsAt] != null) ...[
-                const SizedBox(height: 6),
+                const SizedBox(height: FieldnoteSpacing.xs),
                 Text(
                   _errors[CampaignField.startsAt] ??
                       l10n.sponsorProposalFormStartPassed,
@@ -2725,7 +2763,7 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
                   ),
                 ),
               ],
-              const SizedBox(height: 12),
+              const SizedBox(height: FieldnoteSpacing.sm),
               ResponsiveCardGrid(
                 minimumItemWidth: 150,
                 spacing: 16,
@@ -2782,12 +2820,12 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
                   ),
                 ],
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: FieldnoteSpacing.md),
               Text(
                 l10n.sponsorProposalFormWork,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: FieldnoteSpacing.sm),
               FieldnoteTextField(
                 controller: _checklist,
                 minLines: 3,
@@ -2798,7 +2836,7 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
                   helper: l10n.sponsorProposalFormOneTaskPerLine,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: FieldnoteSpacing.sm),
               FieldnoteTextField(
                 controller: _skills,
                 minLines: 1,
@@ -2808,7 +2846,7 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
                   helperText: l10n.sponsorProposalFormOnePerLine,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: FieldnoteSpacing.sm),
               FieldnoteTextField(
                 controller: _evidence,
                 minLines: 2,
@@ -2818,7 +2856,7 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
                   l10n.sponsorProposalFormEvidence,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: FieldnoteSpacing.sm),
               FieldnoteTextField(
                 controller: _tags,
                 minLines: 1,
@@ -2829,7 +2867,7 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
                 ),
               ),
               if (_error != null) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: FieldnoteSpacing.sm),
                 Text(
                   _error!,
                   style: TextStyle(

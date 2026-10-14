@@ -18,6 +18,10 @@ import 'package:fieldnotes_client/src/protocol/fieldnotes/models/audit_event.dar
     as _ixscx4wv;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign.dart'
     as _i6ar8a32;
+import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign_chat_event.dart'
+    as _iqubyjhs;
+import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign_chat_message.dart'
+    as _ixbie2qm;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign_invitation.dart'
     as _ilmm7kn9;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign_live_update.dart'
@@ -48,6 +52,12 @@ import 'package:fieldnotes_client/src/protocol/fieldnotes/models/legal_consent_h
     as _izm45l3m;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/legal_policies.dart'
     as _i18276rh;
+import 'package:fieldnotes_client/src/protocol/fieldnotes/models/manual_payout_request.dart'
+    as _i6u47lnp;
+import 'package:fieldnotes_client/src/protocol/fieldnotes/models/manual_payout_summary.dart'
+    as _i8uq1gg9;
+import 'package:fieldnotes_client/src/protocol/fieldnotes/models/notification_item.dart'
+    as _ild3wtsx;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/participation_history_entry.dart'
     as _iw31a86q;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/place_suggestion.dart'
@@ -385,6 +395,77 @@ class EndpointFieldnote extends _isc.EndpointRef {
       caller.callServerEndpoint<_im0kjztm.TrustCenterSummary>(
         'fieldnote',
         'getTrustCenter',
+        {},
+      );
+
+  /// Inbox IDs are an immutable keyset cursor, newest first.
+  _ida.Future<List<_ild3wtsx.NotificationItem>> getMyNotifications({
+    required int limit,
+    int? beforeId,
+    required bool unreadOnly,
+  }) => caller.callServerEndpoint<List<_ild3wtsx.NotificationItem>>(
+    'fieldnote',
+    'getMyNotifications',
+    {
+      'limit': limit,
+      'beforeId': beforeId,
+      'unreadOnly': unreadOnly,
+    },
+  );
+
+  _ida.Future<_ild3wtsx.NotificationItem?> getMyNotification(
+    int notificationId,
+  ) => caller.callServerEndpoint<_ild3wtsx.NotificationItem?>(
+    'fieldnote',
+    'getMyNotification',
+    {'notificationId': notificationId},
+  );
+
+  _ida.Future<int> getMyUnreadNotificationCount() =>
+      caller.callServerEndpoint<int>(
+        'fieldnote',
+        'getMyUnreadNotificationCount',
+        {},
+      );
+
+  _ida.Future<void> markMyNotificationRead(int notificationId) =>
+      caller.callServerEndpoint<void>(
+        'fieldnote',
+        'markMyNotificationRead',
+        {'notificationId': notificationId},
+      );
+
+  /// Newer arrivals remain unread even if the request races with insertion.
+  _ida.Future<void> markMyNotificationsReadThrough(int throughId) =>
+      caller.callServerEndpoint<void>(
+        'fieldnote',
+        'markMyNotificationsReadThrough',
+        {'throughId': throughId},
+      );
+
+  _ida.Future<void> registerMyPushDevice(
+    String token,
+    String platform,
+  ) => caller.callServerEndpoint<void>(
+    'fieldnote',
+    'registerMyPushDevice',
+    {
+      'token': token,
+      'platform': platform,
+    },
+  );
+
+  _ida.Future<void> unregisterMyPushDevice(String token) =>
+      caller.callServerEndpoint<void>(
+        'fieldnote',
+        'unregisterMyPushDevice',
+        {'token': token},
+      );
+
+  _ida.Future<void> unregisterAllMyPushDevices() =>
+      caller.callServerEndpoint<void>(
+        'fieldnote',
+        'unregisterAllMyPushDevices',
         {},
       );
 
@@ -1032,6 +1113,76 @@ class EndpointFieldnote extends _isc.EndpointRef {
     {'campaignId': campaignId},
   );
 
+  _ida.Future<_i8uq1gg9.ManualPayoutSummary> getManualPayoutSummary(
+    int campaignId,
+  ) => caller.callServerEndpoint<_i8uq1gg9.ManualPayoutSummary>(
+    'fieldnote',
+    'getManualPayoutSummary',
+    {'campaignId': campaignId},
+  );
+
+  _ida.Future<_i6u47lnp.ManualPayoutRequest> requestManualPayout(
+    int campaignId,
+    String clientRequestId,
+  ) => caller.callServerEndpoint<_i6u47lnp.ManualPayoutRequest>(
+    'fieldnote',
+    'requestManualPayout',
+    {
+      'campaignId': campaignId,
+      'clientRequestId': clientRequestId,
+    },
+  );
+
+  _ida.Future<bool> isPayoutOperator() => caller.callServerEndpoint<bool>(
+    'fieldnote',
+    'isPayoutOperator',
+    {},
+  );
+
+  _ida.Future<List<_i6u47lnp.ManualPayoutRequest>> listManualPayoutRequests({
+    required int limit,
+    required int offset,
+  }) => caller.callServerEndpoint<List<_i6u47lnp.ManualPayoutRequest>>(
+    'fieldnote',
+    'listManualPayoutRequests',
+    {
+      'limit': limit,
+      'offset': offset,
+    },
+  );
+
+  _ida.Future<_i6u47lnp.ManualPayoutRequest> reviewManualPayout(
+    int requestId,
+    bool approve,
+    int deductionPaise,
+    String settlementReference,
+    String payeeVerificationReference,
+    String note,
+  ) => caller.callServerEndpoint<_i6u47lnp.ManualPayoutRequest>(
+    'fieldnote',
+    'reviewManualPayout',
+    {
+      'requestId': requestId,
+      'approve': approve,
+      'deductionPaise': deductionPaise,
+      'settlementReference': settlementReference,
+      'payeeVerificationReference': payeeVerificationReference,
+      'note': note,
+    },
+  );
+
+  _ida.Future<_i6u47lnp.ManualPayoutRequest> recordManualPayoutPaid(
+    int requestId,
+    String bankTransferReference,
+  ) => caller.callServerEndpoint<_i6u47lnp.ManualPayoutRequest>(
+    'fieldnote',
+    'recordManualPayoutPaid',
+    {
+      'requestId': requestId,
+      'bankTransferReference': bankTransferReference,
+    },
+  );
+
   _ida.Future<List<_ifn539xv.CampaignMatch>> getCampaignMatches() =>
       caller.callServerEndpoint<List<_ifn539xv.CampaignMatch>>(
         'fieldnote',
@@ -1261,6 +1412,49 @@ class EndpointFieldnote extends _isc.EndpointRef {
       'offset': offset,
     },
   );
+
+  _ida.Future<_ixbie2qm.CampaignChatMessage> sendCampaignMessage(
+    int campaignId,
+    String body,
+    String clientRequestId,
+  ) => caller.callServerEndpoint<_ixbie2qm.CampaignChatMessage>(
+    'fieldnote',
+    'sendCampaignMessage',
+    {
+      'campaignId': campaignId,
+      'body': body,
+      'clientRequestId': clientRequestId,
+    },
+  );
+
+  /// Newest page by default; afterId returns missed messages oldest first.
+  _ida.Future<List<_ixbie2qm.CampaignChatMessage>> listCampaignMessages(
+    int campaignId, {
+    int? beforeId,
+    int? afterId,
+    int? limit,
+  }) => caller.callServerEndpoint<List<_ixbie2qm.CampaignChatMessage>>(
+    'fieldnote',
+    'listCampaignMessages',
+    {
+      'campaignId': campaignId,
+      'beforeId': beforeId,
+      'afterId': afterId,
+      'limit': limit,
+    },
+  );
+
+  /// Subscribe before fetching history on the client to avoid missing messages.
+  _ida.Stream<_iqubyjhs.CampaignChatEvent> watchCampaignChat(int campaignId) =>
+      caller.callStreamingServerEndpoint<
+        _ida.Stream<_iqubyjhs.CampaignChatEvent>,
+        _iqubyjhs.CampaignChatEvent
+      >(
+        'fieldnote',
+        'watchCampaignChat',
+        {'campaignId': campaignId},
+        {},
+      );
 
   _ida.Future<_is6qjlzb.CampaignPost> createCampaignPost(
     int campaignId,

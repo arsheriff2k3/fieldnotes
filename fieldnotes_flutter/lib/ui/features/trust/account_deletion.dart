@@ -101,7 +101,7 @@ Future<void> confirmAndRequestAccountDeletion(
   await showDialog<void>(
     context: context,
     barrierDismissible: false,
-    builder: (dialogContext) => AlertDialog(
+    builder: (dialogContext) => fieldnoteDialog(
       title: Text(l10n.deletionStartedTitle),
       content: Text(l10n.deletionStartedBody),
       actions: [
@@ -139,7 +139,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    return AlertDialog(
+    return fieldnoteDialog(
       title: Text(l10n.deletionDialogTitle),
       content: SingleChildScrollView(
         child: Column(
@@ -147,12 +147,12 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(l10n.deletionExplanation),
-            const SizedBox(height: 10),
+            const SizedBox(height: FieldnoteSpacing.sm),
             Text(l10n.deletionBlockers),
-            const SizedBox(height: 16),
+            const SizedBox(height: FieldnoteSpacing.md),
             // The confirmation word itself stays DELETE in every language.
             Text(l10n.deletionTypeToConfirm(_confirmWord)),
-            const SizedBox(height: 8),
+            const SizedBox(height: FieldnoteSpacing.xs),
             TextField(
               key: const ValueKey('delete-confirm-field'),
               controller: _controller,
@@ -203,7 +203,7 @@ class AccountDeletionCard extends StatelessWidget {
           Row(
             children: [
               Icon(Icons.delete_outline, color: c.danger),
-              const SizedBox(width: 9),
+              const SizedBox(width: FieldnoteSpacing.xs),
               Expanded(
                 child: Text(
                   l10n.deletionDeleteAccount,
@@ -212,15 +212,15 @@ class AccountDeletionCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: FieldnoteSpacing.xs),
           Text(l10n.deletionExplanation),
-          const SizedBox(height: 6),
+          const SizedBox(height: FieldnoteSpacing.xs),
           Text(
             l10n.deletionBlockers,
             style: Theme.of(context).textTheme.bodySmall,
           ),
           if (request != null) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: FieldnoteSpacing.sm),
             StatusPill(
               label: accountDeletionStatusLabel(request.status, l10n),
               color: request.status == 'failed'
@@ -230,7 +230,7 @@ class AccountDeletionCard extends StatelessWidget {
                   ? Icons.error_outline
                   : Icons.hourglass_top,
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: FieldnoteSpacing.xs),
             Text(
               request.status == 'failed'
                   ? _failureMessage(context, request)
@@ -241,7 +241,7 @@ class AccountDeletionCard extends StatelessWidget {
                     ),
             ),
           ],
-          const SizedBox(height: 14),
+          const SizedBox(height: FieldnoteSpacing.md),
           Wrap(
             spacing: 10,
             runSpacing: 10,

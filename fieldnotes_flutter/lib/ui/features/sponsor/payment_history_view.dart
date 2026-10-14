@@ -54,7 +54,7 @@ class _PaymentHistoryViewState extends State<PaymentHistoryView> {
                   l10n.sponsorPaymentHistoryIntro,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: FieldnoteSpacing.md),
                 if (_loading && entries.isEmpty)
                   const Padding(
                     padding: EdgeInsets.all(32),
@@ -66,7 +66,7 @@ class _PaymentHistoryViewState extends State<PaymentHistoryView> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(error),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: FieldnoteSpacing.xs),
                         OutlinedButton.icon(
                           onPressed: () {
                             widget.viewModel.clearLastError();
@@ -87,7 +87,7 @@ class _PaymentHistoryViewState extends State<PaymentHistoryView> {
                 else
                   for (final entry in entries) ...[
                     PaymentHistoryTile(entry: entry),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: FieldnoteSpacing.sm),
                   ],
               ],
             ),
@@ -138,16 +138,16 @@ class PaymentHistoryTile extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: FieldnoteSpacing.sm),
               Text(
                 money(sponsorshipPaise(sponsorship)),
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: FieldnoteSpacing.xs),
           Text(date, style: Theme.of(context).textTheme.bodySmall),
-          const SizedBox(height: 10),
+          const SizedBox(height: FieldnoteSpacing.sm),
           Wrap(
             spacing: 8,
             runSpacing: 6,
@@ -166,7 +166,7 @@ class PaymentHistoryTile extends StatelessWidget {
             ],
           ),
           if (refund != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: FieldnoteSpacing.xs),
             Text(
               switch (refund.status) {
                 'processed' when refund.processedAt != null =>
@@ -188,16 +188,16 @@ class PaymentHistoryTile extends StatelessWidget {
               },
             ),
           ] else if (sponsorship.paymentStatus == 'verified_uncredited') ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: FieldnoteSpacing.xs),
             Text(l10n.sponsorPaymentUncreditedDetail),
           ] else if (failure != null && failure.isNotEmpty) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: FieldnoteSpacing.xs),
             Text(
               failure,
               style: TextStyle(color: context.fieldnoteColors.danger),
             ),
           ] else if (sponsorship.paymentStatus == 'created') ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: FieldnoteSpacing.xs),
             Text(l10n.sponsorPaymentAwaitingConfirmation),
           ],
         ],

@@ -16,6 +16,7 @@ import '../../core/error_messages.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/widgets.dart';
 import '../shell/fieldnote_view_model.dart';
+import '../discussion/campaign_discussion_view.dart';
 import '../sponsor/sponsor_views.dart';
 import 'volunteer_area_map_screen.dart';
 import 'volunteer_history_view.dart';
@@ -125,7 +126,7 @@ class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: FieldnoteSpacing.xxs),
           Expanded(
             child: TabBarView(
               children: [
@@ -245,13 +246,13 @@ class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: FieldnoteSpacing.sm),
         if (campaigns.isEmpty)
           SurfaceCard(
             child: Row(
               children: [
                 const Icon(Icons.mark_email_unread_outlined, size: 28),
-                const SizedBox(width: 14),
+                const SizedBox(width: FieldnoteSpacing.md),
                 Expanded(
                   child: Text(
                     context.l10n.volunteerNoInvitations,
@@ -296,7 +297,7 @@ class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
         distanceLabel(match, l10n: l10n, locale: context.localeTag),
       );
     }
-    showModalBottomSheet<void>(
+    showFieldnoteBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
@@ -311,15 +312,19 @@ class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
             Expanded(
               child: ListView(
                 controller: scrollController,
-                padding: const EdgeInsets.fromLTRB(24, 4, 24, 8),
+                padding: FieldnoteSpacing.sheetPadding(
+                  context,
+                  top: FieldnoteSpacing.xs,
+                  bottom: FieldnoteSpacing.sm,
+                ),
                 children: [
                   Text(
                     match.campaign.name,
                     style: Theme.of(sheetContext).textTheme.titleLarge,
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: FieldnoteSpacing.xs),
                   Text(match.campaign.locationName),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: FieldnoteSpacing.md),
                   for (final reason in reasons)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 7),
@@ -327,7 +332,7 @@ class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Icon(Icons.check_circle_outline, size: 17),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: FieldnoteSpacing.xs),
                           Expanded(child: Text(reason)),
                         ],
                       ),
@@ -338,8 +343,11 @@ class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
             SafeArea(
               top: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 12),
-                child: Row(
+                padding: FieldnoteSpacing.sheetPadding(
+                  context,
+                  bottom: FieldnoteSpacing.md,
+                ),
+                child: FieldnoteActionRow(
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
@@ -367,7 +375,7 @@ class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
                         label: Text(l10n.volunteerViewRoute),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: FieldnoteSpacing.sm),
                     Expanded(
                       child: Builder(
                         builder: (_) {
@@ -532,7 +540,7 @@ class _MatchMap extends StatelessWidget {
               ),
           },
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: FieldnoteSpacing.sm),
         MapLegend(
           entries: [
             (color: FieldnoteColors.forest, label: l10n.volunteerLegendStrong),
@@ -543,7 +551,7 @@ class _MatchMap extends StatelessWidget {
             (color: FieldnoteColors.clay, label: l10n.volunteerLegendWeaker),
           ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: FieldnoteSpacing.xs),
         Text(
           l10n.volunteerMatchMapHint,
           style: Theme.of(context).textTheme.bodySmall,
@@ -638,23 +646,23 @@ class VolunteerWorkView extends StatelessWidget {
               label: Text(l10n.volunteerOpenHistory),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: FieldnoteSpacing.md),
           if (active.isEmpty)
             SurfaceCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Icon(Icons.hiking_outlined, size: 30),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: FieldnoteSpacing.sm),
                   Text(
                     past.isEmpty
                         ? l10n.volunteerNoJoinedCampaigns
                         : l10n.volunteerNoUpcomingCampaigns,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: FieldnoteSpacing.xs),
                   Text(l10n.volunteerFindNearby),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: FieldnoteSpacing.md),
                   FilledButton.icon(
                     onPressed: () => viewModel.selectSection(0),
                     icon: const Icon(Icons.travel_explore),
@@ -666,12 +674,12 @@ class VolunteerWorkView extends StatelessWidget {
           else
             ...active,
           if (past.isNotEmpty) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: FieldnoteSpacing.sm),
             Text(
               l10n.volunteerPastAndClosed,
               style: Theme.of(context).textTheme.titleLarge,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: FieldnoteSpacing.sm),
             ...past,
           ],
         ],
@@ -701,12 +709,12 @@ class _MinimalParticipationCard extends StatelessWidget {
             color: display.color,
             icon: display.icon,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: FieldnoteSpacing.sm),
           Text(
             context.l10n.volunteerCampaignNumber(participation.campaignId),
             style: Theme.of(context).textTheme.titleMedium,
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: FieldnoteSpacing.xxs),
           Text(
             context.l10n.volunteerJoinedOnRefresh(
               DateFormat.MMMEd(
@@ -752,7 +760,7 @@ class _ClosedMissionCard extends StatelessWidget {
                   icon: display.icon,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: FieldnoteSpacing.xs),
               const Spacer(),
               Text(
                 DateFormat.MMMEd(
@@ -761,26 +769,26 @@ class _ClosedMissionCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: FieldnoteSpacing.sm),
           Text(campaign.name, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 4),
+          const SizedBox(height: FieldnoteSpacing.xxs),
           Text(
             campaign.locationName,
             style: Theme.of(context).textTheme.bodySmall,
           ),
           if (display.detail != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: FieldnoteSpacing.xs),
             Text(display.detail!),
           ],
           if (evidence != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: FieldnoteSpacing.xs),
             Text(
               reviewStateLabel(evidence!.reviewState, l10n: context.l10n),
               style: Theme.of(context).textTheme.labelLarge,
             ),
           ],
           if (participation.status == ParticipationStatus.completed) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: FieldnoteSpacing.sm),
             TextButton.icon(
               onPressed: onOpenHistory,
               icon: const Icon(Icons.photo_outlined),
@@ -1025,7 +1033,7 @@ class _MissionCardState extends State<_MissionCard> {
   Future<void> _leave() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => fieldnoteDialog(
         title: Text(dialogContext.l10n.volunteerLeaveTitle),
         content: Text(
           dialogContext.l10n.volunteerLeaveBody(widget.campaign.name),
@@ -1125,17 +1133,16 @@ class _MissionCardState extends State<_MissionCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Wrap(
+            spacing: FieldnoteSpacing.sm,
+            runSpacing: FieldnoteSpacing.xs,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Flexible(
-                child: StatusPill(
-                  label: display.label,
-                  color: display.color,
-                  icon: display.icon,
-                ),
+              StatusPill(
+                label: display.label,
+                color: display.color,
+                icon: display.icon,
               ),
-              const SizedBox(width: 8),
-              const Spacer(),
               Text(
                 DateFormat.MMMEd(
                   dateLocale(locale),
@@ -1143,17 +1150,17 @@ class _MissionCardState extends State<_MissionCard> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: FieldnoteSpacing.sm),
           Text(
             widget.campaign.name,
             style: Theme.of(context).textTheme.titleLarge,
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: FieldnoteSpacing.xxs),
           Text(
             widget.campaign.locationName,
             style: Theme.of(context).textTheme.bodySmall,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: FieldnoteSpacing.sm),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -1187,9 +1194,28 @@ class _MissionCardState extends State<_MissionCard> {
             ],
           ),
           if (display.detail != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: FieldnoteSpacing.xs),
             Text(display.detail!),
           ],
+          if (const {
+            ParticipationStatus.joined,
+            ParticipationStatus.checkedIn,
+            ParticipationStatus.completed,
+            ParticipationStatus.incomplete,
+          }.contains(status))
+            OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).push<void>(
+                MaterialPageRoute(
+                  builder: (_) => CampaignDiscussionView(
+                    campaign: widget.campaign,
+                    repository: widget.viewModel.repository,
+                    currentUserId: widget.viewModel.profile?.authUserId,
+                  ),
+                ),
+              ),
+              icon: const Icon(Icons.forum_outlined),
+              label: Text(context.l10n.campaignDiscussionTitle),
+            ),
           FutureBuilder<List<CampaignPost>>(
             future: _posts,
             builder: (context, snapshot) {
@@ -1202,16 +1228,16 @@ class _MissionCardState extends State<_MissionCard> {
             },
           ),
           if (needsReconfirmation && !checkedIn) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: FieldnoteSpacing.xs),
             Text(l10n.volunteerReconfirmNeeded),
-            const SizedBox(height: 8),
+            const SizedBox(height: FieldnoteSpacing.xs),
             OutlinedButton.icon(
               onPressed: busy ? null : _reconfirm,
               icon: const Icon(Icons.how_to_reg_outlined),
               label: Text(l10n.volunteerReconfirm),
             ),
           ],
-          const SizedBox(height: 12),
+          const SizedBox(height: FieldnoteSpacing.sm),
           OutlinedButton.icon(
             onPressed: _loadingContact
                 ? null
@@ -1228,7 +1254,7 @@ class _MissionCardState extends State<_MissionCard> {
             ),
           ),
           if (!_loadingContact && _contactPhone == null) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: FieldnoteSpacing.xs),
             Text(
               _contactLoadFailed
                   ? l10n.volunteerContactRetry
@@ -1255,22 +1281,22 @@ class _MissionCardState extends State<_MissionCard> {
                         size: 18,
                         color: context.fieldnoteColors.moss,
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: FieldnoteSpacing.xs),
                       Expanded(child: Text(item.trim())),
                     ],
                   ),
                 ),
               ),
-          const SizedBox(height: 14),
+          const SizedBox(height: FieldnoteSpacing.md),
           _locationPanel(context),
-          const SizedBox(height: 14),
+          const SizedBox(height: FieldnoteSpacing.md),
           if (display.canComplete)
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
                 onPressed: busy
                     ? null
-                    : () => showModalBottomSheet<void>(
+                    : () => showFieldnoteBottomSheet<void>(
                         context: context,
                         isScrollControlled: true,
                         useSafeArea: true,
@@ -1322,7 +1348,7 @@ class _MissionCardState extends State<_MissionCard> {
               ),
             ),
             if (eventConfirmed && window == CheckInWindow.notYetOpen) ...[
-              const SizedBox(height: 6),
+              const SizedBox(height: FieldnoteSpacing.xs),
               Text(
                 l10n.volunteerCheckInWindowHint,
                 style: Theme.of(context).textTheme.bodySmall,
@@ -1330,7 +1356,7 @@ class _MissionCardState extends State<_MissionCard> {
             ],
           ],
           if (display.canLeave) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: FieldnoteSpacing.xs),
             SizedBox(
               width: double.infinity,
               child: TextButton.icon(
@@ -1397,7 +1423,7 @@ class _MissionCardState extends State<_MissionCard> {
           Row(
             children: [
               const Icon(Icons.location_searching, size: 20),
-              const SizedBox(width: 8),
+              const SizedBox(width: FieldnoteSpacing.xs),
               Expanded(
                 child: Text(
                   l10n.volunteerLiveLocationCheck,
@@ -1417,9 +1443,9 @@ class _MissionCardState extends State<_MissionCard> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: FieldnoteSpacing.sm),
           _approachMap(context, location, distance, inside),
-          const SizedBox(height: 12),
+          const SizedBox(height: FieldnoteSpacing.sm),
           if (location == null && _locationError == null)
             Text(l10n.volunteerTrackingIntro),
           if (locationError != null) ...[
@@ -1438,14 +1464,14 @@ class _MissionCardState extends State<_MissionCard> {
               accuracyMessage(location.accuracyMeters, l10n: l10n),
               style: TextStyle(color: c.clay),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: FieldnoteSpacing.xs),
           ],
           if (location != null) ...[
             SelectableText(
               '${location.latitude.toStringAsFixed(6)}, ${location.longitude.toStringAsFixed(6)}',
               style: const TextStyle(fontWeight: FontWeight.w800),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: FieldnoteSpacing.xs),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -1497,7 +1523,7 @@ class _MissionCardState extends State<_MissionCard> {
               ],
             ),
           ],
-          const SizedBox(height: 10),
+          const SizedBox(height: FieldnoteSpacing.sm),
           Wrap(
             spacing: 10,
             runSpacing: 10,
@@ -1544,7 +1570,7 @@ class _MissionCardState extends State<_MissionCard> {
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: FieldnoteSpacing.xxs),
           Text(
             l10n.volunteerTrackingPrivacy,
             style: const TextStyle(fontSize: 12),
@@ -1650,7 +1676,7 @@ class _MissionCardState extends State<_MissionCard> {
           ),
         ),
         if (mapsAvailable) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: FieldnoteSpacing.xs),
           MapLegend(
             entries: [
               (
@@ -1691,8 +1717,10 @@ class _LocationFact extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 15),
-          const SizedBox(width: 5),
-          Text(label, style: Theme.of(context).textTheme.labelSmall),
+          const SizedBox(width: FieldnoteSpacing.xs),
+          Flexible(
+            child: Text(label, style: Theme.of(context).textTheme.labelSmall),
+          ),
         ],
       ),
     );
@@ -2043,19 +2071,8 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
       maxChildSize: .96,
       builder: (context, scrollController) => ListView(
         controller: scrollController,
-        padding: const EdgeInsets.fromLTRB(24, 14, 24, 40),
+        padding: FieldnoteSpacing.sheetPadding(context),
         children: [
-          Center(
-            child: Container(
-              width: 44,
-              height: 5,
-              decoration: BoxDecoration(
-                color: context.fieldnoteColors.ink.withValues(alpha: .18),
-                borderRadius: BorderRadius.circular(99),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
           SectionHeading(
             eyebrow: aiOff
                 ? l10n.volunteerEvidenceEyebrow
@@ -2066,13 +2083,13 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
                 : l10n.volunteerEvidenceDescriptionAi,
           ),
           if (_deadlinePassed) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: FieldnoteSpacing.sm),
             Text(
               l10n.volunteerEvidenceWindowClosed,
               style: TextStyle(color: context.fieldnoteColors.danger),
             ),
           ],
-          const SizedBox(height: 20),
+          const SizedBox(height: FieldnoteSpacing.lg),
           GestureDetector(
             onTap: _working ? null : () => _pick(ImageSource.camera),
             child: Container(
@@ -2087,7 +2104,7 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Icon(Icons.add_a_photo_outlined, size: 42),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: FieldnoteSpacing.xs),
                         Text(l10n.volunteerTakePhoto),
                       ],
                     )
@@ -2098,13 +2115,13 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
                     ),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: FieldnoteSpacing.sm),
           OutlinedButton.icon(
             onPressed: _working ? null : () => _pick(ImageSource.gallery),
             icon: const Icon(Icons.photo_library_outlined),
             label: Text(l10n.volunteerChooseGallery),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: FieldnoteSpacing.md),
           FieldnoteTextField(
             controller: _note,
             minLines: 3,
@@ -2123,7 +2140,7 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: FieldnoteSpacing.sm),
           if (!aiOff)
             FilledButton.icon(
               onPressed: _working ? null : _analyze,
@@ -2138,7 +2155,7 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
               ),
             ),
           if (!showSummary) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: FieldnoteSpacing.xs),
             TextButton(
               key: const Key('write-summary-myself'),
               onPressed: _working ? null : _writeMyself,
@@ -2146,7 +2163,7 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
             ),
           ],
           if (showSummary) ...[
-            const SizedBox(height: 18),
+            const SizedBox(height: FieldnoteSpacing.md),
             SurfaceCard(
               color: _manual
                   ? context.fieldnoteColors.mist
@@ -2164,7 +2181,7 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
                     icon: _manual ? Icons.edit_note : Icons.auto_awesome,
                   ),
                   if (_manual) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: FieldnoteSpacing.xs),
                     Text(
                       aiOff ||
                               (proposal != null && isFallbackProposal(proposal))
@@ -2173,7 +2190,7 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
-                  const SizedBox(height: 12),
+                  const SizedBox(height: FieldnoteSpacing.sm),
                   FieldnoteTextField(
                     key: const Key('confirmed-summary-field'),
                     controller: _summary,
@@ -2186,14 +2203,14 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
                     ),
                   ),
                   if (!_manual && proposal != null) ...[
-                    const SizedBox(height: 10),
+                    const SizedBox(height: FieldnoteSpacing.sm),
                     ...proposal.structuredResults.map(
                       (result) => Padding(
                         padding: const EdgeInsets.only(bottom: 6),
                         child: Row(
                           children: [
                             const Icon(Icons.insights, size: 17),
-                            const SizedBox(width: 7),
+                            const SizedBox(width: FieldnoteSpacing.xs),
                             Expanded(child: Text(result)),
                           ],
                         ),
@@ -2201,16 +2218,16 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
                     ),
                   ],
                   if (_accuracyProblem != null) ...[
-                    const SizedBox(height: 10),
+                    const SizedBox(height: FieldnoteSpacing.sm),
                     Text(
                       _accuracyProblem!,
                       style: TextStyle(color: context.fieldnoteColors.clay),
                     ),
                   ],
                   if (_phase != _SubmitPhase.idle) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: FieldnoteSpacing.sm),
                     const LinearProgressIndicator(),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: FieldnoteSpacing.xs),
                     Text(
                       _phase == _SubmitPhase.locating
                           ? l10n.volunteerCheckingGps
@@ -2218,7 +2235,7 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
-                  const SizedBox(height: 12),
+                  const SizedBox(height: FieldnoteSpacing.sm),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
@@ -2573,7 +2590,7 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
           title: l10n.navAvailability,
           description: l10n.volunteerAvailabilityDescription,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: FieldnoteSpacing.md),
         SurfaceCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -2615,7 +2632,7 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
                     )
                     .toList(),
               ),
-              const SizedBox(height: 22),
+              const SizedBox(height: FieldnoteSpacing.lg),
               Text(
                 l10n.volunteerTimeWindow,
                 style: Theme.of(context).textTheme.titleMedium,
@@ -2650,23 +2667,23 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
                     l10n: l10n,
                   )
                   case final problem?) ...[
-                const SizedBox(height: 6),
+                const SizedBox(height: FieldnoteSpacing.xs),
                 Text(
                   problem,
                   style: TextStyle(color: context.fieldnoteColors.danger),
                 ),
               ],
-              const SizedBox(height: 22),
+              const SizedBox(height: FieldnoteSpacing.lg),
               Text(
                 l10n.volunteerTravelFrom,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: FieldnoteSpacing.xxs),
               Text(
                 l10n.volunteerTravelFromHint,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: FieldnoteSpacing.sm),
               if (_searchAvailable) ...[
                 TextField(
                   controller: _placeSearch,
@@ -2687,7 +2704,7 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
                   ),
                 ),
                 if (_searchMessage != null) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: FieldnoteSpacing.xs),
                   Text(_searchMessage!),
                 ],
                 if (_suggestions.isNotEmpty)
@@ -2709,10 +2726,10 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
                       },
                     ),
                   ),
-                const SizedBox(height: 12),
+                const SizedBox(height: FieldnoteSpacing.sm),
               ],
               _areaMap(context),
-              const SizedBox(height: 16),
+              const SizedBox(height: FieldnoteSpacing.md),
               Text(
                 l10n.volunteerMaximumTravel(radius),
                 style: Theme.of(context).textTheme.titleMedium,
@@ -2725,7 +2742,7 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
                 label: l10n.volunteerKm(radius),
                 onChanged: (value) => setState(() => _radius = value),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: FieldnoteSpacing.xs),
               OutlinedButton.icon(
                 onPressed: () async {
                   try {
@@ -2763,7 +2780,7 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
                       : l10n.volunteerUseGpsAreaInstead,
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: FieldnoteSpacing.lg),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
@@ -2876,11 +2893,11 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
           ],
         ),
         if (mapsAvailable) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: FieldnoteSpacing.xs),
           Row(
             children: [
               const Icon(Icons.place_outlined, size: 16),
-              const SizedBox(width: 6),
+              const SizedBox(width: FieldnoteSpacing.xs),
               Expanded(
                 child: Text(
                   _areaName ?? _savedLabel,

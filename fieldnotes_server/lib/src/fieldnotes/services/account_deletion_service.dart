@@ -54,6 +54,8 @@ class AccountDeletionService {
         'Cancel or complete the campaigns you created before deleting your account. Cancelling refunds sponsors.',
     'deletion_blocked_refund_pending':
         'A refund for one of your payments is still being processed. Try again once it completes.',
+    'deletion_blocked_payout_pending':
+        'A creator payout is pending. Resolve it before deleting your account.',
     'deletion_blocked_payment_pending':
         'A payment you started recently is still being confirmed. Try again in 30 minutes.',
   };
@@ -124,6 +126,15 @@ class AccountDeletionService {
         );
         if (inFlight || unqueued) code = 'deletion_blocked_refund_pending';
       }
+    }
+    if (code == null) {
+      final pendingPayouts = await ManualPayoutRequest.db.count(
+        session,
+        where: (t) =>
+            t.creatorAuthUserId.equals(userId) &
+            t.status.inSet({'requested', 'processing'}),
+      );
+      if (pendingPayouts > 0) code = 'deletion_blocked_payout_pending';
     }
     return code == null ? null : (code: code, message: _blockerMessages[code]!);
   }
@@ -312,6 +323,12 @@ class AccountDeletionService {
       transaction: transaction,
     );
 
+    await CampaignChatMessage.db.deleteWhere(
+      session,
+      where: (t) => t.senderAuthUserId.equals(userId),
+      transaction: transaction,
+    );
+
     // Volunteer places: leave open joins so the seat frees up.
     final participations = await CampaignParticipation.db.find(
       session,
@@ -401,6 +418,15 @@ class AccountDeletionService {
       'DELETE FROM "fieldnote_notification_outbox" WHERE "recipientAuthUserId" = @user::uuid',
     );
     await sql(
+      'DELETE FROM "fieldnote_push_delivery" WHERE "recipientAuthUserId" = @user::uuid',
+    );
+    await sql(
+      'DELETE FROM "fieldnote_push_device" WHERE "authUserId" = @user::uuid',
+    );
+    await sql(
+      'DELETE FROM "fieldnote_in_app_notification" WHERE "recipientAuthUserId" = @user::uuid',
+    );
+    await sql(
       'DELETE FROM "fieldnote_rate_limit_bucket" WHERE "authUserId" = @user::uuid',
     );
     await sql(
@@ -411,6 +437,12 @@ class AccountDeletionService {
     );
     await sql(
       'UPDATE "fieldnote_sponsorship" SET "sponsorAuthUserId" = @anon::uuid, "message" = NULL WHERE "sponsorAuthUserId" = @user::uuid',
+    );
+    await sql(
+      'UPDATE "fieldnote_manual_payout_request" SET "creatorAuthUserId" = @anon::uuid, "reviewNote" = NULL WHERE "creatorAuthUserId" = @user::uuid',
+    );
+    await sql(
+      'UPDATE "fieldnote_manual_payout_request" SET "reviewedByAuthUserId" = @anon::uuid WHERE "reviewedByAuthUserId" = @user::uuid',
     );
     await sql(
       'UPDATE "fieldnote_test_payout" SET "creatorAuthUserId" = @anon::uuid WHERE "creatorAuthUserId" = @user::uuid',

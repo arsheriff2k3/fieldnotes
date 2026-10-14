@@ -8,6 +8,8 @@ fields:
   amountPaise: int, default=0
   message: String?
   paymentProvider: String, default='razorpay'
+  # Immutable checkout mode. Legacy null rows are not eligible for live payouts.
+  paymentTestMode: bool?
   paymentStatus: String, default='created'
   providerOrderId: String?
   providerPaymentId: String?

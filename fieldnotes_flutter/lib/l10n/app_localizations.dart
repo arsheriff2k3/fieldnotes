@@ -2773,7 +2773,7 @@ abstract class AppLocalizations {
   /// No description provided for @sponsorPayoutManualDetail.
   ///
   /// In en, this message translates to:
-  /// **'Once the campaign is completed, FieldNote operations verify your payee details outside the app, transfer the verified sponsorships that were not refunded, and email you the bank reference. FieldNote never asks for bank details in the app.'**
+  /// **'After campaign completion, request a payout above. Operations verify settlement and your payee details outside the app, then record the bank transfer reference in your payout history. FieldNote never asks for bank details in the app.'**
   String get sponsorPayoutManualDetail;
 
   /// No description provided for @sponsorCheckoutFullyFundedTitle.
@@ -6457,6 +6457,558 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Private photographs are not embedded in this report.'**
   String get exportPdfPhotosNotice;
+
+  /// No description provided for @manualPayoutFunds.
+  ///
+  /// In en, this message translates to:
+  /// **'Campaign funds'**
+  String get manualPayoutFunds;
+
+  /// No description provided for @manualPayoutRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Request payout'**
+  String get manualPayoutRequest;
+
+  /// No description provided for @manualPayoutRequestNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Request the full eligible balance. Operations verify settlement and your payee details outside the app before transferring funds. Agreed fees may reduce the final amount. Submitting a request does not send money.'**
+  String get manualPayoutRequestNotice;
+
+  /// No description provided for @manualPayoutRequested.
+  ///
+  /// In en, this message translates to:
+  /// **'Requested'**
+  String get manualPayoutRequested;
+
+  /// No description provided for @manualPayoutProcessing.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing'**
+  String get manualPayoutProcessing;
+
+  /// No description provided for @manualPayoutPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid out'**
+  String get manualPayoutPaid;
+
+  /// No description provided for @manualPayoutRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Rejected'**
+  String get manualPayoutRejected;
+
+  /// No description provided for @manualPayoutRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh payout records'**
+  String get manualPayoutRefresh;
+
+  /// No description provided for @manualPayoutEligible.
+  ///
+  /// In en, this message translates to:
+  /// **'Eligible live funding'**
+  String get manualPayoutEligible;
+
+  /// No description provided for @manualPayoutAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Available to request'**
+  String get manualPayoutAvailable;
+
+  /// No description provided for @manualPayoutReserved.
+  ///
+  /// In en, this message translates to:
+  /// **'Reserved for requests'**
+  String get manualPayoutReserved;
+
+  /// No description provided for @manualPayoutLiveRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Real requests require Razorpay Live keys. Test and unclassified legacy payments cannot fund real payouts.'**
+  String get manualPayoutLiveRequired;
+
+  /// No description provided for @manualPayoutCompletionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Payouts unlock after campaign completion.'**
+  String get manualPayoutCompletionRequired;
+
+  /// No description provided for @manualPayoutHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Payout request history'**
+  String get manualPayoutHistory;
+
+  /// No description provided for @manualPayoutGross.
+  ///
+  /// In en, this message translates to:
+  /// **'Gross amount'**
+  String get manualPayoutGross;
+
+  /// No description provided for @manualPayoutNet.
+  ///
+  /// In en, this message translates to:
+  /// **'Bank transfer amount'**
+  String get manualPayoutNet;
+
+  /// No description provided for @manualPayoutDeductions.
+  ///
+  /// In en, this message translates to:
+  /// **'Agreed deductions'**
+  String get manualPayoutDeductions;
+
+  /// No description provided for @manualPayoutBankReference.
+  ///
+  /// In en, this message translates to:
+  /// **'Bank transfer reference (UTR)'**
+  String get manualPayoutBankReference;
+
+  /// No description provided for @manualPayoutOperations.
+  ///
+  /// In en, this message translates to:
+  /// **'Payout operations'**
+  String get manualPayoutOperations;
+
+  /// No description provided for @manualPayoutApprove.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve for transfer'**
+  String get manualPayoutApprove;
+
+  /// No description provided for @manualPayoutReject.
+  ///
+  /// In en, this message translates to:
+  /// **'Reject request'**
+  String get manualPayoutReject;
+
+  /// No description provided for @manualPayoutReviewNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve only after matching payments have settled into the business bank account and the creator payee has been verified. Enter opaque evidence references, not bank account numbers or KYC documents. Approval reserves funds; it does not transfer them.'**
+  String get manualPayoutReviewNotice;
+
+  /// No description provided for @manualPayoutSettlementReference.
+  ///
+  /// In en, this message translates to:
+  /// **'Settlement verification reference'**
+  String get manualPayoutSettlementReference;
+
+  /// No description provided for @manualPayoutPayeeReference.
+  ///
+  /// In en, this message translates to:
+  /// **'Payee verification reference'**
+  String get manualPayoutPayeeReference;
+
+  /// No description provided for @manualPayoutDeductionInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Agreed deductions in INR (e.g. 10.50)'**
+  String get manualPayoutDeductionInput;
+
+  /// No description provided for @manualPayoutInvalidAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid amount smaller than the requested amount.'**
+  String get manualPayoutInvalidAmount;
+
+  /// No description provided for @manualPayoutReviewNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Creator-visible review note and fee explanation'**
+  String get manualPayoutReviewNote;
+
+  /// No description provided for @manualPayoutRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter at least 3 characters (references: maximum 120).'**
+  String get manualPayoutRequired;
+
+  /// No description provided for @manualPayoutRecordPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Record completed transfer'**
+  String get manualPayoutRecordPaid;
+
+  /// No description provided for @manualPayoutPaidNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm the bank transfer succeeded for the approved net amount, then record its reference. This action records an external transfer; it does not initiate one. Keep the request processing if the bank outcome is uncertain.'**
+  String get manualPayoutPaidNotice;
+
+  /// No description provided for @manualPayoutOperationsNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Restricted operations queue. Verify settlement and payee details, transfer the approved amount through your bank, then record its reference. Never record Test Mode funds as real transfers.'**
+  String get manualPayoutOperationsNotice;
+
+  /// No description provided for @manualPayoutEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No payout requests yet.'**
+  String get manualPayoutEmpty;
+
+  /// No description provided for @manualPayoutCampaign.
+  ///
+  /// In en, this message translates to:
+  /// **'Campaign'**
+  String get manualPayoutCampaign;
+
+  /// No description provided for @manualPayoutCreator.
+  ///
+  /// In en, this message translates to:
+  /// **'Creator account ID'**
+  String get manualPayoutCreator;
+
+  /// No description provided for @manualPayoutLoadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Load more requests'**
+  String get manualPayoutLoadMore;
+
+  /// No description provided for @impactReportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Campaign impact report'**
+  String get impactReportTitle;
+
+  /// No description provided for @impactReportRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh report'**
+  String get impactReportRefresh;
+
+  /// No description provided for @impactReportLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the campaign report. Try again.'**
+  String get impactReportLoadFailed;
+
+  /// No description provided for @impactReportExportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save or share the report. Try again.'**
+  String get impactReportExportFailed;
+
+  /// No description provided for @impactReportStarts.
+  ///
+  /// In en, this message translates to:
+  /// **'Starts'**
+  String get impactReportStarts;
+
+  /// No description provided for @impactReportEnds.
+  ///
+  /// In en, this message translates to:
+  /// **'Ends'**
+  String get impactReportEnds;
+
+  /// No description provided for @impactReportRetrieved.
+  ///
+  /// In en, this message translates to:
+  /// **'Retrieved'**
+  String get impactReportRetrieved;
+
+  /// No description provided for @impactReportNetFunding.
+  ///
+  /// In en, this message translates to:
+  /// **'Net credited funding'**
+  String get impactReportNetFunding;
+
+  /// No description provided for @impactReportGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'Funding goal'**
+  String get impactReportGoal;
+
+  /// No description provided for @impactReportRefunds.
+  ///
+  /// In en, this message translates to:
+  /// **'Processed refunds'**
+  String get impactReportRefunds;
+
+  /// No description provided for @impactReportParticipants.
+  ///
+  /// In en, this message translates to:
+  /// **'Active participants'**
+  String get impactReportParticipants;
+
+  /// No description provided for @impactReportSubmitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Submitted contributions'**
+  String get impactReportSubmitted;
+
+  /// No description provided for @impactReportApproved.
+  ///
+  /// In en, this message translates to:
+  /// **'Sponsor-approved contributions'**
+  String get impactReportApproved;
+
+  /// No description provided for @impactReportPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Awaiting review'**
+  String get impactReportPending;
+
+  /// No description provided for @impactReportChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes requested'**
+  String get impactReportChanges;
+
+  /// No description provided for @impactReportRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Rejected'**
+  String get impactReportRejected;
+
+  /// No description provided for @impactReportDemoCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo GPS evidence'**
+  String get impactReportDemoCount;
+
+  /// No description provided for @impactReportEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No sponsor-approved contributions yet.'**
+  String get impactReportEmpty;
+
+  /// No description provided for @impactReportEvidence.
+  ///
+  /// In en, this message translates to:
+  /// **'Evidence'**
+  String get impactReportEvidence;
+
+  /// No description provided for @impactReportSubmittedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Submitted'**
+  String get impactReportSubmittedAt;
+
+  /// No description provided for @impactReportReviewedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviewed'**
+  String get impactReportReviewedAt;
+
+  /// No description provided for @impactReportNotRecorded.
+  ///
+  /// In en, this message translates to:
+  /// **'Not recorded'**
+  String get impactReportNotRecorded;
+
+  /// No description provided for @impactReportDemoGps.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo GPS — simulated location'**
+  String get impactReportDemoGps;
+
+  /// No description provided for @impactReportLiveGps.
+  ///
+  /// In en, this message translates to:
+  /// **'Live GPS submission'**
+  String get impactReportLiveGps;
+
+  /// No description provided for @impactReportAiSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'AI-assisted summary'**
+  String get impactReportAiSummary;
+
+  /// No description provided for @impactReportManualSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual summary'**
+  String get impactReportManualSummary;
+
+  /// No description provided for @impactReportEvidenceNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Contributions are volunteer-reported and sponsor-approved, not independently verified outcomes. Photos and location checks do not establish every claimed quantity. No environmental or carbon totals are inferred.'**
+  String get impactReportEvidenceNotice;
+
+  /// No description provided for @impactReportSharingNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Later reviews and refunds can change the next report. Private photos and exact coordinates are omitted. Review summary text before sharing outside the team. PDF labels are in English.'**
+  String get impactReportSharingNotice;
+
+  /// No description provided for @notificationsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get notificationsTitle;
+
+  /// No description provided for @notificationsUnreadOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Unread only'**
+  String get notificationsUnreadOnly;
+
+  /// No description provided for @notificationsMarkAllRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark all read'**
+  String get notificationsMarkAllRead;
+
+  /// No description provided for @notificationsEnablePush.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable device alerts'**
+  String get notificationsEnablePush;
+
+  /// No description provided for @notificationsPushEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Device alerts enabled.'**
+  String get notificationsPushEnabled;
+
+  /// No description provided for @notificationsPushUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Device alerts are unavailable here. Your inbox still works.'**
+  String get notificationsPushUnavailable;
+
+  /// No description provided for @notificationsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load notifications. Check your connection and try again.'**
+  String get notificationsLoadFailed;
+
+  /// No description provided for @notificationsActionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not complete this action. Check notification permissions and try again.'**
+  String get notificationsActionFailed;
+
+  /// No description provided for @notificationsRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get notificationsRetry;
+
+  /// No description provided for @notificationsClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get notificationsClose;
+
+  /// No description provided for @notificationsViewActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'View activity'**
+  String get notificationsViewActivity;
+
+  /// No description provided for @notificationsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Your updates will appear here.'**
+  String get notificationsEmpty;
+
+  /// No description provided for @notificationsAllCaughtUp.
+  ///
+  /// In en, this message translates to:
+  /// **'You have no unread notifications.'**
+  String get notificationsAllCaughtUp;
+
+  /// No description provided for @notificationsLoadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Load more'**
+  String get notificationsLoadMore;
+
+  /// No description provided for @notificationsNewUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'You have a new FieldNote update.'**
+  String get notificationsNewUpdate;
+
+  /// No description provided for @notificationsOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get notificationsOpen;
+
+  /// No description provided for @notificationsUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This update is no longer available for this account.'**
+  String get notificationsUnavailable;
+
+  /// No description provided for @campaignDiscussionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Campaign discussion'**
+  String get campaignDiscussionTitle;
+
+  /// No description provided for @campaignDiscussionDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'One shared room for the campaigner and joined volunteers. Ask questions and talk with the whole team.'**
+  String get campaignDiscussionDescription;
+
+  /// No description provided for @campaignDiscussionEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Start the discussion. Everyone in this campaign can reply.'**
+  String get campaignDiscussionEmpty;
+
+  /// No description provided for @campaignDiscussionReadOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'This campaign is closed. You can still read the discussion.'**
+  String get campaignDiscussionReadOnly;
+
+  /// No description provided for @campaignDiscussionNoAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'You no longer have access to this campaign discussion.'**
+  String get campaignDiscussionNoAccess;
+
+  /// No description provided for @campaignDiscussionReconnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting to the discussion…'**
+  String get campaignDiscussionReconnecting;
+
+  /// No description provided for @campaignDiscussionOlder.
+  ///
+  /// In en, this message translates to:
+  /// **'Load earlier messages'**
+  String get campaignDiscussionOlder;
+
+  /// No description provided for @campaignDiscussionYou.
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get campaignDiscussionYou;
+
+  /// No description provided for @campaignDiscussionCampaigner.
+  ///
+  /// In en, this message translates to:
+  /// **'Campaigner'**
+  String get campaignDiscussionCampaigner;
+
+  /// No description provided for @campaignDiscussionVolunteer.
+  ///
+  /// In en, this message translates to:
+  /// **'Volunteer'**
+  String get campaignDiscussionVolunteer;
+
+  /// No description provided for @campaignDiscussionCompose.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask a question or write a message'**
+  String get campaignDiscussionCompose;
+
+  /// No description provided for @campaignDiscussionSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send message'**
+  String get campaignDiscussionSend;
 }
 
 class _AppLocalizationsDelegate

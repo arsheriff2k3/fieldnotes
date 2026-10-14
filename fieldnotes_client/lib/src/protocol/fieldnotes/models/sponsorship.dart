@@ -22,6 +22,7 @@ abstract class Sponsorship
     int? amountPaise,
     this.message,
     String? paymentProvider,
+    this.paymentTestMode,
     String? paymentStatus,
     this.providerOrderId,
     this.providerPaymentId,
@@ -46,6 +47,7 @@ abstract class Sponsorship
     int? amountPaise,
     String? message,
     String? paymentProvider,
+    bool? paymentTestMode,
     String? paymentStatus,
     String? providerOrderId,
     String? providerPaymentId,
@@ -69,6 +71,11 @@ abstract class Sponsorship
       amountPaise: jsonSerialization['amountPaise'] as int?,
       message: jsonSerialization['message'] as String?,
       paymentProvider: jsonSerialization['paymentProvider'] as String?,
+      paymentTestMode: jsonSerialization['paymentTestMode'] == null
+          ? null
+          : _isc.BoolJsonExtension.fromJson(
+              jsonSerialization['paymentTestMode'],
+            ),
       paymentStatus: jsonSerialization['paymentStatus'] as String?,
       providerOrderId: jsonSerialization['providerOrderId'] as String?,
       providerPaymentId: jsonSerialization['providerPaymentId'] as String?,
@@ -111,6 +118,8 @@ abstract class Sponsorship
 
   String paymentProvider;
 
+  bool? paymentTestMode;
+
   String paymentStatus;
 
   String? providerOrderId;
@@ -142,6 +151,7 @@ abstract class Sponsorship
     int? amountPaise,
     String? message,
     String? paymentProvider,
+    bool? paymentTestMode,
     String? paymentStatus,
     String? providerOrderId,
     String? providerPaymentId,
@@ -164,6 +174,7 @@ abstract class Sponsorship
       'amountPaise': amountPaise,
       if (message != null) 'message': message,
       'paymentProvider': paymentProvider,
+      if (paymentTestMode != null) 'paymentTestMode': paymentTestMode,
       'paymentStatus': paymentStatus,
       if (providerOrderId != null) 'providerOrderId': providerOrderId,
       if (providerPaymentId != null) 'providerPaymentId': providerPaymentId,
@@ -189,6 +200,7 @@ abstract class Sponsorship
       'amountPaise': amountPaise,
       if (message != null) 'message': message,
       'paymentProvider': paymentProvider,
+      if (paymentTestMode != null) 'paymentTestMode': paymentTestMode,
       'paymentStatus': paymentStatus,
       if (providerOrderId != null) 'providerOrderId': providerOrderId,
       if (providerPaymentId != null) 'providerPaymentId': providerPaymentId,
@@ -220,6 +232,7 @@ class _SponsorshipImpl extends Sponsorship {
     int? amountPaise,
     String? message,
     String? paymentProvider,
+    bool? paymentTestMode,
     String? paymentStatus,
     String? providerOrderId,
     String? providerPaymentId,
@@ -238,6 +251,7 @@ class _SponsorshipImpl extends Sponsorship {
          amountPaise: amountPaise,
          message: message,
          paymentProvider: paymentProvider,
+         paymentTestMode: paymentTestMode,
          paymentStatus: paymentStatus,
          providerOrderId: providerOrderId,
          providerPaymentId: providerPaymentId,
@@ -262,6 +276,7 @@ class _SponsorshipImpl extends Sponsorship {
     int? amountPaise,
     Object? message = _Undefined,
     String? paymentProvider,
+    Object? paymentTestMode = _Undefined,
     String? paymentStatus,
     Object? providerOrderId = _Undefined,
     Object? providerPaymentId = _Undefined,
@@ -281,6 +296,9 @@ class _SponsorshipImpl extends Sponsorship {
       amountPaise: amountPaise ?? this.amountPaise,
       message: message is String? ? message : this.message,
       paymentProvider: paymentProvider ?? this.paymentProvider,
+      paymentTestMode: paymentTestMode is bool?
+          ? paymentTestMode
+          : this.paymentTestMode,
       paymentStatus: paymentStatus ?? this.paymentStatus,
       providerOrderId: providerOrderId is String?
           ? providerOrderId

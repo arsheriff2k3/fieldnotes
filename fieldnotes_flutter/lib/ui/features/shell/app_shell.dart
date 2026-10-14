@@ -1,9 +1,11 @@
 import 'dart:math' as math;
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 
 import '../../../data/repositories/fieldnote_repository.dart';
 import '../../../data/services/campaign_link_service.dart';
+import '../../../data/services/firebase_push_service.dart';
 import '../../core/error_messages.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/widgets.dart';
@@ -15,33 +17,224 @@ import '../sponsor/sponsor_views.dart';
 import '../trust/account_deletion.dart';
 import '../trust/trust_center_view.dart';
 import '../volunteer/volunteer_views.dart';
+import '../volunteer/volunteer_history_view.dart';
+import '../sponsor/payment_history_view.dart';
+import '../notifications/notification_view_model.dart';
+import '../notifications/notifications_view.dart';
+import 'package:fieldnotes_client/fieldnotes_client.dart';
 import 'fieldnote_view_model.dart';
 
 class AppShell extends StatefulWidget {
-  const AppShell({super.key, required this.campaignLink});
+  const AppShell({super.key, required this.campaignLink, this.repository});
 
   final ValueNotifier<CampaignLinkTarget?> campaignLink;
+  final FieldnoteRepository? repository;
 
   @override
   State<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   late final FieldnoteViewModel _viewModel;
   late final SponsorVoiceActionController _sponsorVoiceController;
   bool _openingCampaignLink = false;
   bool _errorScheduled = false;
   bool _deletionSignOutStarted = false;
+  late final NotificationViewModel _notifications;
+  Timer? _notificationPoll;
+  bool _notificationsStarted = false;
+  bool _openingNotification = false;
+  bool _inboxOpen = false;
 
   @override
   void initState() {
     super.initState();
     _sponsorVoiceController = SponsorVoiceActionController();
-    _viewModel = FieldnoteViewModel(FieldnoteRepository())..initialize();
+    _viewModel = FieldnoteViewModel(widget.repository ?? FieldnoteRepository())
+      ..initialize();
+    _notifications = NotificationViewModel(_viewModel.repository);
+    WidgetsBinding.instance.addObserver(this);
+    _viewModel.addListener(_syncNotifications);
+    FirebasePushService.instance.incoming.addListener(_foregroundPush);
+    FirebasePushService.instance.opened.addListener(_openedPush);
     widget.campaignLink.addListener(_openCampaignLinkIfReady);
     _viewModel.addListener(_openCampaignLinkIfReady);
     _viewModel.addListener(_showLastErrorIfAny);
     _viewModel.addListener(_signOutWhenDeleted);
+  }
+
+  void _syncNotifications() {
+    if (!mounted ||
+        _viewModel.loading ||
+        _viewModel.profile == null ||
+        _viewModel.needsConsentForCurrentPolicy) {
+      return;
+    }
+    if (!_notificationsStarted) {
+      _notificationsStarted = true;
+      unawaited(
+        FirebasePushService.instance.attach(
+          _viewModel.repository,
+          _viewModel.profile!.authUserId.uuid,
+        ),
+      );
+      unawaited(_notifications.refreshCount());
+      _startNotificationPoll();
+    }
+    _openedPush();
+  }
+
+  void _startNotificationPoll() {
+    _notificationPoll?.cancel();
+    _notificationPoll = Timer.periodic(const Duration(seconds: 60), (_) {
+      if (_inboxOpen) {
+        unawaited(_notifications.refresh());
+      } else {
+        unawaited(_notifications.refreshCount());
+      }
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _notificationPoll?.cancel();
+    if (state == AppLifecycleState.resumed && _notificationsStarted) {
+      unawaited(FirebasePushService.instance.resume());
+      unawaited(
+        _inboxOpen ? _notifications.refresh() : _notifications.refreshCount(),
+      );
+      _startNotificationPoll();
+    }
+  }
+
+  void _foregroundPush() {
+    final id = FirebasePushService.instance.incoming.value;
+    if (!_notificationsStarted || id == null) return;
+    FirebasePushService.instance.incoming.value = null;
+    unawaited(_showForegroundPush(id));
+  }
+
+  Future<void> _showForegroundPush(int id) async {
+    try {
+      final item = await _viewModel.repository.notification(id);
+      if (!mounted || item == null) return;
+      await (_inboxOpen
+          ? _notifications.refresh()
+          : _notifications.refreshCount());
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.l10n.notificationsNewUpdate),
+          action: SnackBarAction(
+            label: context.l10n.notificationsOpen,
+            onPressed: () => unawaited(_openPush(id)),
+          ),
+        ),
+      );
+    } catch (_) {}
+  }
+
+  void _openedPush() {
+    final id = FirebasePushService.instance.opened.value;
+    if (!_notificationsStarted || id == null || _openingNotification) return;
+    FirebasePushService.instance.opened.value = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(_openPush(id));
+    });
+  }
+
+  Future<void> _openPush(int id) async {
+    if (_openingNotification) return;
+    _openingNotification = true;
+    try {
+      final item = await _viewModel.repository.notification(id);
+      if (!mounted) return;
+      if (item == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.notificationsUnavailable)),
+        );
+        return;
+      }
+      await _notifications.markRead(item);
+      if (!mounted) return;
+      final l10n = context.l10n;
+      final navigate = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(item.title),
+          content: SingleChildScrollView(child: Text(item.body)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l10n.notificationsClose),
+            ),
+            if (item.campaignId != null)
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(l10n.notificationsViewActivity),
+              ),
+          ],
+        ),
+      );
+      if (navigate == true && mounted) await _routeNotification(item);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.notificationsActionFailed)),
+        );
+      }
+    } finally {
+      _openingNotification = false;
+      if (mounted) _openedPush();
+    }
+  }
+
+  Future<void> _routeNotification(NotificationItem item) async {
+    await _viewModel.refresh();
+    if (!mounted) return;
+    if (_viewModel.isSponsor) {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => PaymentHistoryView(viewModel: _viewModel),
+        ),
+      );
+    } else if (const {
+      'evidenceApproved',
+      'evidenceRejected',
+      'campaignCancelled',
+      'campaignExpired',
+    }.contains(item.kind)) {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => VolunteerHistoryScreen(viewModel: _viewModel),
+        ),
+      );
+    } else if (item.kind == 'invitationReceived' && item.campaignId != null) {
+      await openSharedCampaignLink(
+        context,
+        _viewModel,
+        CampaignLinkTarget.id(item.campaignId!),
+      );
+    } else {
+      _viewModel.selectSection(1);
+    }
+  }
+
+  Future<void> _openInbox() async {
+    if (_inboxOpen) return;
+    _inboxOpen = true;
+    try {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => NotificationsView(
+            viewModel: _notifications,
+            onOpen: _routeNotification,
+          ),
+        ),
+      );
+    } finally {
+      _inboxOpen = false;
+    }
   }
 
   /// S-7: surfaces non-fatal errors as a dismissible notice once a profile is
@@ -116,6 +309,13 @@ class _AppShellState extends State<AppShell> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _notificationPoll?.cancel();
+    _viewModel.removeListener(_syncNotifications);
+    FirebasePushService.instance.incoming.removeListener(_foregroundPush);
+    FirebasePushService.instance.opened.removeListener(_openedPush);
+    FirebasePushService.instance.detach();
+    _notifications.dispose();
     widget.campaignLink.removeListener(_openCampaignLinkIfReady);
     _viewModel.removeListener(_openCampaignLinkIfReady);
     _viewModel.removeListener(_showLastErrorIfAny);
@@ -241,9 +441,37 @@ class _AppShellState extends State<AppShell> {
                       bottom: false,
                       child: Stack(
                         children: [
-                          IndexedStack(
-                            index: _viewModel.selectedIndex,
-                            children: pages,
+                          Column(
+                            children: [
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: ListenableBuilder(
+                                  listenable: _notifications,
+                                  builder: (context, _) => IconButton(
+                                    tooltip: l10n.notificationsTitle,
+                                    onPressed: _openInbox,
+                                    icon: Badge(
+                                      isLabelVisible:
+                                          _notifications.unreadCount > 0,
+                                      label: Text(
+                                        _notifications.unreadCount > 99
+                                            ? '99+'
+                                            : '${_notifications.unreadCount}',
+                                      ),
+                                      child: const Icon(
+                                        Icons.notifications_outlined,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: IndexedStack(
+                                  index: _viewModel.selectedIndex,
+                                  children: pages,
+                                ),
+                              ),
+                            ],
                           ),
                           if (_viewModel.working)
                             const Positioned(
@@ -650,7 +878,7 @@ class _DesktopNavigation extends StatelessWidget {
           Row(
             children: [
               Icon(Icons.eco, color: c.acid),
-              const SizedBox(width: 9),
+              const SizedBox(width: FieldnoteSpacing.xs),
               Text(
                 'FIELDNOTE',
                 style: TextStyle(
@@ -661,7 +889,7 @@ class _DesktopNavigation extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: FieldnoteSpacing.sm),
           Text(
             viewModel.isSponsor
                 ? context.l10n.shellSponsorWorkspace
@@ -710,7 +938,7 @@ class _DesktopNavigation extends StatelessWidget {
                   viewModel.profile!.displayName.characters.first.toUpperCase(),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: FieldnoteSpacing.sm),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -757,12 +985,12 @@ class _LoadingView extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.eco, size: 44, color: context.fieldnoteColors.forest),
-          const SizedBox(height: 18),
+          const SizedBox(height: FieldnoteSpacing.md),
           Text(
             context.l10n.shellLoading,
             style: Theme.of(context).textTheme.titleMedium,
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: FieldnoteSpacing.md),
           const SizedBox(width: 180, child: LinearProgressIndicator()),
         ],
       ),
@@ -793,7 +1021,7 @@ class _ErrorView extends StatelessWidget {
                     : context.l10n.shellCouldNotLoad,
                 message: message,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: FieldnoteSpacing.sm),
               FilledButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh),

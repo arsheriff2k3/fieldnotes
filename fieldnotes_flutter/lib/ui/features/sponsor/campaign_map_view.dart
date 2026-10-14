@@ -108,7 +108,7 @@ class _CampaignProofMapState extends State<CampaignProofMap> {
               ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: FieldnoteSpacing.sm),
         FieldnoteMap(
           target: campaignPoint,
           zoom: zoomForRadius(widget.campaign.geofenceMeters),
@@ -182,7 +182,7 @@ class _CampaignProofMapState extends State<CampaignProofMap> {
             ),
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: FieldnoteSpacing.sm),
         MapLegend(
           entries: [
             (
@@ -200,7 +200,7 @@ class _CampaignProofMapState extends State<CampaignProofMap> {
           ],
         ),
         if (overview != null) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: FieldnoteSpacing.sm),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -235,14 +235,14 @@ class _CampaignProofMapState extends State<CampaignProofMap> {
             ],
           ),
           if (overview.demoCount > 0) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: FieldnoteSpacing.xs),
             Text(
               l10n.sponsorCampaignMapLegacyNote,
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
         ],
-        const SizedBox(height: 10),
+        const SizedBox(height: FieldnoteSpacing.sm),
         Align(
           alignment: Alignment.centerLeft,
           child: TextButton.icon(
@@ -298,7 +298,7 @@ class EvidenceProvenanceSheet extends StatelessWidget {
     );
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+        padding: FieldnoteSpacing.sheetPadding(context),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -308,7 +308,7 @@ class EvidenceProvenanceSheet extends StatelessWidget {
               title: l10n.sponsorCampaignMapProvenanceTitle,
               description: evidence.confirmedSummary,
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: FieldnoteSpacing.md),
             FieldnoteMap(
               target: evidencePoint,
               zoom: zoomForRadius(campaign.geofenceMeters),
@@ -358,7 +358,7 @@ class EvidenceProvenanceSheet extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: FieldnoteSpacing.md),
             StatusPill(
               label: evidence.locationIsDemo
                   ? l10n.sponsorCampaignMapLegacyLocation
@@ -372,7 +372,7 @@ class EvidenceProvenanceSheet extends StatelessWidget {
                   ? Icons.science_outlined
                   : Icons.gps_fixed,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: FieldnoteSpacing.md),
             _fact(
               context,
               Icons.straighten,
@@ -395,12 +395,12 @@ class EvidenceProvenanceSheet extends StatelessWidget {
                 context.localeTag,
               ).add_jm().format(evidence.submittedAt.toLocal()),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: FieldnoteSpacing.sm),
             Text(
               l10n.sponsorCampaignMapServerChecks,
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: FieldnoteSpacing.xs),
             ...evidence.locationIntegrityReasons
                 .split('|')
                 .map((reason) => reason.trim())
@@ -416,13 +416,13 @@ class EvidenceProvenanceSheet extends StatelessWidget {
                           size: 17,
                           color: context.fieldnoteColors.moss,
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: FieldnoteSpacing.xs),
                         Expanded(child: Text(reason)),
                       ],
                     ),
                   ),
                 ),
-            const SizedBox(height: 14),
+            const SizedBox(height: FieldnoteSpacing.md),
             OutlinedButton.icon(
               onPressed: () => Navigator.of(context).push<void>(
                 MaterialPageRoute(
@@ -452,7 +452,7 @@ class EvidenceProvenanceSheet extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Icon(icon, size: 18, color: context.fieldnoteColors.moss),
-        const SizedBox(width: 8),
+        const SizedBox(width: FieldnoteSpacing.xs),
         Expanded(child: Text(text)),
       ],
     ),

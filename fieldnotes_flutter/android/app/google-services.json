@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "237416387779",
+    "project_id": "fieldnote-push-20261014",
+    "storage_bucket": "fieldnote-push-20261014.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:237416387779:android:3e758325a9a961e2fc3e76",
+        "android_client_info": {
+          "package_name": "com.example.fieldnotes_flutter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDvCS6R7kBXI82ri04SiW7zm9NXHGEJfjA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

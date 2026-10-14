@@ -115,13 +115,13 @@ class _LegalConsentGateState extends State<LegalConsentGate> {
                       size: 52,
                       color: context.fieldnoteColors.forest,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: FieldnoteSpacing.md),
                     SectionHeading(
                       eyebrow: l10n.consentGateEyebrow,
                       title: l10n.consentGateTitle,
                       description: _description(),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: FieldnoteSpacing.md),
                     SurfaceCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -149,7 +149,7 @@ class _LegalConsentGateState extends State<LegalConsentGate> {
                             policies: policies,
                             onRetry: _viewModel.loadLegalPolicies,
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: FieldnoteSpacing.xs),
                           SizedBox(
                             width: double.infinity,
                             child: FilledButton.icon(
@@ -164,7 +164,7 @@ class _LegalConsentGateState extends State<LegalConsentGate> {
                             ),
                           ),
                           if (!requiredConsentsGiven(_values, policies)) ...[
-                            const SizedBox(height: 8),
+                            const SizedBox(height: FieldnoteSpacing.xs),
                             Text(
                               l10n.consentCheckRequired,
                               style: Theme.of(context).textTheme.bodySmall,
@@ -173,7 +173,7 @@ class _LegalConsentGateState extends State<LegalConsentGate> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: FieldnoteSpacing.sm),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -215,7 +215,7 @@ Future<bool?> confirmSignOut(BuildContext context, {bool allDevices = false}) {
   final l10n = context.l10n;
   return showDialog<bool>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    builder: (dialogContext) => fieldnoteDialog(
       title: Text(
         allDevices ? l10n.signOutAllDevicesTitle : l10n.signOutTitle,
       ),
@@ -292,7 +292,7 @@ class _TrustCenterViewState extends State<TrustCenterView> {
             title: l10n.trustTitle,
             description: l10n.trustDescription,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: FieldnoteSpacing.md),
           if (trust == null)
             EmptyPanel(
               icon: Icons.shield_outlined,
@@ -321,11 +321,11 @@ class _TrustCenterViewState extends State<TrustCenterView> {
                 ),
               ],
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: FieldnoteSpacing.md),
             _privacyControls(context, trust),
-            const SizedBox(height: 18),
+            const SizedBox(height: FieldnoteSpacing.md),
             _consentHistory(context),
-            const SizedBox(height: 18),
+            const SizedBox(height: FieldnoteSpacing.md),
             SurfaceCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -334,14 +334,14 @@ class _TrustCenterViewState extends State<TrustCenterView> {
                     l10n.trustSecurityActivity,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: FieldnoteSpacing.sm),
                   if (trust.recentEvents.isEmpty)
                     Text(l10n.trustNoSecurityEvents)
                   else ...[
                     for (final event in trust.recentEvents.take(3))
                       _activityTile(context, event),
                     if (trust.recentEvents.length > 3) ...[
-                      const SizedBox(height: 8),
+                      const SizedBox(height: FieldnoteSpacing.xs),
                       Align(
                         alignment: Alignment.centerLeft,
                         child: TextButton.icon(
@@ -360,7 +360,7 @@ class _TrustCenterViewState extends State<TrustCenterView> {
                 ],
               ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: FieldnoteSpacing.md),
             AccountDeletionCard(viewModel: viewModel),
           ],
         ],
@@ -384,7 +384,7 @@ class _TrustCenterViewState extends State<TrustCenterView> {
                 Icons.privacy_tip_outlined,
                 color: c.forest,
               ),
-              const SizedBox(width: 9),
+              const SizedBox(width: FieldnoteSpacing.xs),
               Expanded(
                 child: Text(
                   l10n.trustPrivacyControls,
@@ -393,7 +393,7 @@ class _TrustCenterViewState extends State<TrustCenterView> {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: FieldnoteSpacing.xs),
           StatusPill(
             label: current
                 ? l10n.trustConsentRecorded
@@ -404,7 +404,7 @@ class _TrustCenterViewState extends State<TrustCenterView> {
             icon: current ? Icons.check_circle_outline : Icons.error_outline,
           ),
           if (consent != null) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: FieldnoteSpacing.xs),
             Text(
               current
                   ? l10n.trustConsentAccepted(
@@ -418,9 +418,9 @@ class _TrustCenterViewState extends State<TrustCenterView> {
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
-          const SizedBox(height: 12),
+          const SizedBox(height: FieldnoteSpacing.sm),
           Text(trust.retentionNotice),
-          const SizedBox(height: 6),
+          const SizedBox(height: FieldnoteSpacing.xs),
           Text(
             l10n.trustCurrentVersions(
               trust.privacyPolicyVersion,
@@ -432,7 +432,7 @@ class _TrustCenterViewState extends State<TrustCenterView> {
             policies: viewModel.legalPolicies,
             onRetry: viewModel.loadLegalPolicies,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: FieldnoteSpacing.sm),
           Wrap(
             spacing: 10,
             runSpacing: 10,
@@ -468,7 +468,7 @@ class _TrustCenterViewState extends State<TrustCenterView> {
             context.l10n.trustConsentHistory,
             style: Theme.of(context).textTheme.titleLarge,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: FieldnoteSpacing.sm),
           if (history.isEmpty)
             Text(context.l10n.trustNoConsentChanges)
           else
@@ -511,7 +511,7 @@ class _TrustCenterViewState extends State<TrustCenterView> {
     final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => fieldnoteDialog(
         title: Text(l10n.trustWithdrawTitle),
         content: Text(l10n.trustWithdrawBody),
         actions: [
@@ -577,7 +577,7 @@ class _TrustCenterViewState extends State<TrustCenterView> {
   }
 
   void _showActivity(BuildContext context, List<AuditEvent> events) {
-    showModalBottomSheet<void>(
+    showFieldnoteBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
@@ -590,7 +590,10 @@ class _TrustCenterViewState extends State<TrustCenterView> {
         builder: (context, controller) => Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+              padding: FieldnoteSpacing.sheetPadding(
+                context,
+                bottom: FieldnoteSpacing.sm,
+              ),
               child: Row(
                 children: [
                   Expanded(
@@ -607,7 +610,7 @@ class _TrustCenterViewState extends State<TrustCenterView> {
             Expanded(
               child: ListView.separated(
                 controller: controller,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: FieldnoteSpacing.sheetPadding(context),
                 itemCount: events.length,
                 itemBuilder: (context, index) => _activityTile(
                   context,
@@ -674,7 +677,7 @@ class _ProtectionCard extends StatelessWidget {
           Row(
             children: [
               Icon(icon, color: context.fieldnoteColors.forest, size: 23),
-              const SizedBox(width: 10),
+              const SizedBox(width: FieldnoteSpacing.sm),
               Expanded(
                 child: Text(
                   title,
@@ -683,7 +686,7 @@ class _ProtectionCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: FieldnoteSpacing.xs),
           Text(detail, style: Theme.of(context).textTheme.bodySmall),
         ],
       ),

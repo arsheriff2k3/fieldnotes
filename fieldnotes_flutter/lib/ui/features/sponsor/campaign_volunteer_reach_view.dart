@@ -86,7 +86,7 @@ class _CampaignVolunteerReachViewState
     final count = _bucketSize(bucket);
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => fieldnoteDialog(
         title: Text(context.l10n.sponsorReachInviteTitle),
         content: Text(
           context.l10n.sponsorReachInviteBody(count, widget.campaign.name),
@@ -140,13 +140,13 @@ class _CampaignVolunteerReachViewState
   }
 
   void _showJoinedArea(_VolunteerAreaGroup area) {
-    showModalBottomSheet<void>(
+    showFieldnoteBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          padding: FieldnoteSpacing.sheetPadding(context),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -155,16 +155,17 @@ class _CampaignVolunteerReachViewState
                 context.l10n.sponsorReachJoinedInArea,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: FieldnoteSpacing.xs),
               Text(context.l10n.sponsorReachApproximateNote),
-              const SizedBox(height: 12),
+              const SizedBox(height: FieldnoteSpacing.sm),
               Flexible(
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: area.people.length,
                   itemBuilder: (context, index) =>
                       _personTile(area.people[index]),
-                  separatorBuilder: (_, _) => const SizedBox(height: 8),
+                  separatorBuilder: (_, _) =>
+                      const SizedBox(height: FieldnoteSpacing.xs),
                 ),
               ),
             ],
@@ -175,12 +176,12 @@ class _CampaignVolunteerReachViewState
   }
 
   void _showBucket(CampaignVolunteerMapMember bucket) {
-    showModalBottomSheet<void>(
+    showFieldnoteBottomSheet<void>(
       context: context,
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          padding: FieldnoteSpacing.sheetPadding(context),
           child: _bucketTile(
             bucket,
             onInvite: () {
@@ -212,7 +213,7 @@ class _CampaignVolunteerReachViewState
                   : person.displayName.characters.first.toUpperCase(),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: FieldnoteSpacing.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -231,7 +232,7 @@ class _CampaignVolunteerReachViewState
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: FieldnoteSpacing.xs),
           StatusPill(
             label: context.l10n.sponsorReachJoined,
             color: _statusColor('joined'),
@@ -252,37 +253,42 @@ class _CampaignVolunteerReachViewState
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            CircleAvatar(
-              backgroundColor: context.fieldnoteColors
-                  .adapt(_statusColor(bucket.status))
-                  .withValues(alpha: .16),
-              foregroundColor: context.fieldnoteColors.adapt(
-                _statusColor(bucket.status),
-              ),
-              child: const Icon(Icons.groups_outlined),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    context.l10n.sponsorReachBucketTitle(count),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleSmall,
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: context.fieldnoteColors
+                      .adapt(_statusColor(bucket.status))
+                      .withValues(alpha: .16),
+                  foregroundColor: context.fieldnoteColors.adapt(
+                    _statusColor(bucket.status),
                   ),
-                  Text(
-                    bucket.areaLabel,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                  child: const Icon(Icons.groups_outlined),
+                ),
+                const SizedBox(width: FieldnoteSpacing.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        context.l10n.sponsorReachBucketTitle(count),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      Text(
+                        bucket.areaLabel,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
+            const SizedBox(height: FieldnoteSpacing.sm),
             if (!invited && _invitationsOpen)
               FilledButton(
                 onPressed: _sending
@@ -327,7 +333,11 @@ class _CampaignVolunteerReachViewState
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+          padding: FieldnoteSpacing.sheetPadding(
+            context,
+            top: FieldnoteSpacing.md,
+            bottom: FieldnoteSpacing.xl,
+          ),
           children: [
             Text(
               widget.campaign.name,
@@ -335,12 +345,12 @@ class _CampaignVolunteerReachViewState
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.titleLarge,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: FieldnoteSpacing.xs),
             Text(
               l10n.sponsorReachPrivacyNote,
               style: Theme.of(context).textTheme.bodySmall,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: FieldnoteSpacing.sm),
             if (_loading)
               const Center(child: CircularProgressIndicator())
             else if (_error != null)
@@ -375,7 +385,7 @@ class _CampaignVolunteerReachViewState
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: FieldnoteSpacing.sm),
               FieldnoteMap(
                 target: campaignPoint,
                 height: 320,
@@ -439,7 +449,7 @@ class _CampaignVolunteerReachViewState
                       ),
                 },
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: FieldnoteSpacing.md),
               Wrap(
                 spacing: 12,
                 runSpacing: 6,
@@ -462,25 +472,25 @@ class _CampaignVolunteerReachViewState
                   ),
                 ],
               ),
-              const SizedBox(height: 22),
+              const SizedBox(height: FieldnoteSpacing.lg),
               Text(
                 l10n.sponsorReachJoined,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: FieldnoteSpacing.xs),
               if (joinedPeople.isEmpty)
                 Text(l10n.sponsorReachNoneJoined)
               else
                 for (final person in joinedPeople) ...[
                   _personTile(person),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: FieldnoteSpacing.xs),
                 ],
-              const SizedBox(height: 18),
+              const SizedBox(height: FieldnoteSpacing.md),
               Text(
                 l10n.sponsorReachNearbyAreas,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: FieldnoteSpacing.xs),
               if (buckets.isEmpty)
                 Text(
                   _invitationsOpen
@@ -490,7 +500,7 @@ class _CampaignVolunteerReachViewState
               else
                 for (final bucket in buckets) ...[
                   _bucketTile(bucket),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: FieldnoteSpacing.xs),
                 ],
             ],
           ],
@@ -567,8 +577,10 @@ class _MapLegend extends StatelessWidget {
         height: 10,
         decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       ),
-      const SizedBox(width: 5),
-      Text(label, style: Theme.of(context).textTheme.labelSmall),
+      const SizedBox(width: FieldnoteSpacing.xs),
+      Flexible(
+        child: Text(label, style: Theme.of(context).textTheme.labelSmall),
+      ),
     ],
   );
 }

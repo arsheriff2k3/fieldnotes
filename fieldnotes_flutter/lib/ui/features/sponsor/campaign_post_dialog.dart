@@ -104,8 +104,7 @@ class _CampaignPostDialogState extends State<_CampaignPostDialog> {
         final discard = await confirmDiscard(context);
         if (discard && context.mounted) Navigator.pop(context);
       },
-      child: AlertDialog(
-        scrollable: true,
+      child: fieldnoteDialog(
         title: Text(l10n.sponsorPostTitle),
         content: SizedBox(
           width: 480,
@@ -114,7 +113,7 @@ class _CampaignPostDialogState extends State<_CampaignPostDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(l10n.sponsorPostAudience(widget.campaign.name)),
-              const SizedBox(height: 14),
+              const SizedBox(height: FieldnoteSpacing.md),
               FieldnoteTextField(
                 controller: _title,
                 enabled: !_sending,
@@ -125,7 +124,7 @@ class _CampaignPostDialogState extends State<_CampaignPostDialog> {
                   labelText: l10n.sponsorPostTitleLabel,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: FieldnoteSpacing.xs),
               FieldnoteTextField(
                 controller: _body,
                 enabled: !_sending,
@@ -139,7 +138,7 @@ class _CampaignPostDialogState extends State<_CampaignPostDialog> {
                 ),
               ),
               if (_error != null) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: FieldnoteSpacing.xs),
                 Text(
                   _error!,
                   style: TextStyle(
@@ -179,7 +178,7 @@ Future<bool> confirmDiscard(BuildContext context) async {
   final l10n = context.l10n;
   final result = await showDialog<bool>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    builder: (dialogContext) => fieldnoteDialog(
       title: Text(l10n.sponsorDiscardTitle),
       content: Text(l10n.sponsorDiscardMessage),
       actions: [

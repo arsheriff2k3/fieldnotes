@@ -139,12 +139,12 @@ class _AccountDataExportViewState extends State<AccountDataExportView> {
               title: l10n.exportTitle,
               description: l10n.exportDescription,
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: FieldnoteSpacing.md),
             if (_busy && data == null)
               const Center(child: CircularProgressIndicator()),
             if (_error != null) ...[
               SurfaceCard(child: Text(_error!)),
-              const SizedBox(height: 12),
+              const SizedBox(height: FieldnoteSpacing.sm),
               OutlinedButton.icon(
                 onPressed: _load,
                 icon: const Icon(Icons.refresh),
@@ -160,11 +160,11 @@ class _AccountDataExportViewState extends State<AccountDataExportView> {
                       l10n.exportReportTitle,
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: FieldnoteSpacing.xs),
                     Text(
                       l10n.exportPreparedAt(data.generatedLabel),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: FieldnoteSpacing.md),
                     FilledButton.icon(
                       onPressed: _busy ? null : _sharePdf,
                       icon: const Icon(Icons.picture_as_pdf_outlined),
@@ -175,7 +175,7 @@ class _AccountDataExportViewState extends State<AccountDataExportView> {
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: FieldnoteSpacing.md),
               for (final section in data.sections.where(
                 (section) => section.records.isNotEmpty,
               )) ...[
@@ -198,10 +198,10 @@ class _AccountDataExportViewState extends State<AccountDataExportView> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: FieldnoteSpacing.sm),
               ],
               Text(l10n.exportPhotosNotice),
-              const SizedBox(height: 16),
+              const SizedBox(height: FieldnoteSpacing.md),
               SurfaceCard(
                 child: ExpansionTile(
                   tilePadding: EdgeInsets.zero,
@@ -209,7 +209,7 @@ class _AccountDataExportViewState extends State<AccountDataExportView> {
                   subtitle: Text(l10n.exportAdvancedSubtitle),
                   children: [
                     Text(l10n.exportJsonDescription),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: FieldnoteSpacing.sm),
                     OutlinedButton.icon(
                       onPressed: _busy ? null : _shareJson,
                       icon: const Icon(Icons.code),
@@ -556,12 +556,12 @@ Future<Uint8List> buildAccountDataPdf(
           strings.exportPdfTitle,
           style: pw.TextStyle(fontSize: 23, fontWeight: pw.FontWeight.bold),
         ),
-        pw.SizedBox(height: 6),
+        pw.SizedBox(height: FieldnoteSpacing.xs),
         pw.Text(
           strings.exportPdfPrepared(data.generatedLabel),
           style: const pw.TextStyle(fontSize: 10),
         ),
-        pw.SizedBox(height: 12),
+        pw.SizedBox(height: FieldnoteSpacing.sm),
         for (final section in data.sections.where(
           (section) => section.records.isNotEmpty,
         )) ...[
@@ -576,10 +576,10 @@ Future<Uint8List> buildAccountDataPdf(
                 padding: const pw.EdgeInsets.only(left: 10, top: 2),
                 child: pw.Text(detail),
               ),
-            pw.SizedBox(height: 8),
+            pw.SizedBox(height: FieldnoteSpacing.xs),
           ],
         ],
-        pw.SizedBox(height: 12),
+        pw.SizedBox(height: FieldnoteSpacing.sm),
         pw.Text(strings.exportPdfPhotosNotice),
       ],
     ),

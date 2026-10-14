@@ -3,6 +3,7 @@ import 'package:serverpod/serverpod.dart';
 import 'account_deletion_service.dart';
 import 'campaign_lifecycle_service.dart';
 import 'notification_service.dart';
+import 'in_app_notification_service.dart';
 import 'payment_reconciliation_service.dart';
 import 'rate_limiter.dart';
 import 'refund_service.dart';
@@ -62,6 +63,11 @@ class FieldnoteOutboxService {
       session,
       'notifications',
       () => const NotificationService().deliverDue(session),
+    );
+    await runStep(
+      session,
+      'firebase push',
+      () => const InAppNotificationService().deliverDue(session),
     );
     await runStep(
       session,

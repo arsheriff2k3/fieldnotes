@@ -12,6 +12,7 @@ import '../../core/widgets.dart';
 import '../../../l10n/l10n.dart';
 import '../shell/fieldnote_view_model.dart';
 import '../trust/account_deletion.dart';
+import '../sponsor/manual_payout_view.dart';
 import '../trust/trust_center_view.dart' show confirmSignOut;
 
 class ProfileView extends StatefulWidget {
@@ -321,7 +322,7 @@ class _ProfileViewState extends State<ProfileView> {
                   label: Text(l10n.profileEdit),
                 ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: FieldnoteSpacing.md),
         if (_editing) _editor() else _summary(profile),
       ],
     );
@@ -346,13 +347,13 @@ class _ProfileViewState extends State<ProfileView> {
               if (widget.viewModel.isSponsor &&
                   profile.contactPhone?.isNotEmpty != true) ...[
                 Text(l10n.profileAddPhoneHint),
-                const SizedBox(height: 8),
+                const SizedBox(height: FieldnoteSpacing.xs),
                 OutlinedButton.icon(
                   onPressed: () => setState(() => _editing = true),
                   icon: const Icon(Icons.call_outlined),
                   label: Text(l10n.profileAddContactNumber),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: FieldnoteSpacing.sm),
               ],
               _detail(
                 widget.viewModel.isSponsor
@@ -382,7 +383,7 @@ class _ProfileViewState extends State<ProfileView> {
               ),
               if (widget.viewModel.isSponsor) ...[
                 Text(l10n.profilePhoneSharedNotice),
-                const SizedBox(height: 12),
+                const SizedBox(height: FieldnoteSpacing.sm),
                 _detail(
                   l10n.onboardingSponsorType,
                   _sponsorTypeLabel(profile.sponsorType ?? 'Individual'),
@@ -433,7 +434,7 @@ class _ProfileViewState extends State<ProfileView> {
                       ? availability!.locationLabel
                       : l10n.profileNotSelected,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: FieldnoteSpacing.xs),
                 OutlinedButton.icon(
                   onPressed: widget.onEditAvailability,
                   icon: const Icon(Icons.event_available_outlined),
@@ -443,13 +444,14 @@ class _ProfileViewState extends State<ProfileView> {
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: FieldnoteSpacing.md),
+        PayoutOperationsButton(repository: widget.viewModel.repository),
         _notificationsCard(profile),
-        const SizedBox(height: 16),
+        const SizedBox(height: FieldnoteSpacing.md),
         _privacyCard(),
-        const SizedBox(height: 16),
+        const SizedBox(height: FieldnoteSpacing.md),
         AccountDeletionCard(viewModel: widget.viewModel),
-        const SizedBox(height: 16),
+        const SizedBox(height: FieldnoteSpacing.md),
         Wrap(
           spacing: 10,
           runSpacing: 10,
@@ -540,7 +542,7 @@ class _ProfileViewState extends State<ProfileView> {
             controller: _name,
             decoration: InputDecoration(labelText: l10n.onboardingDisplayName),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: FieldnoteSpacing.sm),
           FieldnoteTextField(
             controller: _contactPhone,
             keyboardType: TextInputType.phone,
@@ -556,9 +558,9 @@ class _ProfileViewState extends State<ProfileView> {
               helperMaxLines: 2,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: FieldnoteSpacing.sm),
           _cityField(),
-          const SizedBox(height: 18),
+          const SizedBox(height: FieldnoteSpacing.md),
           if (widget.viewModel.isSponsor) ...[
             DropdownButtonFormField<String>(
               initialValue: _sponsorType,
@@ -582,7 +584,7 @@ class _ProfileViewState extends State<ProfileView> {
                       .toList(),
               onChanged: (value) => setState(() => _sponsorType = value!),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: FieldnoteSpacing.sm),
             FieldnoteTextField(
               controller: _organization,
               decoration: InputDecoration(
@@ -590,23 +592,23 @@ class _ProfileViewState extends State<ProfileView> {
               ),
             ),
           ],
-          const SizedBox(height: 18),
+          const SizedBox(height: FieldnoteSpacing.md),
           _chips(l10n.onboardingInterests, _interestOptions, _interests),
           if (widget.viewModel.isVolunteer) ...[
-            const SizedBox(height: 18),
+            const SizedBox(height: FieldnoteSpacing.md),
             _chips(l10n.onboardingSkills, _skillOptions, _skills),
             const Divider(height: 34),
             Text(l10n.profileScheduleManagedInAvailability),
-            const SizedBox(height: 10),
+            const SizedBox(height: FieldnoteSpacing.sm),
             OutlinedButton.icon(
               onPressed: widget.onEditAvailability,
               icon: const Icon(Icons.event_available_outlined),
               label: Text(l10n.profileEditAvailability),
             ),
           ],
-          const SizedBox(height: 22),
+          const SizedBox(height: FieldnoteSpacing.lg),
           _privacyCard(),
-          const SizedBox(height: 24),
+          const SizedBox(height: FieldnoteSpacing.lg),
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
@@ -661,7 +663,7 @@ class _ProfileViewState extends State<ProfileView> {
           ),
         ),
         if (isLocation) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: FieldnoteSpacing.xs),
           OutlinedButton.icon(
             onPressed: _openLocationMap,
             icon: const Icon(Icons.map_outlined),
@@ -697,7 +699,7 @@ class _ProfileViewState extends State<ProfileView> {
               ],
             ),
           ),
-        const SizedBox(height: 6),
+        const SizedBox(height: FieldnoteSpacing.xs),
         Text(
           _citySearchAvailable
               ? isLocation
@@ -717,7 +719,7 @@ class _ProfileViewState extends State<ProfileView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(title, style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: 8),
+        const SizedBox(height: FieldnoteSpacing.xs),
         Wrap(
           spacing: 7,
           runSpacing: 7,
@@ -753,11 +755,11 @@ class _ProfileViewState extends State<ProfileView> {
           Row(
             children: [
               const Icon(Icons.lock_outline, size: 19),
-              const SizedBox(width: 8),
-              Text(l10n.profilePrivacyReadOnly),
+              const SizedBox(width: FieldnoteSpacing.xs),
+              Expanded(child: Text(l10n.profilePrivacyReadOnly)),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: FieldnoteSpacing.sm),
           _lockedChoice(
             l10n.profileConsentGps,
             consent?.locationConsent,
@@ -767,7 +769,7 @@ class _ProfileViewState extends State<ProfileView> {
             l10n.profileConsentEvidence,
             consent?.evidenceSharingConsent,
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: FieldnoteSpacing.xxs),
           Text(l10n.profilePrivacyReviewHint),
         ],
       ),
@@ -783,7 +785,7 @@ class _ProfileViewState extends State<ProfileView> {
             ? context.fieldnoteColors.moss
             : context.fieldnoteColors.clay,
       ),
-      const SizedBox(width: 8),
+      const SizedBox(width: FieldnoteSpacing.xs),
       Expanded(child: Text(label)),
     ],
   );
@@ -804,7 +806,7 @@ class _ProfileViewState extends State<ProfileView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               labelWidget,
-              const SizedBox(height: 4),
+              const SizedBox(height: FieldnoteSpacing.xxs),
               valueWidget,
             ],
           );

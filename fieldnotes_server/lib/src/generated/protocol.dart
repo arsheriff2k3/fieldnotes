@@ -13,6 +13,8 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/campaign.dart'
     as _iuzdi22u;
+import 'package:fieldnotes_server/src/generated/fieldnotes/models/campaign_chat_message.dart'
+    as _in98trfa;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/campaign_invitation.dart'
     as _icudrue1;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/campaign_match.dart'
@@ -23,6 +25,10 @@ import 'package:fieldnotes_server/src/generated/fieldnotes/models/campaign_post.
     as _id4uw0jw;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/legal_consent_history.dart'
     as _iocrnsa2;
+import 'package:fieldnotes_server/src/generated/fieldnotes/models/manual_payout_request.dart'
+    as _i6r832oo;
+import 'package:fieldnotes_server/src/generated/fieldnotes/models/notification_item.dart'
+    as _iy2z50hz;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/participation_history_entry.dart'
     as _io1qzx7f;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/place_suggestion.dart'
@@ -46,6 +52,8 @@ import 'fieldnotes/models/account_role.dart' as _iwea5c8m;
 import 'fieldnotes/models/ai_confidence.dart' as _icuvt3ro;
 import 'fieldnotes/models/audit_event.dart' as _i3s6sm3e;
 import 'fieldnotes/models/campaign.dart' as _imoyt016;
+import 'fieldnotes/models/campaign_chat_event.dart' as _i31zb5rt;
+import 'fieldnotes/models/campaign_chat_message.dart' as _irmmtkwc;
 import 'fieldnotes/models/campaign_invitation.dart' as _ibb1uwag;
 import 'fieldnotes/models/campaign_live_update.dart' as _ixbyjocu;
 import 'fieldnotes/models/campaign_map_overview.dart' as _ia1ix8k0;
@@ -63,9 +71,13 @@ import 'fieldnotes/models/completion_proposal.dart' as _i60r3uxn;
 import 'fieldnotes/models/dashboard_metrics.dart' as _iq1f4h1t;
 import 'fieldnotes/models/fieldnote_exception.dart' as _ilzgaptr;
 import 'fieldnotes/models/impact_summary.dart' as _i1e0rn9l;
+import 'fieldnotes/models/in_app_notification.dart' as _ixe997n1;
 import 'fieldnotes/models/legal_consent.dart' as _i6gdlup3;
 import 'fieldnotes/models/legal_consent_history.dart' as _i36vuf99;
 import 'fieldnotes/models/legal_policies.dart' as _ibf5kqr1;
+import 'fieldnotes/models/manual_payout_request.dart' as _iw3vxwxo;
+import 'fieldnotes/models/manual_payout_summary.dart' as _ioah8myb;
+import 'fieldnotes/models/notification_item.dart' as _i1xk2hgw;
 import 'fieldnotes/models/notification_outbox.dart' as _i2sc5phg;
 import 'fieldnotes/models/observation_condition.dart' as _ildc7cij;
 import 'fieldnotes/models/observation_input.dart' as _i1u7gykm;
@@ -75,6 +87,8 @@ import 'fieldnotes/models/participation_history_entry.dart' as _iu1h8z2d;
 import 'fieldnotes/models/participation_status.dart' as _imreqlyp;
 import 'fieldnotes/models/payment_webhook_event.dart' as _i6oivzdq;
 import 'fieldnotes/models/place_suggestion.dart' as _i3jo3ess;
+import 'fieldnotes/models/push_delivery.dart' as _iksnelh7;
+import 'fieldnotes/models/push_device.dart' as _ieq9thtu;
 import 'fieldnotes/models/rate_limit_bucket.dart' as _igkrjajj;
 import 'fieldnotes/models/razorpay_checkout_order.dart' as _iuc10yd2;
 import 'fieldnotes/models/reach_cell.dart' as _il88if3j;
@@ -94,6 +108,8 @@ export 'fieldnotes/models/account_role.dart';
 export 'fieldnotes/models/ai_confidence.dart';
 export 'fieldnotes/models/audit_event.dart';
 export 'fieldnotes/models/campaign.dart';
+export 'fieldnotes/models/campaign_chat_event.dart';
+export 'fieldnotes/models/campaign_chat_message.dart';
 export 'fieldnotes/models/campaign_invitation.dart';
 export 'fieldnotes/models/campaign_live_update.dart';
 export 'fieldnotes/models/campaign_map_overview.dart';
@@ -111,9 +127,13 @@ export 'fieldnotes/models/completion_proposal.dart';
 export 'fieldnotes/models/dashboard_metrics.dart';
 export 'fieldnotes/models/fieldnote_exception.dart';
 export 'fieldnotes/models/impact_summary.dart';
+export 'fieldnotes/models/in_app_notification.dart';
 export 'fieldnotes/models/legal_consent.dart';
 export 'fieldnotes/models/legal_consent_history.dart';
 export 'fieldnotes/models/legal_policies.dart';
+export 'fieldnotes/models/manual_payout_request.dart';
+export 'fieldnotes/models/manual_payout_summary.dart';
+export 'fieldnotes/models/notification_item.dart';
 export 'fieldnotes/models/notification_outbox.dart';
 export 'fieldnotes/models/observation_condition.dart';
 export 'fieldnotes/models/observation_input.dart';
@@ -123,6 +143,8 @@ export 'fieldnotes/models/participation_history_entry.dart';
 export 'fieldnotes/models/participation_status.dart';
 export 'fieldnotes/models/payment_webhook_event.dart';
 export 'fieldnotes/models/place_suggestion.dart';
+export 'fieldnotes/models/push_delivery.dart';
+export 'fieldnotes/models/push_device.dart';
 export 'fieldnotes/models/rate_limit_bucket.dart';
 export 'fieldnotes/models/razorpay_checkout_order.dart';
 export 'fieldnotes/models/reach_cell.dart';
@@ -699,6 +721,130 @@ class Protocol extends _is.DatabaseSerializationManager {
       managed: true,
     ),
     _isp.TableDefinition(
+      name: 'fieldnote_campaign_chat_message',
+      dartName: 'CampaignChatMessage',
+      schema: 'public',
+      module: 'fieldnotes',
+      columns: [
+        _isp.ColumnDefinition(
+          name: 'id',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'serial',
+        ),
+        _isp.ColumnDefinition(
+          name: 'campaignId',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _isp.ColumnDefinition(
+          name: 'senderAuthUserId',
+          columnType: _isp.ColumnType.uuid,
+          isNullable: false,
+          dartType: 'UuidValue',
+        ),
+        _isp.ColumnDefinition(
+          name: 'senderDisplayName',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _isp.ColumnDefinition(
+          name: 'senderIsCreator',
+          columnType: _isp.ColumnType.boolean,
+          isNullable: false,
+          dartType: 'bool',
+        ),
+        _isp.ColumnDefinition(
+          name: 'body',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _isp.ColumnDefinition(
+          name: 'clientRequestId',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _isp.ColumnDefinition(
+          name: 'createdAt',
+          columnType: _isp.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+          columnDefault: 'now',
+        ),
+      ],
+      foreignKeys: [
+        _isp.ForeignKeyDefinition(
+          constraintName: 'fieldnote_campaign_chat_message_fk_0',
+          columns: ['campaignId'],
+          referenceTable: 'fieldnote_campaign',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _isp.ForeignKeyAction.noAction,
+          onDelete: _isp.ForeignKeyAction.noAction,
+          matchType: null,
+        ),
+      ],
+      indexes: [
+        _isp.IndexDefinition(
+          indexName: 'fieldnote_chat_campaign_id_idx',
+          tableSpace: null,
+          elements: [
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'campaignId',
+            ),
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
+        ),
+        _isp.IndexDefinition(
+          indexName: 'fieldnote_chat_request_idx',
+          tableSpace: null,
+          elements: [
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'campaignId',
+            ),
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'senderAuthUserId',
+            ),
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'clientRequestId',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: false,
+        ),
+        _isp.IndexDefinition(
+          indexName: 'fieldnote_chat_sender_idx',
+          tableSpace: null,
+          elements: [
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'senderAuthUserId',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
+        ),
+      ],
+      managed: true,
+    ),
+    _isp.TableDefinition(
       name: 'fieldnote_campaign_invitation',
       dartName: 'CampaignInvitation',
       schema: 'public',
@@ -1187,6 +1333,125 @@ class Protocol extends _is.DatabaseSerializationManager {
       managed: true,
     ),
     _isp.TableDefinition(
+      name: 'fieldnote_in_app_notification',
+      dartName: 'InAppNotification',
+      schema: 'public',
+      module: 'fieldnotes',
+      columns: [
+        _isp.ColumnDefinition(
+          name: 'id',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'serial',
+        ),
+        _isp.ColumnDefinition(
+          name: 'recipientAuthUserId',
+          columnType: _isp.ColumnType.uuid,
+          isNullable: false,
+          dartType: 'UuidValue',
+        ),
+        _isp.ColumnDefinition(
+          name: 'kind',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _isp.ColumnDefinition(
+          name: 'dedupeKey',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _isp.ColumnDefinition(
+          name: 'title',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _isp.ColumnDefinition(
+          name: 'body',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _isp.ColumnDefinition(
+          name: 'campaignId',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: true,
+          dartType: 'int?',
+        ),
+        _isp.ColumnDefinition(
+          name: 'createdAt',
+          columnType: _isp.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+          columnDefault: 'now',
+        ),
+        _isp.ColumnDefinition(
+          name: 'readAt',
+          columnType: _isp.ColumnType.timestampWithoutTimeZone,
+          isNullable: true,
+          dartType: 'DateTime?',
+        ),
+      ],
+      foreignKeys: [],
+      indexes: [
+        _isp.IndexDefinition(
+          indexName: 'fieldnote_inbox_dedupe_idx',
+          tableSpace: null,
+          elements: [
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'recipientAuthUserId',
+            ),
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'dedupeKey',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: false,
+        ),
+        _isp.IndexDefinition(
+          indexName: 'fieldnote_inbox_page_idx',
+          tableSpace: null,
+          elements: [
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'recipientAuthUserId',
+            ),
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
+        ),
+        _isp.IndexDefinition(
+          indexName: 'fieldnote_inbox_unread_idx',
+          tableSpace: null,
+          elements: [
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'recipientAuthUserId',
+            ),
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'readAt',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
+        ),
+      ],
+      managed: true,
+    ),
+    _isp.TableDefinition(
       name: 'fieldnote_legal_consent',
       dartName: 'LegalConsent',
       schema: 'public',
@@ -1348,6 +1613,215 @@ class Protocol extends _is.DatabaseSerializationManager {
           ],
           type: 'btree',
           isUnique: false,
+          isPrimary: false,
+        ),
+      ],
+      managed: true,
+    ),
+    _isp.TableDefinition(
+      name: 'fieldnote_manual_payout_request',
+      dartName: 'ManualPayoutRequest',
+      schema: 'public',
+      module: 'fieldnotes',
+      columns: [
+        _isp.ColumnDefinition(
+          name: 'id',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'serial',
+        ),
+        _isp.ColumnDefinition(
+          name: 'campaignId',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _isp.ColumnDefinition(
+          name: 'creatorAuthUserId',
+          columnType: _isp.ColumnType.uuid,
+          isNullable: false,
+          dartType: 'UuidValue',
+        ),
+        _isp.ColumnDefinition(
+          name: 'clientRequestId',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _isp.ColumnDefinition(
+          name: 'sponsorshipIds',
+          columnType: _isp.ColumnType.json,
+          isNullable: false,
+          dartType: 'List<int>',
+        ),
+        _isp.ColumnDefinition(
+          name: 'grossAmountPaise',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _isp.ColumnDefinition(
+          name: 'deductionPaise',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+          columnDefault: '0',
+        ),
+        _isp.ColumnDefinition(
+          name: 'amountPaise',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _isp.ColumnDefinition(
+          name: 'status',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+          columnDefault: '\'requested\'',
+        ),
+        _isp.ColumnDefinition(
+          name: 'requestedAt',
+          columnType: _isp.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+          columnDefault: 'now',
+        ),
+        _isp.ColumnDefinition(
+          name: 'updatedAt',
+          columnType: _isp.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+          columnDefault: 'now',
+        ),
+        _isp.ColumnDefinition(
+          name: 'reviewedByAuthUserId',
+          columnType: _isp.ColumnType.uuid,
+          isNullable: true,
+          dartType: 'UuidValue?',
+        ),
+        _isp.ColumnDefinition(
+          name: 'reviewedAt',
+          columnType: _isp.ColumnType.timestampWithoutTimeZone,
+          isNullable: true,
+          dartType: 'DateTime?',
+        ),
+        _isp.ColumnDefinition(
+          name: 'settlementReference',
+          columnType: _isp.ColumnType.text,
+          isNullable: true,
+          dartType: 'String?',
+        ),
+        _isp.ColumnDefinition(
+          name: 'payeeVerificationReference',
+          columnType: _isp.ColumnType.text,
+          isNullable: true,
+          dartType: 'String?',
+        ),
+        _isp.ColumnDefinition(
+          name: 'reviewNote',
+          columnType: _isp.ColumnType.text,
+          isNullable: true,
+          dartType: 'String?',
+        ),
+        _isp.ColumnDefinition(
+          name: 'bankTransferReference',
+          columnType: _isp.ColumnType.text,
+          isNullable: true,
+          dartType: 'String?',
+        ),
+        _isp.ColumnDefinition(
+          name: 'paidAt',
+          columnType: _isp.ColumnType.timestampWithoutTimeZone,
+          isNullable: true,
+          dartType: 'DateTime?',
+        ),
+      ],
+      foreignKeys: [
+        _isp.ForeignKeyDefinition(
+          constraintName: 'fieldnote_manual_payout_request_fk_0',
+          columns: ['campaignId'],
+          referenceTable: 'fieldnote_campaign',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _isp.ForeignKeyAction.noAction,
+          onDelete: _isp.ForeignKeyAction.noAction,
+          matchType: null,
+        ),
+      ],
+      indexes: [
+        _isp.IndexDefinition(
+          indexName: 'fieldnote_manual_payout_campaign_idx',
+          tableSpace: null,
+          elements: [
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'campaignId',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
+        ),
+        _isp.IndexDefinition(
+          indexName: 'fieldnote_manual_payout_status_idx',
+          tableSpace: null,
+          elements: [
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'status',
+            ),
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'requestedAt',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
+        ),
+        _isp.IndexDefinition(
+          indexName: 'fieldnote_manual_payout_creator_idx',
+          tableSpace: null,
+          elements: [
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'creatorAuthUserId',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
+        ),
+        _isp.IndexDefinition(
+          indexName: 'fieldnote_manual_payout_client_idx',
+          tableSpace: null,
+          elements: [
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'creatorAuthUserId',
+            ),
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'clientRequestId',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: false,
+        ),
+        _isp.IndexDefinition(
+          indexName: 'fieldnote_manual_payout_transfer_idx',
+          tableSpace: null,
+          elements: [
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'bankTransferReference',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
           isPrimary: false,
         ),
       ],
@@ -1633,6 +2107,205 @@ class Protocol extends _is.DatabaseSerializationManager {
       managed: true,
     ),
     _isp.TableDefinition(
+      name: 'fieldnote_push_delivery',
+      dartName: 'PushDelivery',
+      schema: 'public',
+      module: 'fieldnotes',
+      columns: [
+        _isp.ColumnDefinition(
+          name: 'id',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'serial',
+        ),
+        _isp.ColumnDefinition(
+          name: 'notificationId',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _isp.ColumnDefinition(
+          name: 'deviceId',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _isp.ColumnDefinition(
+          name: 'recipientAuthUserId',
+          columnType: _isp.ColumnType.uuid,
+          isNullable: false,
+          dartType: 'UuidValue',
+        ),
+        _isp.ColumnDefinition(
+          name: 'status',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+          columnDefault: '\'pending\'',
+        ),
+        _isp.ColumnDefinition(
+          name: 'attempts',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+          columnDefault: '0',
+        ),
+        _isp.ColumnDefinition(
+          name: 'nextAttemptAt',
+          columnType: _isp.ColumnType.timestampWithoutTimeZone,
+          isNullable: true,
+          dartType: 'DateTime?',
+        ),
+        _isp.ColumnDefinition(
+          name: 'lastError',
+          columnType: _isp.ColumnType.text,
+          isNullable: true,
+          dartType: 'String?',
+        ),
+        _isp.ColumnDefinition(
+          name: 'createdAt',
+          columnType: _isp.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+          columnDefault: 'now',
+        ),
+        _isp.ColumnDefinition(
+          name: 'sentAt',
+          columnType: _isp.ColumnType.timestampWithoutTimeZone,
+          isNullable: true,
+          dartType: 'DateTime?',
+        ),
+      ],
+      foreignKeys: [],
+      indexes: [
+        _isp.IndexDefinition(
+          indexName: 'fieldnote_push_delivery_dedupe_idx',
+          tableSpace: null,
+          elements: [
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'notificationId',
+            ),
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'deviceId',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: false,
+        ),
+        _isp.IndexDefinition(
+          indexName: 'fieldnote_push_delivery_due_idx',
+          tableSpace: null,
+          elements: [
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'status',
+            ),
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'nextAttemptAt',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
+        ),
+        _isp.IndexDefinition(
+          indexName: 'fieldnote_push_delivery_user_idx',
+          tableSpace: null,
+          elements: [
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'recipientAuthUserId',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
+        ),
+      ],
+      managed: true,
+    ),
+    _isp.TableDefinition(
+      name: 'fieldnote_push_device',
+      dartName: 'PushDevice',
+      schema: 'public',
+      module: 'fieldnotes',
+      columns: [
+        _isp.ColumnDefinition(
+          name: 'id',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'serial',
+        ),
+        _isp.ColumnDefinition(
+          name: 'authUserId',
+          columnType: _isp.ColumnType.uuid,
+          isNullable: false,
+          dartType: 'UuidValue',
+        ),
+        _isp.ColumnDefinition(
+          name: 'token',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _isp.ColumnDefinition(
+          name: 'tokenHash',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _isp.ColumnDefinition(
+          name: 'platform',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _isp.ColumnDefinition(
+          name: 'updatedAt',
+          columnType: _isp.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+          columnDefault: 'now',
+        ),
+      ],
+      foreignKeys: [],
+      indexes: [
+        _isp.IndexDefinition(
+          indexName: 'fieldnote_push_token_idx',
+          tableSpace: null,
+          elements: [
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'tokenHash',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: false,
+        ),
+        _isp.IndexDefinition(
+          indexName: 'fieldnote_push_user_idx',
+          tableSpace: null,
+          elements: [
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'authUserId',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
+        ),
+      ],
+      managed: true,
+    ),
+    _isp.TableDefinition(
       name: 'fieldnote_rate_limit_bucket',
       dartName: 'RateLimitBucket',
       schema: 'public',
@@ -1760,6 +2433,12 @@ class Protocol extends _is.DatabaseSerializationManager {
           isNullable: false,
           dartType: 'String',
           columnDefault: '\'razorpay\'',
+        ),
+        _isp.ColumnDefinition(
+          name: 'paymentTestMode',
+          columnType: _isp.ColumnType.boolean,
+          isNullable: true,
+          dartType: 'bool?',
         ),
         _isp.ColumnDefinition(
           name: 'paymentStatus',
@@ -2529,6 +3208,12 @@ class Protocol extends _is.DatabaseSerializationManager {
     if (t == _imoyt016.Campaign) {
       return _imoyt016.Campaign.fromJson(data) as T;
     }
+    if (t == _i31zb5rt.CampaignChatEvent) {
+      return _i31zb5rt.CampaignChatEvent.fromJson(data) as T;
+    }
+    if (t == _irmmtkwc.CampaignChatMessage) {
+      return _irmmtkwc.CampaignChatMessage.fromJson(data) as T;
+    }
     if (t == _ibb1uwag.CampaignInvitation) {
       return _ibb1uwag.CampaignInvitation.fromJson(data) as T;
     }
@@ -2580,6 +3265,9 @@ class Protocol extends _is.DatabaseSerializationManager {
     if (t == _i1e0rn9l.ImpactSummary) {
       return _i1e0rn9l.ImpactSummary.fromJson(data) as T;
     }
+    if (t == _ixe997n1.InAppNotification) {
+      return _ixe997n1.InAppNotification.fromJson(data) as T;
+    }
     if (t == _i6gdlup3.LegalConsent) {
       return _i6gdlup3.LegalConsent.fromJson(data) as T;
     }
@@ -2588,6 +3276,15 @@ class Protocol extends _is.DatabaseSerializationManager {
     }
     if (t == _ibf5kqr1.LegalPolicies) {
       return _ibf5kqr1.LegalPolicies.fromJson(data) as T;
+    }
+    if (t == _iw3vxwxo.ManualPayoutRequest) {
+      return _iw3vxwxo.ManualPayoutRequest.fromJson(data) as T;
+    }
+    if (t == _ioah8myb.ManualPayoutSummary) {
+      return _ioah8myb.ManualPayoutSummary.fromJson(data) as T;
+    }
+    if (t == _i1xk2hgw.NotificationItem) {
+      return _i1xk2hgw.NotificationItem.fromJson(data) as T;
     }
     if (t == _i2sc5phg.NotificationOutbox) {
       return _i2sc5phg.NotificationOutbox.fromJson(data) as T;
@@ -2615,6 +3312,12 @@ class Protocol extends _is.DatabaseSerializationManager {
     }
     if (t == _i3jo3ess.PlaceSuggestion) {
       return _i3jo3ess.PlaceSuggestion.fromJson(data) as T;
+    }
+    if (t == _iksnelh7.PushDelivery) {
+      return _iksnelh7.PushDelivery.fromJson(data) as T;
+    }
+    if (t == _ieq9thtu.PushDevice) {
+      return _ieq9thtu.PushDevice.fromJson(data) as T;
     }
     if (t == _igkrjajj.RateLimitBucket) {
       return _igkrjajj.RateLimitBucket.fromJson(data) as T;
@@ -2675,6 +3378,16 @@ class Protocol extends _is.DatabaseSerializationManager {
     }
     if (t == _is.getType<_imoyt016.Campaign?>()) {
       return (data != null ? _imoyt016.Campaign.fromJson(data) : null) as T;
+    }
+    if (t == _is.getType<_i31zb5rt.CampaignChatEvent?>()) {
+      return (data != null ? _i31zb5rt.CampaignChatEvent.fromJson(data) : null)
+          as T;
+    }
+    if (t == _is.getType<_irmmtkwc.CampaignChatMessage?>()) {
+      return (data != null
+              ? _irmmtkwc.CampaignChatMessage.fromJson(data)
+              : null)
+          as T;
     }
     if (t == _is.getType<_ibb1uwag.CampaignInvitation?>()) {
       return (data != null ? _ibb1uwag.CampaignInvitation.fromJson(data) : null)
@@ -2751,6 +3464,10 @@ class Protocol extends _is.DatabaseSerializationManager {
       return (data != null ? _i1e0rn9l.ImpactSummary.fromJson(data) : null)
           as T;
     }
+    if (t == _is.getType<_ixe997n1.InAppNotification?>()) {
+      return (data != null ? _ixe997n1.InAppNotification.fromJson(data) : null)
+          as T;
+    }
     if (t == _is.getType<_i6gdlup3.LegalConsent?>()) {
       return (data != null ? _i6gdlup3.LegalConsent.fromJson(data) : null) as T;
     }
@@ -2762,6 +3479,22 @@ class Protocol extends _is.DatabaseSerializationManager {
     }
     if (t == _is.getType<_ibf5kqr1.LegalPolicies?>()) {
       return (data != null ? _ibf5kqr1.LegalPolicies.fromJson(data) : null)
+          as T;
+    }
+    if (t == _is.getType<_iw3vxwxo.ManualPayoutRequest?>()) {
+      return (data != null
+              ? _iw3vxwxo.ManualPayoutRequest.fromJson(data)
+              : null)
+          as T;
+    }
+    if (t == _is.getType<_ioah8myb.ManualPayoutSummary?>()) {
+      return (data != null
+              ? _ioah8myb.ManualPayoutSummary.fromJson(data)
+              : null)
+          as T;
+    }
+    if (t == _is.getType<_i1xk2hgw.NotificationItem?>()) {
+      return (data != null ? _i1xk2hgw.NotificationItem.fromJson(data) : null)
           as T;
     }
     if (t == _is.getType<_i2sc5phg.NotificationOutbox?>()) {
@@ -2808,6 +3541,12 @@ class Protocol extends _is.DatabaseSerializationManager {
     if (t == _is.getType<_i3jo3ess.PlaceSuggestion?>()) {
       return (data != null ? _i3jo3ess.PlaceSuggestion.fromJson(data) : null)
           as T;
+    }
+    if (t == _is.getType<_iksnelh7.PushDelivery?>()) {
+      return (data != null ? _iksnelh7.PushDelivery.fromJson(data) : null) as T;
+    }
+    if (t == _is.getType<_ieq9thtu.PushDevice?>()) {
+      return (data != null ? _ieq9thtu.PushDevice.fromJson(data) : null) as T;
     }
     if (t == _is.getType<_igkrjajj.RateLimitBucket?>()) {
       return (data != null ? _igkrjajj.RateLimitBucket.fromJson(data) : null)
@@ -2893,6 +3632,15 @@ class Protocol extends _is.DatabaseSerializationManager {
               .toList()
           as T;
     }
+    if (t == List<int>) {
+      return (data as List).map((e) => deserialize<int>(e)).toList() as T;
+    }
+    if (t == List<_iw3vxwxo.ManualPayoutRequest>) {
+      return (data as List)
+              .map((e) => deserialize<_iw3vxwxo.ManualPayoutRequest>(e))
+              .toList()
+          as T;
+    }
     if (t == List<_ik5r1rtc.TravelStep>) {
       return (data as List)
               .map((e) => deserialize<_ik5r1rtc.TravelStep>(e))
@@ -2908,6 +3656,12 @@ class Protocol extends _is.DatabaseSerializationManager {
     if (t == List<_iocrnsa2.LegalConsentHistory>) {
       return (data as List)
               .map((e) => deserialize<_iocrnsa2.LegalConsentHistory>(e))
+              .toList()
+          as T;
+    }
+    if (t == List<_iy2z50hz.NotificationItem>) {
+      return (data as List)
+              .map((e) => deserialize<_iy2z50hz.NotificationItem>(e))
               .toList()
           as T;
     }
@@ -2947,6 +3701,12 @@ class Protocol extends _is.DatabaseSerializationManager {
               .toList()
           as T;
     }
+    if (t == List<_i6r832oo.ManualPayoutRequest>) {
+      return (data as List)
+              .map((e) => deserialize<_i6r832oo.ManualPayoutRequest>(e))
+              .toList()
+          as T;
+    }
     if (t == List<_i3ipc266.CampaignMatch>) {
       return (data as List)
               .map((e) => deserialize<_i3ipc266.CampaignMatch>(e))
@@ -2977,6 +3737,12 @@ class Protocol extends _is.DatabaseSerializationManager {
               .toList()
           as T;
     }
+    if (t == List<_in98trfa.CampaignChatMessage>) {
+      return (data as List)
+              .map((e) => deserialize<_in98trfa.CampaignChatMessage>(e))
+              .toList()
+          as T;
+    }
     if (t == List<_id4uw0jw.CampaignPost>) {
       return (data as List)
               .map((e) => deserialize<_id4uw0jw.CampaignPost>(e))
@@ -3002,6 +3768,8 @@ class Protocol extends _is.DatabaseSerializationManager {
       _icuvt3ro.AiConfidence => 'AiConfidence',
       _i3s6sm3e.AuditEvent => 'AuditEvent',
       _imoyt016.Campaign => 'Campaign',
+      _i31zb5rt.CampaignChatEvent => 'CampaignChatEvent',
+      _irmmtkwc.CampaignChatMessage => 'CampaignChatMessage',
       _ibb1uwag.CampaignInvitation => 'CampaignInvitation',
       _ixbyjocu.CampaignLiveUpdate => 'CampaignLiveUpdate',
       _ia1ix8k0.CampaignMapOverview => 'CampaignMapOverview',
@@ -3019,9 +3787,13 @@ class Protocol extends _is.DatabaseSerializationManager {
       _iq1f4h1t.DashboardMetrics => 'DashboardMetrics',
       _ilzgaptr.FieldnoteException => 'FieldnoteException',
       _i1e0rn9l.ImpactSummary => 'ImpactSummary',
+      _ixe997n1.InAppNotification => 'InAppNotification',
       _i6gdlup3.LegalConsent => 'LegalConsent',
       _i36vuf99.LegalConsentHistory => 'LegalConsentHistory',
       _ibf5kqr1.LegalPolicies => 'LegalPolicies',
+      _iw3vxwxo.ManualPayoutRequest => 'ManualPayoutRequest',
+      _ioah8myb.ManualPayoutSummary => 'ManualPayoutSummary',
+      _i1xk2hgw.NotificationItem => 'NotificationItem',
       _i2sc5phg.NotificationOutbox => 'NotificationOutbox',
       _ildc7cij.ObservationCondition => 'ObservationCondition',
       _i1u7gykm.ObservationInput => 'ObservationInput',
@@ -3031,6 +3803,8 @@ class Protocol extends _is.DatabaseSerializationManager {
       _imreqlyp.ParticipationStatus => 'ParticipationStatus',
       _i6oivzdq.PaymentWebhookEvent => 'PaymentWebhookEvent',
       _i3jo3ess.PlaceSuggestion => 'PlaceSuggestion',
+      _iksnelh7.PushDelivery => 'PushDelivery',
+      _ieq9thtu.PushDevice => 'PushDevice',
       _igkrjajj.RateLimitBucket => 'RateLimitBucket',
       _iuc10yd2.RazorpayCheckoutOrder => 'RazorpayCheckoutOrder',
       _il88if3j.ReachCell => 'ReachCell',
@@ -3069,6 +3843,10 @@ class Protocol extends _is.DatabaseSerializationManager {
         return 'AuditEvent';
       case _imoyt016.Campaign():
         return 'Campaign';
+      case _i31zb5rt.CampaignChatEvent():
+        return 'CampaignChatEvent';
+      case _irmmtkwc.CampaignChatMessage():
+        return 'CampaignChatMessage';
       case _ibb1uwag.CampaignInvitation():
         return 'CampaignInvitation';
       case _ixbyjocu.CampaignLiveUpdate():
@@ -3103,12 +3881,20 @@ class Protocol extends _is.DatabaseSerializationManager {
         return 'FieldnoteException';
       case _i1e0rn9l.ImpactSummary():
         return 'ImpactSummary';
+      case _ixe997n1.InAppNotification():
+        return 'InAppNotification';
       case _i6gdlup3.LegalConsent():
         return 'LegalConsent';
       case _i36vuf99.LegalConsentHistory():
         return 'LegalConsentHistory';
       case _ibf5kqr1.LegalPolicies():
         return 'LegalPolicies';
+      case _iw3vxwxo.ManualPayoutRequest():
+        return 'ManualPayoutRequest';
+      case _ioah8myb.ManualPayoutSummary():
+        return 'ManualPayoutSummary';
+      case _i1xk2hgw.NotificationItem():
+        return 'NotificationItem';
       case _i2sc5phg.NotificationOutbox():
         return 'NotificationOutbox';
       case _ildc7cij.ObservationCondition():
@@ -3127,6 +3913,10 @@ class Protocol extends _is.DatabaseSerializationManager {
         return 'PaymentWebhookEvent';
       case _i3jo3ess.PlaceSuggestion():
         return 'PlaceSuggestion';
+      case _iksnelh7.PushDelivery():
+        return 'PushDelivery';
+      case _ieq9thtu.PushDevice():
+        return 'PushDevice';
       case _igkrjajj.RateLimitBucket():
         return 'RateLimitBucket';
       case _iuc10yd2.RazorpayCheckoutOrder():
@@ -3196,6 +3986,12 @@ class Protocol extends _is.DatabaseSerializationManager {
     if (dataClassName == 'Campaign') {
       return deserialize<_imoyt016.Campaign>(data['data']);
     }
+    if (dataClassName == 'CampaignChatEvent') {
+      return deserialize<_i31zb5rt.CampaignChatEvent>(data['data']);
+    }
+    if (dataClassName == 'CampaignChatMessage') {
+      return deserialize<_irmmtkwc.CampaignChatMessage>(data['data']);
+    }
     if (dataClassName == 'CampaignInvitation') {
       return deserialize<_ibb1uwag.CampaignInvitation>(data['data']);
     }
@@ -3247,6 +4043,9 @@ class Protocol extends _is.DatabaseSerializationManager {
     if (dataClassName == 'ImpactSummary') {
       return deserialize<_i1e0rn9l.ImpactSummary>(data['data']);
     }
+    if (dataClassName == 'InAppNotification') {
+      return deserialize<_ixe997n1.InAppNotification>(data['data']);
+    }
     if (dataClassName == 'LegalConsent') {
       return deserialize<_i6gdlup3.LegalConsent>(data['data']);
     }
@@ -3255,6 +4054,15 @@ class Protocol extends _is.DatabaseSerializationManager {
     }
     if (dataClassName == 'LegalPolicies') {
       return deserialize<_ibf5kqr1.LegalPolicies>(data['data']);
+    }
+    if (dataClassName == 'ManualPayoutRequest') {
+      return deserialize<_iw3vxwxo.ManualPayoutRequest>(data['data']);
+    }
+    if (dataClassName == 'ManualPayoutSummary') {
+      return deserialize<_ioah8myb.ManualPayoutSummary>(data['data']);
+    }
+    if (dataClassName == 'NotificationItem') {
+      return deserialize<_i1xk2hgw.NotificationItem>(data['data']);
     }
     if (dataClassName == 'NotificationOutbox') {
       return deserialize<_i2sc5phg.NotificationOutbox>(data['data']);
@@ -3282,6 +4090,12 @@ class Protocol extends _is.DatabaseSerializationManager {
     }
     if (dataClassName == 'PlaceSuggestion') {
       return deserialize<_i3jo3ess.PlaceSuggestion>(data['data']);
+    }
+    if (dataClassName == 'PushDelivery') {
+      return deserialize<_iksnelh7.PushDelivery>(data['data']);
+    }
+    if (dataClassName == 'PushDevice') {
+      return deserialize<_ieq9thtu.PushDevice>(data['data']);
     }
     if (dataClassName == 'RateLimitBucket') {
       return deserialize<_igkrjajj.RateLimitBucket>(data['data']);
@@ -3372,6 +4186,8 @@ class Protocol extends _is.DatabaseSerializationManager {
         return _i3s6sm3e.AuditEvent.t;
       case _imoyt016.Campaign:
         return _imoyt016.Campaign.t;
+      case _irmmtkwc.CampaignChatMessage:
+        return _irmmtkwc.CampaignChatMessage.t;
       case _ibb1uwag.CampaignInvitation:
         return _ibb1uwag.CampaignInvitation.t;
       case _i8osbdqi.CampaignParticipation:
@@ -3380,16 +4196,24 @@ class Protocol extends _is.DatabaseSerializationManager {
         return _iz4wi5fy.CampaignPost.t;
       case _i8shrtkg.CompletionEvidence:
         return _i8shrtkg.CompletionEvidence.t;
+      case _ixe997n1.InAppNotification:
+        return _ixe997n1.InAppNotification.t;
       case _i6gdlup3.LegalConsent:
         return _i6gdlup3.LegalConsent.t;
       case _i36vuf99.LegalConsentHistory:
         return _i36vuf99.LegalConsentHistory.t;
+      case _iw3vxwxo.ManualPayoutRequest:
+        return _iw3vxwxo.ManualPayoutRequest.t;
       case _i2sc5phg.NotificationOutbox:
         return _i2sc5phg.NotificationOutbox.t;
       case _if13xums.Organization:
         return _if13xums.Organization.t;
       case _i6oivzdq.PaymentWebhookEvent:
         return _i6oivzdq.PaymentWebhookEvent.t;
+      case _iksnelh7.PushDelivery:
+        return _iksnelh7.PushDelivery.t;
+      case _ieq9thtu.PushDevice:
+        return _ieq9thtu.PushDevice.t;
       case _igkrjajj.RateLimitBucket:
         return _igkrjajj.RateLimitBucket.t;
       case _i1cgh9io.Sponsorship:

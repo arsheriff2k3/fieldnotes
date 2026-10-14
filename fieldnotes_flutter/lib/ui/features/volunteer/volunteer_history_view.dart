@@ -7,6 +7,7 @@ import '../../core/error_messages.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/widgets.dart';
 import '../shell/fieldnote_view_model.dart';
+import '../discussion/campaign_discussion_view.dart';
 import 'volunteer_status.dart';
 
 /// V-10: the volunteer's impact and full participation history, with their
@@ -68,7 +69,7 @@ class _VolunteerHistoryScreenState extends State<VolunteerHistoryScreen> {
               title: l10n.volunteerHistoryTitle,
               description: l10n.volunteerHistoryDescription,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: FieldnoteSpacing.md),
             Wrap(
               spacing: 12,
               runSpacing: 12,
@@ -87,7 +88,7 @@ class _VolunteerHistoryScreenState extends State<VolunteerHistoryScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: FieldnoteSpacing.lg),
             if (_loading && history.isEmpty)
               const Center(
                 child: Padding(
@@ -132,7 +133,7 @@ class _Stat extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(value, style: Theme.of(context).textTheme.headlineMedium),
-            const SizedBox(height: 4),
+            const SizedBox(height: FieldnoteSpacing.xxs),
             Text(label, style: Theme.of(context).textTheme.bodySmall),
           ],
         ),
@@ -164,26 +165,42 @@ class _HistoryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Flexible(
-                child: StatusPill(
-                  label: display.label,
-                  color: display.color,
-                  icon: display.icon,
+          if (const {
+            ParticipationStatus.completed,
+            ParticipationStatus.incomplete,
+          }.contains(entry.participation.status))
+            OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).push<void>(
+                MaterialPageRoute(
+                  builder: (_) => CampaignDiscussionView(
+                    campaign: entry.campaign,
+                    repository: viewModel.repository,
+                    currentUserId: viewModel.profile?.authUserId,
+                  ),
                 ),
               ),
-              const SizedBox(width: 8),
-              const Spacer(),
+              icon: const Icon(Icons.forum_outlined),
+              label: Text(context.l10n.campaignDiscussionTitle),
+            ),
+          Wrap(
+            spacing: FieldnoteSpacing.sm,
+            runSpacing: FieldnoteSpacing.xs,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              StatusPill(
+                label: display.label,
+                color: display.color,
+                icon: display.icon,
+              ),
               Text(date, style: Theme.of(context).textTheme.bodySmall),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: FieldnoteSpacing.sm),
           Text(
             entry.campaign.name,
             style: Theme.of(context).textTheme.titleMedium,
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: FieldnoteSpacing.xxs),
           Text(
             entry.campaign.locationName,
             style: Theme.of(context).textTheme.bodySmall,
@@ -199,7 +216,7 @@ class _HistoryCard extends StatelessWidget {
                     _reviewColor(evidence.reviewState),
                   ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: FieldnoteSpacing.xs),
                 Expanded(
                   child: Text(
                     reviewStateLabel(evidence.reviewState, l10n: l10n),
@@ -213,12 +230,12 @@ class _HistoryCard extends StatelessWidget {
               ],
             ),
             if (evidence.reviewNote?.trim().isNotEmpty == true) ...[
-              const SizedBox(height: 6),
+              const SizedBox(height: FieldnoteSpacing.xs),
               Text(l10n.volunteerSponsorNote(evidence.reviewNote!.trim())),
             ],
-            const SizedBox(height: 8),
+            const SizedBox(height: FieldnoteSpacing.xs),
             Text(evidence.confirmedSummary),
-            const SizedBox(height: 4),
+            const SizedBox(height: FieldnoteSpacing.xxs),
             Text(
               evidence.aiGenerated
                   ? l10n.volunteerSubmittedAtAi(
@@ -234,7 +251,7 @@ class _HistoryCard extends StatelessWidget {
               style: Theme.of(context).textTheme.bodySmall,
             ),
             if (evidence.photographPath != null && evidence.id != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: FieldnoteSpacing.xs),
               TextButton.icon(
                 onPressed: () => _showPhoto(context, evidence.id!),
                 icon: const Icon(Icons.photo_outlined),

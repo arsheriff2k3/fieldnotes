@@ -360,26 +360,26 @@ class _CampaignPinPickerState extends State<CampaignPinPicker> {
           l10n.sponsorPinPickerTitle,
           style: Theme.of(context).textTheme.titleMedium,
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: FieldnoteSpacing.xxs),
         Text(
           l10n.sponsorPinPickerIntro,
           style: Theme.of(context).textTheme.bodySmall,
         ),
         if (!widget.locationSelected &&
             widget.pin.locationName.trim().isNotEmpty) ...[
-          const SizedBox(height: 10),
+          const SizedBox(height: FieldnoteSpacing.sm),
           Text(
             l10n.sponsorPinPickerFromBrief(widget.pin.locationName),
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
-        const SizedBox(height: 12),
+        const SizedBox(height: FieldnoteSpacing.sm),
         OutlinedButton.icon(
           onPressed: _openFullScreenMap,
           icon: const Icon(Icons.map_outlined),
           label: Text(l10n.sponsorPinPickerChooseOnMap),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: FieldnoteSpacing.sm),
         if (_placeSearchAvailable) ...[
           FieldnoteTextField(
             controller: _search,
@@ -411,7 +411,7 @@ class _CampaignPinPickerState extends State<CampaignPinPicker> {
             ),
           ),
           if (_suggestions.isNotEmpty) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: FieldnoteSpacing.xs),
             Material(
               color: context.fieldnoteColors.raised,
               clipBehavior: Clip.antiAlias,
@@ -438,10 +438,10 @@ class _CampaignPinPickerState extends State<CampaignPinPicker> {
             ),
           ],
           if (_searchMessage != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: FieldnoteSpacing.xs),
             Text(_searchMessage!),
           ],
-          const SizedBox(height: 14),
+          const SizedBox(height: FieldnoteSpacing.md),
         ],
         if (widget.locationSelected)
           FieldnoteMap(
@@ -508,11 +508,11 @@ class _CampaignPinPickerState extends State<CampaignPinPicker> {
             title: l10n.sponsorPinPickerEmptyTitle,
             message: l10n.sponsorPinPickerEmptyMessage,
           ),
-        const SizedBox(height: 10),
+        const SizedBox(height: FieldnoteSpacing.sm),
         Row(
           children: [
             const Icon(Icons.place_outlined, size: 17),
-            const SizedBox(width: 7),
+            const SizedBox(width: FieldnoteSpacing.xs),
             Expanded(
               child: Text(
                 !widget.locationSelected
@@ -531,7 +531,7 @@ class _CampaignPinPickerState extends State<CampaignPinPicker> {
               ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: FieldnoteSpacing.md),
         Text(
           l10n.sponsorPinPickerGeofenceTitle(widget.pin.geofenceMeters.round()),
           style: Theme.of(context).textTheme.titleMedium,
@@ -551,7 +551,7 @@ class _CampaignPinPickerState extends State<CampaignPinPicker> {
           l10n.sponsorPinPickerGeofenceHelp,
           style: Theme.of(context).textTheme.bodySmall,
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: FieldnoteSpacing.md),
         OutlinedButton.icon(
           onPressed: _usingDeviceLocation ? null : _pinToDeviceLocation,
           icon: _usingDeviceLocation
@@ -566,7 +566,7 @@ class _CampaignPinPickerState extends State<CampaignPinPicker> {
                 : l10n.sponsorPinPickerPinToMyLocation,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: FieldnoteSpacing.md),
         if (widget.locationSelected) _reachCard(context),
       ],
     );
@@ -588,7 +588,7 @@ class _CampaignPinPickerState extends State<CampaignPinPicker> {
           Row(
             children: [
               const Icon(Icons.groups_outlined, size: 20),
-              const SizedBox(width: 8),
+              const SizedBox(width: FieldnoteSpacing.xs),
               Expanded(
                 child: Text(
                   l10n.sponsorPinPickerReachTitle,
@@ -602,7 +602,7 @@ class _CampaignPinPickerState extends State<CampaignPinPicker> {
                 ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: FieldnoteSpacing.xs),
           if (reach == null)
             Text(
               _loadingReach
@@ -613,7 +613,7 @@ class _CampaignPinPickerState extends State<CampaignPinPicker> {
           else ...[
             Text(reach.summary),
             if (reach.medianDistanceKm != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: FieldnoteSpacing.xs),
               Text(
                 l10n.sponsorPinPickerMedianDistance(
                   NumberFormat(
@@ -624,7 +624,7 @@ class _CampaignPinPickerState extends State<CampaignPinPicker> {
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
-            const SizedBox(height: 8),
+            const SizedBox(height: FieldnoteSpacing.xs),
             Text(
               l10n.sponsorPinPickerReachPrivacy,
               style: Theme.of(context).textTheme.bodySmall,
@@ -894,7 +894,7 @@ class _FullScreenCampaignMapState extends State<_FullScreenCampaignMap> {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: FieldnoteSpacing.sm),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(

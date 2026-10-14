@@ -13,6 +13,8 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign.dart'
     as _i6ar8a32;
+import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign_chat_message.dart'
+    as _ixbie2qm;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign_invitation.dart'
     as _ilmm7kn9;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign_match.dart'
@@ -23,6 +25,10 @@ import 'package:fieldnotes_client/src/protocol/fieldnotes/models/campaign_post.d
     as _is6qjlzb;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/legal_consent_history.dart'
     as _izm45l3m;
+import 'package:fieldnotes_client/src/protocol/fieldnotes/models/manual_payout_request.dart'
+    as _i6u47lnp;
+import 'package:fieldnotes_client/src/protocol/fieldnotes/models/notification_item.dart'
+    as _ild3wtsx;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/participation_history_entry.dart'
     as _iw31a86q;
 import 'package:fieldnotes_client/src/protocol/fieldnotes/models/place_suggestion.dart'
@@ -45,6 +51,8 @@ import 'fieldnotes/models/account_role.dart' as _iwea5c8m;
 import 'fieldnotes/models/ai_confidence.dart' as _icuvt3ro;
 import 'fieldnotes/models/audit_event.dart' as _i3s6sm3e;
 import 'fieldnotes/models/campaign.dart' as _imoyt016;
+import 'fieldnotes/models/campaign_chat_event.dart' as _i31zb5rt;
+import 'fieldnotes/models/campaign_chat_message.dart' as _irmmtkwc;
 import 'fieldnotes/models/campaign_invitation.dart' as _ibb1uwag;
 import 'fieldnotes/models/campaign_live_update.dart' as _ixbyjocu;
 import 'fieldnotes/models/campaign_map_overview.dart' as _ia1ix8k0;
@@ -65,6 +73,9 @@ import 'fieldnotes/models/impact_summary.dart' as _i1e0rn9l;
 import 'fieldnotes/models/legal_consent.dart' as _i6gdlup3;
 import 'fieldnotes/models/legal_consent_history.dart' as _i36vuf99;
 import 'fieldnotes/models/legal_policies.dart' as _ibf5kqr1;
+import 'fieldnotes/models/manual_payout_request.dart' as _iw3vxwxo;
+import 'fieldnotes/models/manual_payout_summary.dart' as _ioah8myb;
+import 'fieldnotes/models/notification_item.dart' as _i1xk2hgw;
 import 'fieldnotes/models/observation_condition.dart' as _ildc7cij;
 import 'fieldnotes/models/observation_input.dart' as _i1u7gykm;
 import 'fieldnotes/models/observation_proposal.dart' as _i805ku85;
@@ -91,6 +102,8 @@ export 'fieldnotes/models/account_role.dart';
 export 'fieldnotes/models/ai_confidence.dart';
 export 'fieldnotes/models/audit_event.dart';
 export 'fieldnotes/models/campaign.dart';
+export 'fieldnotes/models/campaign_chat_event.dart';
+export 'fieldnotes/models/campaign_chat_message.dart';
 export 'fieldnotes/models/campaign_invitation.dart';
 export 'fieldnotes/models/campaign_live_update.dart';
 export 'fieldnotes/models/campaign_map_overview.dart';
@@ -111,6 +124,9 @@ export 'fieldnotes/models/impact_summary.dart';
 export 'fieldnotes/models/legal_consent.dart';
 export 'fieldnotes/models/legal_consent_history.dart';
 export 'fieldnotes/models/legal_policies.dart';
+export 'fieldnotes/models/manual_payout_request.dart';
+export 'fieldnotes/models/manual_payout_summary.dart';
+export 'fieldnotes/models/notification_item.dart';
 export 'fieldnotes/models/observation_condition.dart';
 export 'fieldnotes/models/observation_input.dart';
 export 'fieldnotes/models/observation_proposal.dart';
@@ -183,6 +199,12 @@ class Protocol extends _isc.SerializationManager {
     if (t == _imoyt016.Campaign) {
       return _imoyt016.Campaign.fromJson(data) as T;
     }
+    if (t == _i31zb5rt.CampaignChatEvent) {
+      return _i31zb5rt.CampaignChatEvent.fromJson(data) as T;
+    }
+    if (t == _irmmtkwc.CampaignChatMessage) {
+      return _irmmtkwc.CampaignChatMessage.fromJson(data) as T;
+    }
     if (t == _ibb1uwag.CampaignInvitation) {
       return _ibb1uwag.CampaignInvitation.fromJson(data) as T;
     }
@@ -242,6 +264,15 @@ class Protocol extends _isc.SerializationManager {
     }
     if (t == _ibf5kqr1.LegalPolicies) {
       return _ibf5kqr1.LegalPolicies.fromJson(data) as T;
+    }
+    if (t == _iw3vxwxo.ManualPayoutRequest) {
+      return _iw3vxwxo.ManualPayoutRequest.fromJson(data) as T;
+    }
+    if (t == _ioah8myb.ManualPayoutSummary) {
+      return _ioah8myb.ManualPayoutSummary.fromJson(data) as T;
+    }
+    if (t == _i1xk2hgw.NotificationItem) {
+      return _i1xk2hgw.NotificationItem.fromJson(data) as T;
     }
     if (t == _ildc7cij.ObservationCondition) {
       return _ildc7cij.ObservationCondition.fromJson(data) as T;
@@ -323,6 +354,16 @@ class Protocol extends _isc.SerializationManager {
     }
     if (t == _isc.getType<_imoyt016.Campaign?>()) {
       return (data != null ? _imoyt016.Campaign.fromJson(data) : null) as T;
+    }
+    if (t == _isc.getType<_i31zb5rt.CampaignChatEvent?>()) {
+      return (data != null ? _i31zb5rt.CampaignChatEvent.fromJson(data) : null)
+          as T;
+    }
+    if (t == _isc.getType<_irmmtkwc.CampaignChatMessage?>()) {
+      return (data != null
+              ? _irmmtkwc.CampaignChatMessage.fromJson(data)
+              : null)
+          as T;
     }
     if (t == _isc.getType<_ibb1uwag.CampaignInvitation?>()) {
       return (data != null ? _ibb1uwag.CampaignInvitation.fromJson(data) : null)
@@ -410,6 +451,22 @@ class Protocol extends _isc.SerializationManager {
     }
     if (t == _isc.getType<_ibf5kqr1.LegalPolicies?>()) {
       return (data != null ? _ibf5kqr1.LegalPolicies.fromJson(data) : null)
+          as T;
+    }
+    if (t == _isc.getType<_iw3vxwxo.ManualPayoutRequest?>()) {
+      return (data != null
+              ? _iw3vxwxo.ManualPayoutRequest.fromJson(data)
+              : null)
+          as T;
+    }
+    if (t == _isc.getType<_ioah8myb.ManualPayoutSummary?>()) {
+      return (data != null
+              ? _ioah8myb.ManualPayoutSummary.fromJson(data)
+              : null)
+          as T;
+    }
+    if (t == _isc.getType<_i1xk2hgw.NotificationItem?>()) {
+      return (data != null ? _i1xk2hgw.NotificationItem.fromJson(data) : null)
           as T;
     }
     if (t == _isc.getType<_ildc7cij.ObservationCondition?>()) {
@@ -533,6 +590,15 @@ class Protocol extends _isc.SerializationManager {
               .toList()
           as T;
     }
+    if (t == List<int>) {
+      return (data as List).map((e) => deserialize<int>(e)).toList() as T;
+    }
+    if (t == List<_iw3vxwxo.ManualPayoutRequest>) {
+      return (data as List)
+              .map((e) => deserialize<_iw3vxwxo.ManualPayoutRequest>(e))
+              .toList()
+          as T;
+    }
     if (t == List<_ik5r1rtc.TravelStep>) {
       return (data as List)
               .map((e) => deserialize<_ik5r1rtc.TravelStep>(e))
@@ -548,6 +614,12 @@ class Protocol extends _isc.SerializationManager {
     if (t == List<_izm45l3m.LegalConsentHistory>) {
       return (data as List)
               .map((e) => deserialize<_izm45l3m.LegalConsentHistory>(e))
+              .toList()
+          as T;
+    }
+    if (t == List<_ild3wtsx.NotificationItem>) {
+      return (data as List)
+              .map((e) => deserialize<_ild3wtsx.NotificationItem>(e))
               .toList()
           as T;
     }
@@ -587,6 +659,12 @@ class Protocol extends _isc.SerializationManager {
               .toList()
           as T;
     }
+    if (t == List<_i6u47lnp.ManualPayoutRequest>) {
+      return (data as List)
+              .map((e) => deserialize<_i6u47lnp.ManualPayoutRequest>(e))
+              .toList()
+          as T;
+    }
     if (t == List<_ifn539xv.CampaignMatch>) {
       return (data as List)
               .map((e) => deserialize<_ifn539xv.CampaignMatch>(e))
@@ -617,6 +695,12 @@ class Protocol extends _isc.SerializationManager {
               .toList()
           as T;
     }
+    if (t == List<_ixbie2qm.CampaignChatMessage>) {
+      return (data as List)
+              .map((e) => deserialize<_ixbie2qm.CampaignChatMessage>(e))
+              .toList()
+          as T;
+    }
     if (t == List<_is6qjlzb.CampaignPost>) {
       return (data as List)
               .map((e) => deserialize<_is6qjlzb.CampaignPost>(e))
@@ -639,6 +723,8 @@ class Protocol extends _isc.SerializationManager {
       _icuvt3ro.AiConfidence => 'AiConfidence',
       _i3s6sm3e.AuditEvent => 'AuditEvent',
       _imoyt016.Campaign => 'Campaign',
+      _i31zb5rt.CampaignChatEvent => 'CampaignChatEvent',
+      _irmmtkwc.CampaignChatMessage => 'CampaignChatMessage',
       _ibb1uwag.CampaignInvitation => 'CampaignInvitation',
       _ixbyjocu.CampaignLiveUpdate => 'CampaignLiveUpdate',
       _ia1ix8k0.CampaignMapOverview => 'CampaignMapOverview',
@@ -659,6 +745,9 @@ class Protocol extends _isc.SerializationManager {
       _i6gdlup3.LegalConsent => 'LegalConsent',
       _i36vuf99.LegalConsentHistory => 'LegalConsentHistory',
       _ibf5kqr1.LegalPolicies => 'LegalPolicies',
+      _iw3vxwxo.ManualPayoutRequest => 'ManualPayoutRequest',
+      _ioah8myb.ManualPayoutSummary => 'ManualPayoutSummary',
+      _i1xk2hgw.NotificationItem => 'NotificationItem',
       _ildc7cij.ObservationCondition => 'ObservationCondition',
       _i1u7gykm.ObservationInput => 'ObservationInput',
       _i805ku85.ObservationProposal => 'ObservationProposal',
@@ -704,6 +793,10 @@ class Protocol extends _isc.SerializationManager {
         return 'AuditEvent';
       case _imoyt016.Campaign():
         return 'Campaign';
+      case _i31zb5rt.CampaignChatEvent():
+        return 'CampaignChatEvent';
+      case _irmmtkwc.CampaignChatMessage():
+        return 'CampaignChatMessage';
       case _ibb1uwag.CampaignInvitation():
         return 'CampaignInvitation';
       case _ixbyjocu.CampaignLiveUpdate():
@@ -744,6 +837,12 @@ class Protocol extends _isc.SerializationManager {
         return 'LegalConsentHistory';
       case _ibf5kqr1.LegalPolicies():
         return 'LegalPolicies';
+      case _iw3vxwxo.ManualPayoutRequest():
+        return 'ManualPayoutRequest';
+      case _ioah8myb.ManualPayoutSummary():
+        return 'ManualPayoutSummary';
+      case _i1xk2hgw.NotificationItem():
+        return 'NotificationItem';
       case _ildc7cij.ObservationCondition():
         return 'ObservationCondition';
       case _i1u7gykm.ObservationInput():
@@ -823,6 +922,12 @@ class Protocol extends _isc.SerializationManager {
     if (dataClassName == 'Campaign') {
       return deserialize<_imoyt016.Campaign>(data['data']);
     }
+    if (dataClassName == 'CampaignChatEvent') {
+      return deserialize<_i31zb5rt.CampaignChatEvent>(data['data']);
+    }
+    if (dataClassName == 'CampaignChatMessage') {
+      return deserialize<_irmmtkwc.CampaignChatMessage>(data['data']);
+    }
     if (dataClassName == 'CampaignInvitation') {
       return deserialize<_ibb1uwag.CampaignInvitation>(data['data']);
     }
@@ -882,6 +987,15 @@ class Protocol extends _isc.SerializationManager {
     }
     if (dataClassName == 'LegalPolicies') {
       return deserialize<_ibf5kqr1.LegalPolicies>(data['data']);
+    }
+    if (dataClassName == 'ManualPayoutRequest') {
+      return deserialize<_iw3vxwxo.ManualPayoutRequest>(data['data']);
+    }
+    if (dataClassName == 'ManualPayoutSummary') {
+      return deserialize<_ioah8myb.ManualPayoutSummary>(data['data']);
+    }
+    if (dataClassName == 'NotificationItem') {
+      return deserialize<_i1xk2hgw.NotificationItem>(data['data']);
     }
     if (dataClassName == 'ObservationCondition') {
       return deserialize<_ildc7cij.ObservationCondition>(data['data']);

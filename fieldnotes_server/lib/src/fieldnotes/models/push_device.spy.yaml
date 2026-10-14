@@ -1,0 +1,16 @@
+### Registration tokens are secrets and never returned to another client.
+class: PushDevice
+serverOnly: true
+table: fieldnote_push_device
+fields:
+  authUserId: UuidValue
+  token: String
+  tokenHash: String
+  platform: String
+  updatedAt: DateTime, default=now
+indexes:
+  fieldnote_push_token_idx:
+    fields: tokenHash
+    unique: true
+  fieldnote_push_user_idx:
+    fields: authUserId

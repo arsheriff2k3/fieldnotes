@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:convert';
 import 'dart:typed_data';
@@ -20,12 +21,14 @@ import 'services/campaign_lifecycle_service.dart';
 import 'services/campaign_validation.dart';
 import 'services/fieldnote_sweep_service.dart';
 import 'services/money.dart';
+import 'services/manual_payout_service.dart';
 import 'services/payment_reconciliation_service.dart';
 import 'services/refund_service.dart';
 import 'services/account_deletion_service.dart';
 import 'services/fieldnote_config.dart';
 import 'services/fieldnote_time.dart';
 import 'services/notification_service.dart';
+import 'services/in_app_notification_service.dart';
 import 'services/rate_limiter.dart';
 
 class FieldnoteEndpoint extends Endpoint {
@@ -309,6 +312,137 @@ class FieldnoteEndpoint extends Endpoint {
     );
   }
 
+  /// Inbox IDs are an immutable keyset cursor, newest first.
+  Future<List<NotificationItem>> getMyNotifications(
+    Session session, {
+    int limit = 20,
+    int? beforeId,
+    bool unreadOnly = false,
+  }) async {
+    final profile = await _requireProfile(session);
+    if (limit < 1 || limit > 50 || (beforeId != null && beforeId <= 0)) {
+      throw FieldnoteException(
+        code: 'invalid_notification_page',
+        message: 'Invalid notification page.',
+      );
+    }
+    final rows = await InAppNotification.db.find(
+      session,
+      where: (t) =>
+          t.recipientAuthUserId.equals(profile.authUserId) &
+          (beforeId == null ? Constant.bool(true) : t.id < beforeId) &
+          (unreadOnly ? t.readAt.equals(null) : Constant.bool(true)),
+      orderBy: (t) => t.id.desc(),
+      limit: limit,
+    );
+    return rows.map(InAppNotificationService.item).toList();
+  }
+
+  Future<NotificationItem?> getMyNotification(
+    Session session,
+    int notificationId,
+  ) async {
+    final profile = await _requireProfile(session);
+    final row = await InAppNotification.db.findFirstRow(
+      session,
+      where: (t) =>
+          t.id.equals(notificationId) &
+          t.recipientAuthUserId.equals(profile.authUserId),
+    );
+    return row == null ? null : InAppNotificationService.item(row);
+  }
+
+  Future<int> getMyUnreadNotificationCount(Session session) async {
+    final profile = await _requireProfile(session);
+    return InAppNotification.db.count(
+      session,
+      where: (t) =>
+          t.recipientAuthUserId.equals(profile.authUserId) &
+          t.readAt.equals(null),
+    );
+  }
+
+  Future<void> markMyNotificationRead(
+    Session session,
+    int notificationId,
+  ) async {
+    final profile = await _requireProfile(session);
+    await InAppNotification.db.updateWhere(
+      session,
+      columnValues: (t) => [t.readAt(DateTime.now().toUtc())],
+      where: (t) =>
+          t.id.equals(notificationId) &
+          t.recipientAuthUserId.equals(profile.authUserId) &
+          t.readAt.equals(null),
+    );
+  }
+
+  /// Newer arrivals remain unread even if the request races with insertion.
+  Future<void> markMyNotificationsReadThrough(
+    Session session,
+    int throughId,
+  ) async {
+    final profile = await _requireProfile(session);
+    final newest = await InAppNotification.db.findFirstRow(
+      session,
+      where: (t) => t.recipientAuthUserId.equals(profile.authUserId),
+      orderBy: (t) => t.id.desc(),
+    );
+    if (throughId <= 0 || newest == null) return;
+    final cutoff = math.min(throughId, newest.id!);
+    await InAppNotification.db.updateWhere(
+      session,
+      columnValues: (t) => [t.readAt(DateTime.now().toUtc())],
+      where: (t) =>
+          t.recipientAuthUserId.equals(profile.authUserId) &
+          (t.id <= cutoff) &
+          t.readAt.equals(null),
+    );
+  }
+
+  Future<void> registerMyPushDevice(
+    Session session,
+    String token,
+    String platform,
+  ) async {
+    final profile = await _requireProfile(session);
+    await _limiter.hit(
+      session,
+      profile.authUserId,
+      RateLimits.pushRegistration,
+    );
+    await const InAppNotificationService().registerDevice(
+      session,
+      profile.authUserId,
+      token,
+      platform,
+    );
+  }
+
+  Future<void> unregisterMyPushDevice(Session session, String token) async {
+    await const InAppNotificationService().unregisterDevice(
+      session,
+      _userId(session),
+      token,
+    );
+  }
+
+  Future<void> unregisterAllMyPushDevices(Session session) async {
+    final userId = _userId(session);
+    await session.db.transaction((transaction) async {
+      await PushDelivery.db.deleteWhere(
+        session,
+        where: (t) => t.recipientAuthUserId.equals(userId),
+        transaction: transaction,
+      );
+      await PushDevice.db.deleteWhere(
+        session,
+        where: (t) => t.authUserId.equals(userId),
+        transaction: transaction,
+      );
+    });
+  }
+
   Future<String> exportMyData(Session session) async {
     final userId = _userId(session);
     final profile = await _requireProfile(session);
@@ -323,6 +457,15 @@ class FieldnoteEndpoint extends Endpoint {
       where: (t) => t.authUserId.equals(userId),
     );
     final consent = await getMyLegalConsent(session);
+    final notifications = await InAppNotification.db.find(
+      session,
+      where: (t) => t.recipientAuthUserId.equals(userId),
+      orderBy: (t) => t.id.desc(),
+    );
+    final pushDevices = await PushDevice.db.find(
+      session,
+      where: (t) => t.authUserId.equals(userId),
+    );
     final availability = await VolunteerAvailability.db.findFirstRow(
       session,
       where: (t) => t.volunteerAuthUserId.equals(userId),
@@ -351,6 +494,11 @@ class FieldnoteEndpoint extends Endpoint {
       session,
       where: (t) => t.sponsorAuthUserId.equals(userId),
       orderBy: (t) => t.createdAt.desc(),
+    );
+    final manualPayouts = await ManualPayoutRequest.db.find(
+      session,
+      where: (t) => t.creatorAuthUserId.equals(userId),
+      orderBy: (t) => t.requestedAt.desc(),
     );
     final payouts = await TestPayout.db.find(
       session,
@@ -465,11 +613,28 @@ class FieldnoteEndpoint extends Endpoint {
             },
           )
           .toList(),
+      'campaignChatMessages': (await CampaignChatMessage.db.find(
+        session,
+        where: (t) => t.senderAuthUserId.equals(userId),
+      )).map((item) => item.toJson()).toList(),
       'campaignPosts': posts.map((item) => item.toJson()).toList(),
+      'manualPayoutRequests': manualPayouts.map((p) => p.toJson()).toList(),
       'testPayouts': payouts.map((item) => item.toJson()).toList(),
       'testRefunds': refunds.map((item) => item.toJson()).toList(),
       'securityActivity': activity.map((item) => item.toJson()).toList(),
       'mediaNotice': 'Private photographs are not embedded in this export.',
+      'notifications': notifications
+          .map(InAppNotificationService.item)
+          .map((n) => n.toJson())
+          .toList(),
+      'pushDevices': pushDevices
+          .map(
+            (device) => {
+              'platform': device.platform,
+              'updatedAt': device.updatedAt.toIso8601String(),
+            },
+          )
+          .toList(),
     });
   }
 
@@ -2547,6 +2712,11 @@ class FieldnoteEndpoint extends Endpoint {
             amountPaise: orderPaise,
             message: _blankToNull(message),
             paymentProvider: 'razorpay',
+            paymentTestMode: credentials.isTestMode
+                ? true
+                : credentials.keyId.startsWith('rzp_live_')
+                ? false
+                : null,
             paymentStatus: 'created',
             clientRequestId: requestId,
             updatedAt: DateTime.now().toUtc(),
@@ -2914,7 +3084,8 @@ class FieldnoteEndpoint extends Endpoint {
               transaction: transaction,
             )).map((refund) => refund.sponsorshipId).toSet();
       for (final payment in verified) {
-        if (processed.contains(payment.id) ||
+        if (payment.paymentTestMode == false ||
+            processed.contains(payment.id) ||
             refunded.contains(payment.id) ||
             payment.providerPaymentId == null ||
             payment.paymentProvider != 'razorpay') {
@@ -2949,6 +3120,76 @@ class FieldnoteEndpoint extends Endpoint {
     );
     return results;
   }
+
+  Future<ManualPayoutSummary> getManualPayoutSummary(
+    Session session,
+    int campaignId,
+  ) async {
+    final creator = await _requireRole(session, AccountRole.sponsor);
+    return const ManualPayoutService().summary(
+      session,
+      creator.authUserId,
+      campaignId,
+    );
+  }
+
+  Future<ManualPayoutRequest> requestManualPayout(
+    Session session,
+    int campaignId,
+    String clientRequestId,
+  ) async {
+    final creator = await _requireRole(session, AccountRole.sponsor);
+    return const ManualPayoutService().request(
+      session,
+      creator.authUserId,
+      campaignId,
+      clientRequestId,
+    );
+  }
+
+  Future<bool> isPayoutOperator(Session session) async =>
+      FieldnoteConfig.isPayoutOperator(_userId(session).uuid);
+
+  Future<List<ManualPayoutRequest>> listManualPayoutRequests(
+    Session session, {
+    int limit = 50,
+    int offset = 0,
+  }) => const ManualPayoutService().queue(
+    session,
+    _userId(session),
+    limit: limit,
+    offset: offset,
+  );
+
+  Future<ManualPayoutRequest> reviewManualPayout(
+    Session session,
+    int requestId,
+    bool approve,
+    int deductionPaise,
+    String settlementReference,
+    String payeeVerificationReference,
+    String note,
+  ) => const ManualPayoutService().review(
+    session,
+    _userId(session),
+    requestId,
+    approve,
+    deductionPaise,
+    settlementReference,
+    payeeVerificationReference,
+    note,
+  );
+
+  Future<ManualPayoutRequest> recordManualPayoutPaid(
+    Session session,
+    int requestId,
+    String bankTransferReference,
+  ) => const ManualPayoutService().recordPaid(
+    session,
+    _userId(session),
+    requestId,
+    bankTransferReference,
+  );
 
   Future<List<CampaignMatch>> getCampaignMatches(Session session) async {
     final volunteer = await _requireRole(session, AccountRole.volunteer);
@@ -3923,6 +4164,27 @@ class FieldnoteEndpoint extends Endpoint {
               .contains(item.status),
         )
         .length;
+    final approved = evidence
+        .where((item) => item.reviewState == ReviewState.approved)
+        .length;
+    final rejected = evidence
+        .where((item) => item.reviewState == ReviewState.rejected)
+        .length;
+    final payments = await Sponsorship.db.find(
+      session,
+      where: (t) =>
+          t.campaignId.equals(campaignId) & t.paymentStatus.equals('verified'),
+    );
+    final fundingNotes = <String>[
+      if (payments.any((item) => item.paymentTestMode == true))
+        'Includes Razorpay Test Mode payments: those payments move no real money.',
+      if (payments.any((item) => item.paymentTestMode == false))
+        'Includes live payments. Recorded funding is not proof of creator bank settlement.',
+      if (payments.any((item) => item.paymentTestMode == null))
+        'Some historical payments have an unknown checkout mode; they must not be treated as confirmed live funding.',
+      if (payments.isEmpty)
+        'No verified payment records. Any historical funding balance has not been classified as live or Test Mode.',
+    ];
     return ImpactSummary(
       campaignId: campaignId,
       sponsorshipTotal: Money.fromPaise(campaign.sponsoredAmountPaise),
@@ -3933,11 +4195,13 @@ class FieldnoteEndpoint extends Endpoint {
       joinedVolunteers: joined,
       completedVolunteers: completed,
       evidenceCount: accepted.length,
-      summary: _ai.impactSummary(
-        completedVolunteers: completed,
-        evidence: accepted,
-      ),
-      recentEvidence: evidence.take(6).toList(),
+      summary:
+          '$approved sponsor-approved contributions; '
+          '${evidence.length - approved - rejected} pending review; '
+          '$rejected rejected. ${fundingNotes.join(' ')}',
+      // The report needs every review state, including rejected evidence.
+      // Keep the existing wire contract; clients limit dashboard previews.
+      recentEvidence: evidence,
     );
   }
 
@@ -4098,6 +4362,203 @@ class FieldnoteEndpoint extends Endpoint {
     );
     return funding != null;
   }
+
+  /// One room per campaign, with membership derived from participation.
+  Future<void> _requireChatMember(
+    Session session,
+    FieldnoteUserProfile profile,
+    Campaign campaign, {
+    Transaction? transaction,
+  }) async {
+    if (campaign.createdBy == profile.authUserId) return;
+    if (profile.role == AccountRole.volunteer) {
+      final member = await CampaignParticipation.db.findFirstRow(
+        session,
+        where: (t) =>
+            t.campaignId.equals(campaign.id!) &
+            t.volunteerAuthUserId.equals(profile.authUserId) &
+            t.status.inSet({
+              ParticipationStatus.joined,
+              ParticipationStatus.checkedIn,
+              ParticipationStatus.completed,
+              ParticipationStatus.incomplete,
+            }),
+        transaction: transaction,
+      );
+      if (member != null) return;
+    }
+    throw FieldnoteException(
+      code: 'chat_forbidden',
+      message:
+          'Only the campaign creator and joined volunteers can open this discussion.',
+    );
+  }
+
+  Future<CampaignChatMessage> sendCampaignMessage(
+    Session session,
+    int campaignId,
+    String body,
+    String clientRequestId,
+  ) async {
+    final profile = await _requireProfile(session);
+    await _requireRole(session, profile.role);
+    final text = body.trim();
+    _requireLength(text, 1, 2000, 'message');
+    if (!RegExp(r'^[a-zA-Z0-9_-]{8,80}$').hasMatch(clientRequestId)) {
+      throw FieldnoteException(
+        code: 'invalid_chat_request',
+        message: 'Invalid message request id.',
+      );
+    }
+    // Serialize sends with joins, departures and campaign closure. This also
+    // makes concurrent retries return the same row, without duplicate messages.
+    final message = await session.db.transaction((transaction) async {
+      final campaign = await Campaign.db.findById(
+        session,
+        campaignId,
+        transaction: transaction,
+        lockMode: LockMode.forUpdate,
+      );
+      if (campaign == null) {
+        throw FieldnoteException(
+          code: 'campaign_not_found',
+          message: 'Campaign not found.',
+        );
+      }
+      await _requireChatMember(
+        session,
+        profile,
+        campaign,
+        transaction: transaction,
+      );
+      final previous = await CampaignChatMessage.db.findFirstRow(
+        session,
+        where: (t) =>
+            t.campaignId.equals(campaignId) &
+            t.senderAuthUserId.equals(profile.authUserId) &
+            t.clientRequestId.equals(clientRequestId),
+        transaction: transaction,
+      );
+      if (previous != null) {
+        if (previous.body != text) {
+          throw FieldnoteException(
+            code: 'chat_request_conflict',
+            message: 'This request id was already used for another message.',
+          );
+        }
+        return previous;
+      }
+      if (CampaignLifecycleService.isClosed(campaign)) {
+        throw FieldnoteException(
+          code: 'chat_read_only',
+          message: 'This campaign discussion is read-only.',
+        );
+      }
+      await _limiter.hit(session, profile.authUserId, RateLimits.campaignChat);
+      await _moderateOrThrow(session, text, 'campaignChat');
+      return CampaignChatMessage.db.insertRow(
+        session,
+        CampaignChatMessage(
+          campaignId: campaignId,
+          senderAuthUserId: profile.authUserId,
+          senderDisplayName: profile.displayName,
+          senderIsCreator: campaign.createdBy == profile.authUserId,
+          body: text,
+          clientRequestId: clientRequestId,
+        ),
+        transaction: transaction,
+      );
+    });
+    // Persistence is authoritative: a broadcast failure must not turn a saved
+    // message into a failed send. Clients recover it from history on reconnect.
+    try {
+      await session.messages.postMessage(_chatChannel(campaignId), message);
+    } catch (error, stack) {
+      session.log(
+        'Campaign chat broadcast failed.',
+        level: LogLevel.warning,
+        exception: error,
+        stackTrace: stack,
+      );
+    }
+    return message;
+  }
+
+  /// Newest page by default; afterId returns missed messages oldest first.
+  Future<List<CampaignChatMessage>> listCampaignMessages(
+    Session session,
+    int campaignId, {
+    int? beforeId,
+    int? afterId,
+    int? limit,
+  }) async {
+    final profile = await _requireProfile(session);
+    await _requireChatMember(
+      session,
+      profile,
+      await _campaign(session, campaignId),
+    );
+    if ((beforeId != null && afterId != null) ||
+        (beforeId != null && beforeId <= 0) ||
+        (afterId != null && afterId < 0)) {
+      throw FieldnoteException(
+        code: 'invalid_chat_page',
+        message: 'Invalid discussion page.',
+      );
+    }
+    return CampaignChatMessage.db.find(
+      session,
+      where: (t) =>
+          t.campaignId.equals(campaignId) &
+          (beforeId == null ? Constant.bool(true) : t.id < beforeId) &
+          (afterId == null ? Constant.bool(true) : t.id > afterId),
+      orderBy: (t) => afterId == null ? t.id.desc() : t.id.asc(),
+      limit: (limit ?? 50).clamp(1, 100),
+    );
+  }
+
+  /// Subscribe before fetching history on the client to avoid missing messages.
+  Stream<CampaignChatEvent> watchCampaignChat(
+    Session session,
+    int campaignId,
+  ) async* {
+    final profile = await _requireProfile(session);
+    await _requireChatMember(
+      session,
+      profile,
+      await _campaign(session, campaignId),
+    );
+    final updates = StreamController<CampaignChatMessage?>();
+    final subscription = session.messages
+        .createStream<CampaignChatMessage>(
+          _chatChannel(campaignId),
+        )
+        .listen(updates.add, onError: updates.addError);
+    // Heartbeats recheck membership even in a quiet room, and propagate closure.
+    final timer = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) => updates.add(null),
+    );
+    updates.add(null);
+    try {
+      await for (final message in updates.stream) {
+        final campaign = await _campaign(session, campaignId);
+        await _requireChatMember(session, profile, campaign);
+        yield CampaignChatEvent(
+          campaignId: campaignId,
+          readOnly: CampaignLifecycleService.isClosed(campaign),
+          message: message,
+        );
+      }
+    } finally {
+      timer.cancel();
+      await subscription.cancel();
+      await updates.close();
+    }
+  }
+
+  static String _chatChannel(int campaignId) =>
+      'fieldnote-campaign-chat-$campaignId';
 
   Future<CampaignPost> createCampaignPost(
     Session session,

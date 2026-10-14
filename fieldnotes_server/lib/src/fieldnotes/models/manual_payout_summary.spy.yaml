@@ -1,0 +1,10 @@
+class: ManualPayoutSummary
+fields:
+  campaignId: int
+  liveMode: bool
+  completed: bool
+  eligiblePaise: int
+  availablePaise: int
+  reservedPaise: int
+  paidPaise: int
+  requests: List<ManualPayoutRequest>
