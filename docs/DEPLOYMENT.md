@@ -1,7 +1,7 @@
 # FieldNote production deployment
 
-This is the checklist for a production (or staging) release of FieldNote. Gap
-IDs (P0-x, R-x, A-x) refer to [`PRODUCTION_GAPS.md`](PRODUCTION_GAPS.md).
+This is the checklist for a production (or staging) release of FieldNote.
+See [`PRODUCTION_GAPS.md`](PRODUCTION_GAPS.md) for release limitations.
 Nothing in this repository holds a real production value. Every host, ID, key
 and password is supplied at build or deploy time.
 
@@ -17,7 +17,7 @@ Placeholders used below:
 
 ---
 
-## 1. Server image and secrets (P0-9)
+## 1. Server image and secrets
 
 Build from the repository root (the build context is the root, so the root
 [`.dockerignore`](../.dockerignore) applies):
@@ -59,7 +59,7 @@ configures (`JwtConfigFromPasswords`, `EmailIdpConfigFromPasswords`).
 | ---------------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `database`                       | Yes                                   | PostgreSQL password (or`SERVERPOD_DATABASE_PASSWORD`)                                                                                                              |
 | `serviceSecret`                  | Yes                                   | Serverpod service/Insights auth (or`SERVERPOD_SERVICE_SECRET`)                                                                                                     |
-| `redis`                          | Yes once Redis is on (A-8)            | Redis password (or`SERVERPOD_REDIS_PASSWORD`)                                                                                                                      |
+| `redis`                          | Yes once Redis is on            | Redis password (or`SERVERPOD_REDIS_PASSWORD`)                                                                                                                      |
 | `jwtHmacSha512PrivateKey`        | Yes                                   | JWT access-token signing (`JwtConfigFromPasswords`)                                                                                                                |
 | `jwtRefreshTokenHashPepper`      | Yes                                   | JWT refresh-token hashing; at least 10 characters                                                                                                                    |
 | `emailSecretHashPepper`          | Yes                                   | Email IdP password/code hashing (`EmailIdpConfigFromPasswords`)                                                                                                    |
@@ -68,8 +68,8 @@ configures (`JwtConfigFromPasswords`, `EmailIdpConfigFromPasswords`).
 | `smtpHost`, `smtpPort`         | Optional                              | Notifications only: any STARTTLS provider instead of Gmail (port defaults to 587). Without SMTP passwords notifications are marked`skipped`, never fail the action |
 | `razorpayKeyId`                  | Yes                                   | Razorpay key ID. Live keys start`rzp_live_`. Payout simulation runs only with `rzp_test_` keys; with live keys it answers `payouts_manual` (section 7)         |
 | `razorpayKeySecret`              | Yes                                   | Razorpay order creation and checkout-signature verification                                                                                                          |
-| `razorpayWebhookSecret`          | Yes                                   | Verifies`X-Razorpay-Signature` on the web-server route `/webhooks/razorpay` (P0-2)                                                                               |
-| `geminiApiKey`                   | One of Gemini/Groq is required (P0-8) | Campaign drafting, evidence summaries, dictation transcription                                                                                                       |
+| `razorpayWebhookSecret`          | Yes                                   | Verifies`X-Razorpay-Signature` on the web-server route `/webhooks/razorpay`                                                                               |
+| `geminiApiKey`                   | One of Gemini/Groq is required | Campaign drafting, evidence summaries, dictation transcription                                                                                                       |
 | `groqApiKey`                     | See above                             | Fallback/alternative AI provider                                                                                                                                     |
 | `aiPrimaryProvider`              | Optional                              | `gemini` or `groq`; chooses which provider is tried first                                                                                                        |
 | `geminiModel`                    | Optional                              | Overrides the default Gemini model (`GeminiAiService.defaultModel`). The non-secret env var `FIELDNOTE_GEMINI_MODEL` works too; the password wins                |
@@ -80,7 +80,7 @@ Rotate every value that was ever used in development. Do not reuse the dev or
 CI database/Redis passwords committed in `docker-compose.yaml` and
 `.github/workflows/tests.yml`; they are local/test-only.
 
-### Non-secret server configuration (domain is env-configurable, P0-10)
+### Non-secret server configuration (domain is env-configurable)
 
 `config/production.yaml` and `config/staging.yaml` contain **no real hosts**:
 every host is `localhost` with a `# REQUIRED: SERVERPOD_…` comment, so a
@@ -94,7 +94,7 @@ Serverpod merges these env vars over the YAML (`serverpod_shared`
 | `SERVERPOD_WEB_SERVER_PUBLIC_HOST`                                                | Yes           | `<web-host>`. Also used to build legal URLs and server-generated share links                                                                                                                                                |
 | `SERVERPOD_INSIGHTS_SERVER_PUBLIC_HOST`                                           | Optional      | Insights host (keep it private if possible)                                                                                                                                                                                   |
 | `SERVERPOD_DATABASE_HOST`, `_PORT`, `_NAME`, `_USER`, `_REQUIRE_SSL`      | Host required | Managed Postgres (YAML defaults: port 5432, name`fieldnote`, user `postgres`, SSL on)                                                                                                                                     |
-| `SERVERPOD_REDIS_HOST`, `_PORT`, `_USER`, `_REQUIRE_SSL`, `_ENABLED`      | Host required | Redis is**enabled** in both files (A-8); see section 5                                                                                                                                                                  |
+| `SERVERPOD_REDIS_HOST`, `_PORT`, `_USER`, `_REQUIRE_SSL`, `_ENABLED`      | Host required | Redis is**enabled** in both files; see section 5                                                                                                                                                                  |
 | `SERVERPOD_ALLOWED_ORIGINS`                                                       | Yes           | `https://<web-host>` (comma-separated). The YAML placeholder `https://localhost` rejects real browsers' WebSockets until this is set. Native apps send no `Origin` and are unaffected                                   |
 | `SERVERPOD_AUTH_COOKIE_DOMAIN`, `_SECURE`, `_SAME_SITE`, `_NAME`, `_PATH` | Optional      | `authCookie` is configured (`sameSite: lax`, `secure: true`). The web app keeps bearer tokens until it sets `client.cookieAuth = true`. Serverpod refuses to boot if `authCookie` is set without `allowedOrigins` |
 | `SERVERPOD_WEB_SERVER_STATIC_CACHE_CONTROL`                                       | Optional      | Static files under`/web/` default to `public, immutable, max-age=1 year`                                                                                                                                                  |
@@ -120,7 +120,7 @@ The container already sets `runmode=production`; pass `--mode=staging` via
 
 ---
 
-## 2. App identity and signing (P0-11)
+## 2. App identity and signing
 
 The application/bundle ID is a **required build setting with no real default**.
 Debug and profile builds use the obvious placeholders `com.example.fieldnotes_flutter`
@@ -151,7 +151,7 @@ The Kotlin `namespace` stays `com.example.fieldnotes_flutter`. It is the R/
 BuildConfig package, is never visible to users and is independent of the
 application ID. Renaming it means moving `MainActivity.kt` too; that is optional.
 
-Cleartext HTTP (R-1) is enabled only in `src/debug` and `src/profile`
+Cleartext HTTP is enabled only in `src/debug` and `src/profile`
 manifests for local servers. Release builds are HTTPS-only.
 
 ### iOS
@@ -185,7 +185,7 @@ without it the app shares `fieldnote://campaign/<id>`.
 
 ---
 
-## 3. Deep links: App Links and Universal Links (R-5)
+## 3. Deep links: App Links and Universal Links
 
 - **Android:** `AndroidManifest.xml` has an `android:autoVerify="true"` filter
   for `https://${fieldnoteLinkHost}/c/…`. The manifest placeholder comes from
@@ -249,7 +249,7 @@ Apple fetches this through its CDN when the app is installed, so changes can
 take up to about a day to apply. Check it with
 `https://app-site-association.cdn-apple.com/a/v1/<link-host>`.
 
-### Share links (R-3, R-4)
+### Share links
 
 - Every campaign has an unguessable `shareSlug` (22 base62 characters; rows
   created before it existed were backfilled by migration
@@ -267,7 +267,7 @@ take up to about a day to apply. Check it with
 
 ---
 
-## 4. Legal documents (P0-7)
+## 4. Legal documents
 
 Drafts live in `fieldnotes_server/web/static/legal/`. **Both need legal review**
 (see the HTML comment at the top of each), with every `[PLACEHOLDER]` replaced.
@@ -282,11 +282,11 @@ Drafts live in `fieldnotes_server/web/static/legal/`. **Both need legal review**
 minutes. (`/web/legal/*.html` still works but is cached for a year; do not link
 it.) The unauthenticated `legal.getLegalPolicies()` RPC returns both versions,
 both URLs (built from the web server's public host) and the required consent
-switches, so signup and onboarding never hardcode them (T-3). Bump the HTML
+switches, so signup and onboarding never hardcode them. Bump the HTML
 version and the endpoint constants together, then link both URLs from signup,
 onboarding, the consent gate, the Trust area and both store listings.
 
-Consent (T-2): `acceptLegalConsent` stores the switches the user actually set
+Consent: `acceptLegalConsent` stores the switches the user actually set
 and rejects the call unless all three are true; when the client passes
 `acceptedPrivacyPolicyVersion` / `acceptedTermsVersion` a stale version is
 rejected with `consent_version_mismatch`. `withdrawConsent` turns all three
@@ -296,7 +296,7 @@ and withdraw is appended to `fieldnote_legal_consent_history`
 
 ---
 
-## 5. Redis (A-8)
+## 5. Redis
 
 Redis is **enabled** in `production.yaml` and `staging.yaml` (TLS on, port
 6379) so `session.messages`, live campaign streams and auth revocation reach
@@ -304,7 +304,7 @@ every instance. Set `SERVERPOD_REDIS_HOST` and `SERVERPOD_REDIS_PASSWORD`
 (plus `_PORT`/`_USER`/`_REQUIRE_SSL` if they differ). A single-instance
 deployment without Redis must set `SERVERPOD_REDIS_ENABLED=false` explicitly.
 
-Rate limits (A-3) do **not** need Redis: `RateLimiter` keeps fixed-window
+Rate limits do **not** need Redis: `RateLimiter` keeps fixed-window
 counters in `fieldnote_rate_limit_bucket` with one atomic upsert per call, so
 they hold across instances. Limits (per user, per window) are constants in
 `services/rate_limiter.dart`: campaign drafting 20/h, dictation 30/h,
@@ -317,10 +317,11 @@ code `rate_limited` with `retryAfterSeconds`.
 
 Signup verification and password-reset codes are emailed by
 `lib/src/auth/verification_email_sender.dart` using `smtpUsername` and
-`smtpAppPassword`. **That file could not be read in either pass (permission
-blocked); someone must still check that it never logs codes in plaintext.**
+`smtpAppPassword`. The sender includes the code in the email body; its failure
+log records the delivery error and recipient, without explicitly logging the code.
 
-Transactional notifications (A-9, no push yet) go through an outbox:
+Transactional email notifications go through an outbox. The private inbox and
+Android push are configured separately; see [`NOTIFICATIONS.md`](NOTIFICATIONS.md).
 
 - Business actions insert rows into `fieldnote_notification_outbox`; one row
   per `(recipient, dedupeKey)`, so retries never send twice. Events:
@@ -346,18 +347,17 @@ set up SPF, DKIM and DMARC for the sending domain.
 1. Complete Razorpay KYC and activate live mode.
 2. Set `razorpayKeyId` (`rzp_live_…`) and `razorpayKeySecret` from the live dashboard.
 3. Add a webhook in the Razorpay dashboard (Settings > Webhooks):
-   - URL: `https://<web-host>/webhooks/razorpay` (Serverpod web-server route, P0-2)
+   - URL: `https://<web-host>/webhooks/razorpay` (Serverpod web-server route)
    - Secret: a new random value, stored as **`razorpayWebhookSecret`**
    - Events: at least `payment.captured`, `payment.failed`, `order.paid`,
      `refund.processed`, `refund.failed`
-4. P0-1 to P0-4 (web retry, webhook and reconciliation, refunds, expiry
-   refunds) are closed in code. `TestRefund` rows are real Razorpay refunds in
+4. Web retry, webhook reconciliation and expiry refunds are implemented. `TestRefund` rows are real Razorpay refunds in
    live mode (the class name is historical). `TestPayout` rows are a
    Test Mode simulation only.
 5. In the web build, `index.html` loads `https://checkout.razorpay.com/v1/checkout.js`.
    Allow it in any Content-Security-Policy.
 
-### Money storage (A-4)
+### Money storage
 
 All money is stored as integer paise in `*Paise` columns: `Campaign.fundingGoalPaise`,
 `sponsoredAmountPaise` (net of refunds) and `refundedAmountPaise`; `Sponsorship.amountPaise`;
@@ -375,34 +375,33 @@ due to the **campaign creator**: the sponsor who organised the campaign
 (`Campaign.createdBy`, `TestPayout.creatorAuthUserId`). That creator runs the
 volunteer event.
 
-**What the code does.** `simulateCampaignTestPayout` writes `TestPayout`
-ledger rows, one per verified sponsorship that has no refund. It runs only with `rzp_test_`
-keys. With live keys it throws `FieldnoteException` code `payouts_manual`
-("Payouts are settled manually by FieldNote operations."). Clients call
-`isPayoutSimulationAvailable()` (false in live mode or without keys) to show
-that message instead of a simulate button. Automated payouts need a RazorpayX
-account (Payouts/Route) with its own KYC and contracts. They are deliberately
-not integrated.
+**Test Mode.** `simulateCampaignTestPayout` writes `TestPayout` ledger rows only with `rzp_test_` keys. It never transfers money. The existing simulation remains available on the creator payout screen, and explicitly live payment rows are excluded from it.
 
-**Manual settlement process (operations):**
+**Live requests.** The creator opens **Impact → Payout → Request payout** after campaign completion. `requestManualPayout` requests the entire currently available gross balance and snapshots its source sponsorship IDs. A campaign row lock, unique client request ID and source reservations prevent duplicate withdrawals. `requested`, `processing` and `paid` requests reserve their sources; rejection releases them. Fees consumed by a paid request never become withdrawable again.
 
-1. Each day, list completed campaigns that are due:
-   `SELECT id, name, "createdBy", "sponsoredAmountPaise" FROM fieldnote_campaign WHERE status = 'completed'`
-   (`status` stores the enum name).
-   For each one, sum its `fieldnote_sponsorship` rows with `"paymentStatus" = 'verified'`
-   that have no `fieldnote_test_refund` row. That sum, in paise, is the amount owed.
-2. Check the matching captured payments and settlements in the Razorpay
-   dashboard (Transactions > Payments / Settlements). Razorpay settles
-   captured funds to FieldNote's bank account, net of its fees.
-3. Verify the creator's payee details out of band: bank account or UPI, plus KYC
-   documents as your agreement requires. Never collect them in the app.
-4. Transfer the amount from FieldNote's bank account (NEFT/IMPS/UPI), less any
-   platform fee in the creator agreement, and keep the bank reference.
-5. Record the payout in your accounting ledger with campaign id, sponsorship
-   ids, amount in paise and bank reference, then email the creator. No FieldNote table is
-   written in live mode. Add an operations table before automating this.
-6. Never pay out a campaign that is cancelled or expired, or a sponsorship that has a
-   refund row. Those funds go back to sponsors through the refund worker.
+Only verified Razorpay sponsorships created with `paymentTestMode = false`, a payment ID and verification timestamp qualify. Any refund row excludes that payment, regardless of refund status. Existing test credits also exclude it. The server requires `rzp_live_` credentials to accept a real request. Old sponsorships have a null mode marker and are deliberately ineligible; do not mass-backfill them using the currently configured key. Reconcile any legacy obligations separately before paying them.
+
+**Operations access.** Configure `FIELDNOTE_PAYOUT_OPERATOR_IDS` with a comma-separated allowlist of trusted Serverpod auth user UUIDs. It is empty by default. Operators keep their Sponsor or Volunteer account role; there is no third product role and users cannot grant themselves this permission. Restart the server after changing this environment variable. Allowlisted accounts see **Profile → Payout operations**. The server independently checks the allowlist on every queue/review/payment RPC.
+
+To find the operator's own UUID, sign into that account, export JSON from the Trust area and read `profile.authUserId`. Configure only trusted account IDs, not display names or email addresses. Keep the rest of that export private.
+
+```sh
+# Replace with the trusted operator's real auth UUID. This is not an API secret.
+FIELDNOTE_PAYOUT_OPERATOR_IDS='your-operator-auth-uuid'
+```
+
+**Manual settlement process:**
+
+1. Open the operations queue. Match the campaign and creator auth UUID to the verified creator and your external payee record. Obtain their contact information from your existing creator onboarding records. Collect and verify bank details outside FieldNote; never put account numbers or KYC documents into the app's reference or note fields.
+2. Review the request's source payment IDs in `fieldnote_manual_payout_request.sponsorshipIds` and match those sponsorships to Razorpay captured payments. Confirm their settlement into the business bank account and check for refunds or disputes. The app does not verify bank settlement automatically.
+3. Select **Approve for transfer**, enter opaque settlement and payee verification record references, any deductions agreed with the creator, and a creator-visible explanation. INR deductions are stored as exact integer paise. The approved transfer amount is gross minus deductions. Approval changes the request to `processing` and does not initiate a transfer. Source eligibility is rechecked when approving.
+4. Recheck provider/bank status before sending money. Transfer exactly the approved net amount through your bank. Keep funds reserved if the outcome is uncertain; do not send another transfer until you have reconciled the first. A `processing` request cannot be rejected to release funds.
+5. Once the bank confirms success, select **Record completed transfer** and enter its UTR/reference. The request changes to `paid`; the creator sees the amount and reference in payout history after refresh. References are normalized to uppercase and unique across requests. Retrying the same reference on the same paid request is safe. Recording paid does not itself send money.
+6. Reject a `requested` payout with a reason when payee verification or settlement cannot be completed. Reject before transferring any money. The creator can submit a new request when eligible funds remain.
+
+Request, approval/rejection and paid transitions are persisted with an audit event in the same database transaction. This app stores payout history, but it does not execute bank transfers, fetch bank settlements, handle chargebacks automatically or send payout-status emails. Creators can refresh the payout screen to see status changes. Pending creator requests block account deletion; completed financial records are retained with anonymized user IDs, and creator payout history is included in the JSON data export.
+
+**Migration:** `20261004185915672-manual-payouts` adds the payout table and nullable checkout-mode column. Deploy/apply it before serving clients with this feature. Local `serverpod start` applies pending migrations; staging and production should follow the normal backup/deploy process.
 
 ## 8. Database and storage backups
 
@@ -412,14 +411,14 @@ not integrated.
   server this falls back to `DatabaseCloudStorage`, so the photos sit in the
   database and its backups. Size and encrypt the backups for that. Prefer an S3/GCS
   bucket in production.
-- Rehearse a restore before launch. Deletion requests (P0-6) must also be
+- Rehearse a restore before launch. Deletion requests must also be
   honoured against backups within the stated retention period.
 - `serverpod start`/the image applies pending migrations when it boots. Back up
   before each deploy.
 
 ## 9. Store compliance
 
-- **Account deletion (P0-6):** Apple (Guideline 5.1.1(v)) requires in-app
+- **Account deletion:** Apple (Guideline 5.1.1(v)) requires in-app
   account deletion. Google Play requires in-app deletion **and** a public web
   URL where users can request deletion, entered in the Data safety form (still
   to publish, e.g. a support form; there is no unauthenticated deletion RPC).
@@ -448,7 +447,7 @@ not integrated.
   Razorpay) and user content.
 - Permission strings: camera, photo library, location when in use, microphone and speech
   recognition are in `Info.plist` and must stay accurate.
-- Crash reporting is intentionally not included in this release (R-7 deferred).
+- Crash reporting is intentionally not included in this release .
 
 ## 10. Branding and icons
 
@@ -563,11 +562,11 @@ How to migrate a file:
 - [ ] Privacy Policy and Terms reviewed by a lawyer, placeholders filled, versions match the endpoint constants, `/legal/privacy` and `/legal/terms` linked in app and store listings
 - [ ] Redis enabled for multi-instance deployments
 - [ ] SMTP sender verified (SPF/DKIM/DMARC); codes not logged
-- [ ] Razorpay live keys, webhook URL `/webhooks/razorpay` and `razorpayWebhookSecret` configured; P0-1 to P0-4 closed
-- [ ] Manual creator-payout process (section 7, "Payouts") owned by operations; app shows "Payouts are settled manually" when `isPayoutSimulationAvailable()` is false
+- [ ] Razorpay live keys, webhook URL `/webhooks/razorpay` and `razorpayWebhookSecret` configured; payment and refund flows verified on staging
+- [ ] Manual creator-payout process (section 7, "Payouts") owned by operations; migration applied and `FIELDNOTE_PAYOUT_OPERATOR_IDS` configured for trusted operators
 - [ ] Migration `20261002062415263-money-paise-idempotency` reviewed: it **drops** six unused tables (`fieldnote_asset`, `fieldnote_observation`, `fieldnote_observation_media`, `fieldnote_follow_up_task`, `fieldnote_organization_member`, `fieldnote_review_decision`); back up first
 - [ ] Database backups and PITR on; restore rehearsed
-- [ ] Account deletion exercised end to end on staging (P0-6); Play web deletion URL published
+- [ ] Account deletion exercised end to end on staging; Play web deletion URL published
 - [ ] SMTP verified for notifications (send a test cancel on staging)
 - [X] Launcher icons generated (section 10)
 - [ ] Hindi and Tamil strings reviewed by native speakers; sponsor/volunteer screens localized (section 11)

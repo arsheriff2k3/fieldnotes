@@ -751,17 +751,16 @@ class _ClosedMissionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Wrap(
+            spacing: FieldnoteSpacing.sm,
+            runSpacing: FieldnoteSpacing.xs,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Flexible(
-                child: StatusPill(
-                  label: display.label,
-                  color: display.color,
-                  icon: display.icon,
-                ),
+              StatusPill(
+                label: display.label,
+                color: display.color,
+                icon: display.icon,
               ),
-              const SizedBox(width: FieldnoteSpacing.xs),
-              const Spacer(),
               Text(
                 DateFormat.MMMEd(
                   dateLocale(context.localeTag),
@@ -1430,18 +1429,17 @@ class _MissionCardState extends State<_MissionCard> {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
-              StatusPill(
-                label: _tracking
-                    ? l10n.volunteerGpsStreaming
-                    : location == null
-                    ? l10n.volunteerGpsNotStarted
-                    : l10n.volunteerGpsPaused,
-                color: _tracking
-                    ? FieldnoteColors.forest
-                    : FieldnoteColors.clay,
-                icon: _tracking ? Icons.sensors : Icons.gps_not_fixed,
-              ),
             ],
+          ),
+          const SizedBox(height: FieldnoteSpacing.xs),
+          StatusPill(
+            label: _tracking
+                ? l10n.volunteerGpsStreaming
+                : location == null
+                ? l10n.volunteerGpsNotStarted
+                : l10n.volunteerGpsPaused,
+            color: _tracking ? FieldnoteColors.forest : FieldnoteColors.clay,
+            icon: _tracking ? Icons.sensors : Icons.gps_not_fixed,
           ),
           const SizedBox(height: FieldnoteSpacing.sm),
           _approachMap(context, location, distance, inside),

@@ -22,4 +22,4 @@ jobs:
 
       - name: Check formatting
         working-directory: fieldnotes_server
-        run: dart format --set-exit-if-changed .
+        run: dart format --output=none --set-exit-if-changed .

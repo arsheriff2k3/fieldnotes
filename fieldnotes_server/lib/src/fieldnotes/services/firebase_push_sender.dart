@@ -17,8 +17,7 @@ abstract interface class PushSender {
 
 /// FCM HTTP v1 credentials stay exclusively in Serverpod passwords.
 class FirebasePushSender implements PushSender {
-  FirebasePushSender(this.projectId, this.client, {http.Client? baseClient})
-    : _baseClient = baseClient;
+  FirebasePushSender(this.projectId, this.client, {this._baseClient});
 
   final String projectId;
   final http.Client client;

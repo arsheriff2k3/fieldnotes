@@ -28,7 +28,7 @@ Both roles have a private notification inbox and unread bell. Android device
 alerts use Firebase Cloud Messaging, triggered by Serverpod through its outbox
 worker. The app registers tokens and fetches notification details through
 Serverpod; email preferences remain independent. See
-[`docs/IN_APP_NOTIFICATIONS_PLAN.md`](docs/IN_APP_NOTIFICATIONS_PLAN.md)
+[`docs/NOTIFICATIONS.md`](docs/NOTIFICATIONS.md)
 for Android configuration, event coverage and expected timing.
 
 ## Architecture
@@ -37,7 +37,7 @@ for Android configuration, event coverage and expected timing.
 fieldnotes_flutter/   Flutter app (Android, iOS, web; desktop scaffolds)
 fieldnotes_client/    Generated Serverpod client (never edit by hand)
 fieldnotes_server/    Serverpod 4 backend (Dart), PostgreSQL, optional Redis
-docs/                 Plans, gap audit, secrets guide, deployment guide
+docs/                 Setup, notifications, release limitations and deployment
 ```
 
 - **Backend:** Serverpod with its built-in email authentication (JWT tokens).
@@ -74,7 +74,7 @@ flutter pub get                       # resolves the whole pub workspace
 cp .env.example .env                  # SERVERPOD_PASSWORD_* values for dev
 #   and/or fieldnotes_server/config/passwords.yaml
 
-# Optional client Maps keys (git-ignored):
+# Client Maps key file (git-ignored; leave keys empty for coordinate fallback):
 cp fieldnotes_flutter/.env.maps.example fieldnotes_flutter/.env.maps
 
 ./start-local.sh                      # loads .env, then runs `serverpod start`
@@ -90,20 +90,55 @@ After changing `.spy.yaml` models, create a migration (`serverpod create-migrati
 or the Serverpod MCP `create_migration` tool). `serverpod start` applies it.
 Never edit `lib/src/generated/` or `fieldnotes_client/`.
 
-To run on a physical Android device against your machine, see
-[`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md). Debug and profile
-builds allow cleartext HTTP; release builds do not.
+### Physical Android device
+
+With the server running and the phone connected by USB:
+
+```sh
+adb reverse tcp:8080 tcp:8080
+adb reverse tcp:8082 tcp:8082
+cd fieldnotes_flutter
+flutter run -d <device-id>
+```
+
+Forward both ports: 8080 serves the API and private evidence; 8082 serves legal
+and campaign share pages. Repeat the forwards after reconnecting USB. For
+multiple devices, pass `adb -s <device-id>` for each forward.
+
+For Wi-Fi, put the phone and laptop on the same network. Override the server
+public hosts using
+`SERVERPOD_API_SERVER_PUBLIC_HOST`, `SERVERPOD_INSIGHTS_SERVER_PUBLIC_HOST`
+and `SERVERPOD_WEB_SERVER_PUBLIC_HOST` with the laptop's LAN IP, and run with
+`--dart-define=SERVER_URL=http://<LAN-IP>:8080/`. Debug and profile builds allow
+cleartext HTTP; release builds require HTTPS.
+
+### Demo flow
+
+Use two email accounts with accessible inboxes: one Sponsor and one Volunteer.
+Configure SMTP for signup codes, an AI provider for drafting, and Razorpay
+**Test Mode** keys for checkout. The sponsor drafts, publishes and funds a
+campaign. The volunteer sets availability, joins, checks in, and submits photo
+and note evidence. The sponsor reviews the evidence and exports an impact PDF.
+Use the explicitly labeled demo GPS option when presenting away from the
+campaign location.
 
 ## Testing
 
 ```sh
 # Server: unit and integration tests. No Docker needed; config/test.yaml
 # makes Serverpod start an embedded PostgreSQL.
-cd fieldnotes_server && dart analyze && dart format . && dart test
+cd fieldnotes_server
+dart analyze --fatal-infos
+dart format --output=none --set-exit-if-changed .
+dart test
 
 # App
-cd fieldnotes_flutter && flutter analyze && flutter test
+cd ../fieldnotes_flutter
+flutter analyze
+flutter test
 ```
+
+Use the Dart SDK bundled with the required Flutter version for these commands.
 
 CI (`.github/workflows/`) runs server analyze, format and tests, plus Flutter
 analyze and tests (`flutter.yml`).
