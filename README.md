@@ -159,3 +159,10 @@ Release builds refuse placeholder app IDs, missing signing and a missing link
 host. For production setup (secrets list, domains, signing, App Links and
 Universal Links files, Razorpay webhook, Redis, SMTP, backups, store
 requirements) follow [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+
+## Local client and database configuration
+
+Firebase client settings are kept outside Git. See `docs/NOTIFICATIONS.md`
+for Android setup and `--dart-define-from-file=.env.firebase.json`.
+Provide the database and Redis passwords through environment variables or the
+ignored `fieldnotes_server/.env` before starting Docker Compose.

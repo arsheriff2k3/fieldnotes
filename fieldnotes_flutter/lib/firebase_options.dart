@@ -1,18 +1,24 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 
-/// Public Firebase app identifiers; service-account credentials never belong here.
+/// Load client settings from an ignored file via --dart-define-from-file.
+/// Server service-account credentials must never be supplied to Flutter.
 abstract final class FieldnoteFirebaseOptions {
   static FirebaseOptions? get currentPlatform =>
-      !kIsWeb && defaultTargetPlatform == TargetPlatform.android
+      !kIsWeb &&
+          defaultTargetPlatform == TargetPlatform.android &&
+          android.apiKey.isNotEmpty &&
+          android.appId.isNotEmpty &&
+          android.messagingSenderId.isNotEmpty &&
+          android.projectId.isNotEmpty
       ? android
       : null;
 
   static const android = FirebaseOptions(
-    messagingSenderId: "237416387779",
-    projectId: "fieldnote-push-20261014",
-    storageBucket: "fieldnote-push-20261014.firebasestorage.app",
-    apiKey: "REDACTED_CONFIGURE_LOCALLY",
-    appId: "1:237416387779:android:3e758325a9a961e2fc3e76",
+    apiKey: String.fromEnvironment('FIREBASE_ANDROID_API_KEY'),
+    appId: String.fromEnvironment('FIREBASE_ANDROID_APP_ID'),
+    messagingSenderId: String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID'),
+    projectId: String.fromEnvironment('FIREBASE_PROJECT_ID'),
+    storageBucket: String.fromEnvironment('FIREBASE_STORAGE_BUCKET'),
   );
 }
