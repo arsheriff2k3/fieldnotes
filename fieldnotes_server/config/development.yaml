@@ -12,9 +12,9 @@
 #   SERVERPOD_API_SERVER_PUBLIC_PORT=443 SERVERPOD_API_SERVER_PUBLIC_SCHEME=https
 apiServer:
   port: 8080
-  publicHost: great-availability-rainbow-tough.trycloudflare.com
-  publicPort: 443
-  publicScheme: https
+  publicHost: localhost
+  publicPort: 8080
+  publicScheme: http
 
 # Configuration for the Insights server.
 insightsServer:

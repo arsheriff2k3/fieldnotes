@@ -183,10 +183,12 @@ class _SharedCampaignViewState extends State<SharedCampaignView> {
                   children: [
                     const Icon(Icons.event_outlined, size: 20),
                     const SizedBox(width: FieldnoteSpacing.sm),
-                    Text(
-                      DateFormat.MMMEd(
-                        dateLocale(context.localeTag),
-                      ).add_jm().format(campaign.startsAt.toLocal()),
+                    Expanded(
+                      child: Text(
+                        DateFormat.MMMEd(
+                          dateLocale(context.localeTag),
+                        ).add_jm().format(campaign.startsAt.toLocal()),
+                      ),
                     ),
                   ],
                 ),

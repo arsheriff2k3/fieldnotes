@@ -89,3 +89,14 @@ fieldnotes_server/config/firebase_service_account_key.json
 .cursor/
 .codex/
 .mcp.json
+
+# Local planning, AI prompts and device QA captures
+/AGENTS.md
+/CLAUDE.md
+/docs/qa/
+/docs/notification-device-test/
+/docs/screenshots/
+/docs/architecture/
+/docs/*_PLAN.md
+/docs/*_STORY.md
+/docs/DEMO_VIDEO_SCRIPT*.md

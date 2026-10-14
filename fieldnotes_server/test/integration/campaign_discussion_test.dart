@@ -103,11 +103,12 @@ void main() {
         final messages = <CampaignChatMessage>[];
         for (var i = 0; i < 100; i++) {
           // Advance simulated rate-limit windows without relaxing production limits.
-          if (i % 25 == 0)
+          if (i % 25 == 0) {
             await RateLimitBucket.db.deleteWhere(
               session,
               where: (t) => t.authUserId.equals(UuidValue.fromString(ids[0])),
             );
+          }
           messages.add(
             await endpoints.fieldnote.sendCampaignMessage(
               creator,
@@ -166,8 +167,9 @@ void main() {
           ))!.unreadCount,
           100,
         );
-        for (var i = 0; i < 4; i++)
+        for (var i = 0; i < 4; i++) {
           await const InAppNotificationService().deliverDue(session);
+        }
         expect(push.counts, [100]);
         await endpoints.fieldnote.markMyNotificationRead(
           volunteer,

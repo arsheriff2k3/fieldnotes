@@ -375,7 +375,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       if (name == 'profile-editor') {
-        expect(find.byType(TextField), findsWidgets);
+        expect(
+          find.byWidgetPredicate((widget) => widget is TextField),
+          findsWidgets,
+        );
       }
       if (name == 'leave-campaign') {
         expect(find.byType(AlertDialog), findsOneWidget);
