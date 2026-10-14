@@ -22,7 +22,9 @@ abstract class NotificationItem
     this.campaignId,
     required this.createdAt,
     this.readAt,
-  });
+    int? unreadCount,
+    this.chatMessageId,
+  }) : unreadCount = unreadCount ?? 1;
 
   factory NotificationItem({
     required int id,
@@ -32,6 +34,8 @@ abstract class NotificationItem
     int? campaignId,
     required DateTime createdAt,
     DateTime? readAt,
+    int? unreadCount,
+    int? chatMessageId,
   }) = _NotificationItemImpl;
 
   factory NotificationItem.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -47,6 +51,8 @@ abstract class NotificationItem
       readAt: jsonSerialization['readAt'] == null
           ? null
           : _isc.DateTimeJsonExtension.fromJson(jsonSerialization['readAt']),
+      unreadCount: jsonSerialization['unreadCount'] as int?,
+      chatMessageId: jsonSerialization['chatMessageId'] as int?,
     );
   }
 
@@ -64,6 +70,10 @@ abstract class NotificationItem
 
   DateTime? readAt;
 
+  int unreadCount;
+
+  int? chatMessageId;
+
   /// Returns a shallow copy of this [NotificationItem]
   /// with some or all fields replaced by the given arguments.
   @_isc.useResult
@@ -75,6 +85,8 @@ abstract class NotificationItem
     int? campaignId,
     DateTime? createdAt,
     DateTime? readAt,
+    int? unreadCount,
+    int? chatMessageId,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -87,6 +99,8 @@ abstract class NotificationItem
       if (campaignId != null) 'campaignId': campaignId,
       'createdAt': createdAt.toJson(),
       if (readAt != null) 'readAt': readAt?.toJson(),
+      'unreadCount': unreadCount,
+      if (chatMessageId != null) 'chatMessageId': chatMessageId,
     };
   }
 
@@ -101,6 +115,8 @@ abstract class NotificationItem
       if (campaignId != null) 'campaignId': campaignId,
       'createdAt': createdAt.toJson(),
       if (readAt != null) 'readAt': readAt?.toJson(),
+      'unreadCount': unreadCount,
+      if (chatMessageId != null) 'chatMessageId': chatMessageId,
     };
   }
 
@@ -121,6 +137,8 @@ class _NotificationItemImpl extends NotificationItem {
     int? campaignId,
     required DateTime createdAt,
     DateTime? readAt,
+    int? unreadCount,
+    int? chatMessageId,
   }) : super._(
          id: id,
          kind: kind,
@@ -129,6 +147,8 @@ class _NotificationItemImpl extends NotificationItem {
          campaignId: campaignId,
          createdAt: createdAt,
          readAt: readAt,
+         unreadCount: unreadCount,
+         chatMessageId: chatMessageId,
        );
 
   /// Returns a shallow copy of this [NotificationItem]
@@ -143,6 +163,8 @@ class _NotificationItemImpl extends NotificationItem {
     Object? campaignId = _Undefined,
     DateTime? createdAt,
     Object? readAt = _Undefined,
+    int? unreadCount,
+    Object? chatMessageId = _Undefined,
   }) {
     return NotificationItem(
       id: id ?? this.id,
@@ -152,6 +174,8 @@ class _NotificationItemImpl extends NotificationItem {
       campaignId: campaignId is int? ? campaignId : this.campaignId,
       createdAt: createdAt ?? this.createdAt,
       readAt: readAt is DateTime? ? readAt : this.readAt,
+      unreadCount: unreadCount ?? this.unreadCount,
+      chatMessageId: chatMessageId is int? ? chatMessageId : this.chatMessageId,
     );
   }
 }

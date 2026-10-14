@@ -168,8 +168,8 @@ class _HistoryCard extends StatelessWidget {
           if (const {
             ParticipationStatus.completed,
             ParticipationStatus.incomplete,
-          }.contains(entry.participation.status))
-            OutlinedButton.icon(
+          }.contains(entry.participation.status)) ...[
+            FieldnoteCardAction(
               onPressed: () => Navigator.of(context).push<void>(
                 MaterialPageRoute(
                   builder: (_) => CampaignDiscussionView(
@@ -179,9 +179,11 @@ class _HistoryCard extends StatelessWidget {
                   ),
                 ),
               ),
-              icon: const Icon(Icons.forum_outlined),
-              label: Text(context.l10n.campaignDiscussionTitle),
+              icon: Icons.forum_outlined,
+              label: context.l10n.campaignDiscussionTitle,
             ),
+            const SizedBox(height: 12),
+          ],
           Wrap(
             spacing: FieldnoteSpacing.sm,
             runSpacing: FieldnoteSpacing.xs,

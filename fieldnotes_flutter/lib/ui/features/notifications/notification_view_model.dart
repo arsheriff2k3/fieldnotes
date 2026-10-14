@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fieldnotes_client/fieldnotes_client.dart';
 import 'package:flutter/foundation.dart';
 
@@ -17,6 +19,44 @@ class NotificationViewModel extends ChangeNotifier {
   bool _disposed = false;
   int _request = 0;
   int _countRequest = 0;
+  StreamSubscription<NotificationItem>? _subscription;
+  Timer? _reconnect;
+  Timer? _refreshDebounce;
+  final live = ValueNotifier<NotificationItem?>(null);
+
+  void start() {
+    if (_disposed || _subscription != null) return;
+    _subscription = repository.watchMyNotifications().listen(
+      (item) {
+        if (_disposed) return;
+        items = [item, ...items.where((row) => row.id != item.id)];
+        if (unreadOnly) {
+          items = items.where((row) => row.readAt == null).toList();
+        }
+        _refreshDebounce?.cancel();
+        _refreshDebounce = Timer(
+          const Duration(milliseconds: 200),
+          () => unawaited(refreshCount()),
+        );
+        live.value = item;
+        _notify();
+      },
+      onError: (Object _) => _retry(),
+      onDone: _retry,
+      cancelOnError: true,
+    );
+  }
+
+  void _retry() {
+    if (_disposed) return;
+    unawaited(_subscription?.cancel());
+    _subscription = null;
+    _reconnect?.cancel();
+    _reconnect = Timer(const Duration(seconds: 3), () {
+      start();
+      unawaited(refreshCount());
+    });
+  }
 
   Future<void> refreshCount() async {
     final request = ++_countRequest;
@@ -87,15 +127,26 @@ class NotificationViewModel extends ChangeNotifier {
   }
 
   Future<void> markRead(NotificationItem item) async {
-    await repository.markNotificationRead(item.id);
+    await repository.markNotificationRead(
+      item.id,
+      throughChatMessageId: item.chatMessageId,
+    );
     if (_disposed) return;
-    items = items
-        .map(
-          (row) => row.id == item.id && row.readAt == null
-              ? row.copyWith(readAt: DateTime.now().toUtc())
-              : row,
-        )
-        .toList();
+    if (item.kind == 'campaignChat') {
+      final updated = await repository.notification(item.id);
+      if (_disposed) return;
+      if (updated != null) {
+        items = items.map((row) => row.id == item.id ? updated : row).toList();
+      }
+    } else {
+      items = items
+          .map(
+            (row) => row.id == item.id
+                ? row.copyWith(readAt: DateTime.now().toUtc(), unreadCount: 0)
+                : row,
+          )
+          .toList();
+    }
     if (unreadOnly) items = items.where((row) => row.readAt == null).toList();
     await refreshCount();
     _notify();
@@ -103,7 +154,18 @@ class NotificationViewModel extends ChangeNotifier {
 
   Future<void> markAllRead() async {
     if (items.isEmpty) return;
-    final cutoff = items.first.id;
+    final snapshot = List<NotificationItem>.of(items);
+    for (final item in snapshot.where(
+      (row) => row.kind == 'campaignChat' && row.readAt == null,
+    )) {
+      await repository.markNotificationRead(
+        item.id,
+        throughChatMessageId: item.chatMessageId,
+      );
+    }
+    final cutoff = snapshot
+        .map((row) => row.id)
+        .reduce((a, b) => a > b ? a : b);
     await repository.markNotificationsReadThrough(cutoff);
     if (!_disposed) await refresh();
   }
@@ -115,6 +177,10 @@ class NotificationViewModel extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _reconnect?.cancel();
+    _refreshDebounce?.cancel();
+    unawaited(_subscription?.cancel());
+    live.dispose();
     ++_request;
     super.dispose();
   }

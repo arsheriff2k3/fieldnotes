@@ -1394,6 +1394,19 @@ class Protocol extends _is.DatabaseSerializationManager {
           isNullable: true,
           dartType: 'DateTime?',
         ),
+        _isp.ColumnDefinition(
+          name: 'unreadCount',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+          columnDefault: '1',
+        ),
+        _isp.ColumnDefinition(
+          name: 'chatMessageId',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: true,
+          dartType: 'int?',
+        ),
       ],
       foreignKeys: [],
       indexes: [
@@ -2126,6 +2139,13 @@ class Protocol extends _is.DatabaseSerializationManager {
           dartType: 'int',
         ),
         _isp.ColumnDefinition(
+          name: 'notificationVersion',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+          columnDefault: '0',
+        ),
+        _isp.ColumnDefinition(
           name: 'deviceId',
           columnType: _isp.ColumnType.bigint,
           isNullable: false,
@@ -2190,6 +2210,10 @@ class Protocol extends _is.DatabaseSerializationManager {
             _isp.IndexElementDefinition(
               type: _isp.IndexElementDefinitionType.column,
               definition: 'deviceId',
+            ),
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'notificationVersion',
             ),
           ],
           type: 'btree',

@@ -4,6 +4,7 @@ serverOnly: true
 table: fieldnote_push_delivery
 fields:
   notificationId: int
+  notificationVersion: int, default=0
   deviceId: int
   recipientAuthUserId: UuidValue
   status: String, default='pending'
@@ -14,7 +15,7 @@ fields:
   sentAt: DateTime?
 indexes:
   fieldnote_push_delivery_dedupe_idx:
-    fields: notificationId, deviceId
+    fields: notificationId, deviceId, notificationVersion
     unique: true
   fieldnote_push_delivery_due_idx:
     fields: status, nextAttemptAt

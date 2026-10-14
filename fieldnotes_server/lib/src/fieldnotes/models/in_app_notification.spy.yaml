@@ -11,6 +11,8 @@ fields:
   campaignId: int?
   createdAt: DateTime, default=now
   readAt: DateTime?
+  unreadCount: int, default=1
+  chatMessageId: int?
 indexes:
   fieldnote_inbox_dedupe_idx:
     fields: recipientAuthUserId, dedupeKey

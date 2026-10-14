@@ -2589,5 +2589,48 @@
   "campaignDiscussionCampaigner": "Campaigner",
   "campaignDiscussionVolunteer": "Volunteer",
   "campaignDiscussionCompose": "Ask a question or write a message",
-  "campaignDiscussionSend": "Send message"
+  "campaignDiscussionSend": "Send message",
+  "campaignDiscussionTeam": "Campaign team",
+  "campaignDiscussionInfo": "About this discussion",
+  "campaignDiscussionToday": "Today",
+  "campaignDiscussionYesterday": "Yesterday",
+  "campaignDiscussionArchived": "Read-only",
+  "campaignDiscussionConnected": "Connected",
+  "campaignDiscussionNewMessages": "New messages",
+  "campaignDiscussionMessageHint": "Message your team…",
+  "campaignDiscussionConnecting": "Connecting…",
+  "campaignDiscussionUnavailable": "Unavailable",
+  "notificationsCaughtUpTitle": "You’re all caught up",
+  "notificationsUnreadCount": "{count, plural, =1{1 unread update} other{{count} unread updates}}",
+  "notificationsSubtitle": "Campaign activity, invitations and updates.",
+  "notificationsAll": "All",
+  "notificationsUnread": "Unread",
+  "notificationsStayUpdated": "Stay in the loop",
+  "notificationsEnablePushDescription": "Enable device alerts to receive updates when FieldNote is closed.",
+  "notificationsConnectionTitle": "Unable to refresh",
+  "notificationsEmptyTitle": "No updates yet",
+  "notificationsToday": "Today",
+  "notificationsYesterday": "Yesterday",
+  "notificationsCategoryInvitation": "Invitation",
+  "notificationsCategoryTeam": "Team activity",
+  "notificationsCategoryCheckIn": "Check-in",
+  "notificationsCategoryPayment": "Payments",
+  "notificationsCategoryEvidence": "Evidence",
+  "notificationsCategoryCampaign": "Campaign update",
+  "@notificationsUnreadCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "navSchedule": "Schedule",
+  "campaignChatUnread": "{count, plural, =1{1 unread message} other{{count} unread messages}}",
+  "@campaignChatUnread": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

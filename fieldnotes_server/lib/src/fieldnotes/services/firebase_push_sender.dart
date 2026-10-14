@@ -10,6 +10,7 @@ abstract interface class PushSender {
   Future<PushSendResult> send({
     required String token,
     required int notificationId,
+    int unreadCount = 1,
   });
   void close();
 }
@@ -49,6 +50,7 @@ class FirebasePushSender implements PushSender {
   Future<PushSendResult> send({
     required String token,
     required int notificationId,
+    int unreadCount = 1,
   }) async {
     final response = await client
         .post(
@@ -64,13 +66,18 @@ class FirebasePushSender implements PushSender {
               // A delayed OS notification on a shared device reveals no details.
               'notification': {
                 'title': 'FieldNote',
-                'body': 'You have a new update. Open FieldNote to view it.',
+                'body': unreadCount > 1
+                    ? 'You have $unreadCount unread messages. Open FieldNote to view them.'
+                    : 'You have a new update. Open FieldNote to view it.',
               },
               'data': {'notificationId': '$notificationId'},
               'android': {
                 'priority': 'HIGH',
                 'ttl': '86400s',
-                'notification': {'tag': 'fieldnote-$notificationId'},
+                'notification': {
+                  'tag': 'fieldnote-$notificationId',
+                  'notification_count': unreadCount,
+                },
               },
             },
           }),

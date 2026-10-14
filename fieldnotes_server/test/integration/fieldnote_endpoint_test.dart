@@ -1263,6 +1263,20 @@ void main() {
           account,
         );
         expect(invitations.single.campaignId, campaign.id);
+        final inbox = await endpoints.fieldnote.getMyNotifications(
+          account,
+          limit: 20,
+          unreadOnly: false,
+        );
+        expect(
+          inbox.where((n) => n.kind == 'invitationReceived'),
+          hasLength(1),
+        );
+        expect(inbox.single.campaignId, campaign.id);
+        expect(
+          await endpoints.fieldnote.getMyNotification(sponsor, inbox.single.id),
+          isNull,
+        );
       }
       await endpoints.fieldnote.joinCampaign(volunteer, campaign.id!);
       final afterJoin = await endpoints.fieldnote.getCampaignVolunteerReach(

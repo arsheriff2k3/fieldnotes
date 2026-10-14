@@ -18,6 +18,7 @@ abstract class PushDelivery
   PushDelivery._({
     this.id,
     required this.notificationId,
+    int? notificationVersion,
     required this.deviceId,
     required this.recipientAuthUserId,
     String? status,
@@ -26,13 +27,15 @@ abstract class PushDelivery
     this.lastError,
     DateTime? createdAt,
     this.sentAt,
-  }) : status = status ?? 'pending',
+  }) : notificationVersion = notificationVersion ?? 0,
+       status = status ?? 'pending',
        attempts = attempts ?? 0,
        createdAt = createdAt ?? DateTime.now();
 
   factory PushDelivery({
     int? id,
     required int notificationId,
+    int? notificationVersion,
     required int deviceId,
     required _is.UuidValue recipientAuthUserId,
     String? status,
@@ -47,6 +50,7 @@ abstract class PushDelivery
     return PushDelivery(
       id: jsonSerialization['id'] as int?,
       notificationId: jsonSerialization['notificationId'] as int,
+      notificationVersion: jsonSerialization['notificationVersion'] as int?,
       deviceId: jsonSerialization['deviceId'] as int,
       recipientAuthUserId: _is.UuidValueJsonExtension.fromJson(
         jsonSerialization['recipientAuthUserId'],
@@ -77,6 +81,8 @@ abstract class PushDelivery
 
   int notificationId;
 
+  int notificationVersion;
+
   int deviceId;
 
   _is.UuidValue recipientAuthUserId;
@@ -102,6 +108,7 @@ abstract class PushDelivery
   PushDelivery copyWith({
     int? id,
     int? notificationId,
+    int? notificationVersion,
     int? deviceId,
     _is.UuidValue? recipientAuthUserId,
     String? status,
@@ -117,6 +124,7 @@ abstract class PushDelivery
       '__className__': 'PushDelivery',
       if (id != null) 'id': id,
       'notificationId': notificationId,
+      'notificationVersion': notificationVersion,
       'deviceId': deviceId,
       'recipientAuthUserId': recipientAuthUserId.toJson(),
       'status': status,
@@ -167,6 +175,7 @@ class _PushDeliveryImpl extends PushDelivery {
   _PushDeliveryImpl({
     int? id,
     required int notificationId,
+    int? notificationVersion,
     required int deviceId,
     required _is.UuidValue recipientAuthUserId,
     String? status,
@@ -178,6 +187,7 @@ class _PushDeliveryImpl extends PushDelivery {
   }) : super._(
          id: id,
          notificationId: notificationId,
+         notificationVersion: notificationVersion,
          deviceId: deviceId,
          recipientAuthUserId: recipientAuthUserId,
          status: status,
@@ -195,6 +205,7 @@ class _PushDeliveryImpl extends PushDelivery {
   PushDelivery copyWith({
     Object? id = _Undefined,
     int? notificationId,
+    int? notificationVersion,
     int? deviceId,
     _is.UuidValue? recipientAuthUserId,
     String? status,
@@ -207,6 +218,7 @@ class _PushDeliveryImpl extends PushDelivery {
     return PushDelivery(
       id: id is int? ? id : this.id,
       notificationId: notificationId ?? this.notificationId,
+      notificationVersion: notificationVersion ?? this.notificationVersion,
       deviceId: deviceId ?? this.deviceId,
       recipientAuthUserId: recipientAuthUserId ?? this.recipientAuthUserId,
       status: status ?? this.status,
@@ -226,6 +238,11 @@ class PushDeliveryUpdateTable extends _is.UpdateTable<PushDeliveryTable> {
 
   _is.ColumnValue<int, int> notificationId(int value) => _is.ColumnValue(
     table.notificationId,
+    value,
+  );
+
+  _is.ColumnValue<int, int> notificationVersion(int value) => _is.ColumnValue(
+    table.notificationVersion,
     value,
   );
 
@@ -283,6 +300,11 @@ class PushDeliveryTable extends _is.Table<int?> {
       'notificationId',
       this,
     );
+    notificationVersion = _is.ColumnInt(
+      'notificationVersion',
+      this,
+      hasDefault: true,
+    );
     deviceId = _is.ColumnInt(
       'deviceId',
       this,
@@ -324,6 +346,8 @@ class PushDeliveryTable extends _is.Table<int?> {
 
   late final _is.ColumnInt notificationId;
 
+  late final _is.ColumnInt notificationVersion;
+
   late final _is.ColumnInt deviceId;
 
   late final _is.ColumnUuid recipientAuthUserId;
@@ -344,6 +368,7 @@ class PushDeliveryTable extends _is.Table<int?> {
   List<_is.Column> get columns => [
     id,
     notificationId,
+    notificationVersion,
     deviceId,
     recipientAuthUserId,
     status,

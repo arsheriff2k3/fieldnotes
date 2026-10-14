@@ -18,6 +18,8 @@ class InAppNotificationService {
     campaignId: row.campaignId,
     createdAt: row.createdAt,
     readAt: row.readAt,
+    unreadCount: row.readAt == null ? row.unreadCount : 0,
+    chatMessageId: row.chatMessageId,
   );
 
   /// Independent of SMTP configuration and email opt-out. Persistence errors
@@ -84,6 +86,80 @@ class InAppNotificationService {
         level: LogLevel.warning,
       );
     }
+  }
+
+  static String channel(UuidValue userId) => 'fieldnote-inbox-$userId';
+
+  /// Called inside the chat transaction: one mutable unread group per campaign.
+  Future<InAppNotification?> enqueueChat(
+    Session session, {
+    required Transaction transaction,
+    required UuidValue recipient,
+    required Campaign campaign,
+    required CampaignChatMessage message,
+  }) async {
+    final profile = await FieldnoteUserProfile.db.findFirstRow(
+      session,
+      where: (t) => t.authUserId.equals(recipient),
+      transaction: transaction,
+      lockMode: LockMode.forUpdate,
+    );
+    if (profile == null) return null;
+    final key = 'campaignChat:${campaign.id}';
+    var row = await InAppNotification.db.findFirstRow(
+      session,
+      where: (t) =>
+          t.recipientAuthUserId.equals(recipient) & t.dedupeKey.equals(key),
+      transaction: transaction,
+      lockMode: LockMode.forUpdate,
+    );
+    if (row != null && (row.chatMessageId ?? 0) >= message.id!) return row;
+    const body = 'Open the campaign discussion to read new messages.';
+    if (row == null) {
+      row = await InAppNotification.db.insertRow(
+        session,
+        InAppNotification(
+          recipientAuthUserId: recipient,
+          kind: 'campaignChat',
+          dedupeKey: key,
+          title: campaign.name,
+          body: body,
+          campaignId: campaign.id,
+          chatMessageId: message.id,
+        ),
+        transaction: transaction,
+      );
+    } else {
+      row.unreadCount = row.readAt == null ? row.unreadCount + 1 : 1;
+      row.readAt = null;
+      row.chatMessageId = message.id;
+      row.title = campaign.name;
+      row.body = body;
+      row.createdAt = DateTime.now().toUtc();
+      row = await InAppNotification.db.updateRow(
+        session,
+        row,
+        transaction: transaction,
+      );
+    }
+    final devices = await PushDevice.db.find(
+      session,
+      where: (t) => t.authUserId.equals(recipient),
+      transaction: transaction,
+    );
+    for (final device in devices) {
+      await PushDelivery.db.insertRow(
+        session,
+        PushDelivery(
+          notificationId: row.id!,
+          notificationVersion: message.id!,
+          deviceId: device.id!,
+          recipientAuthUserId: recipient,
+        ),
+        transaction: transaction,
+      );
+    }
+    return row;
   }
 
   Future<void> registerDevice(
@@ -253,6 +329,8 @@ class InAppNotificationService {
             device.authUserId != delivery.recipientAuthUserId ||
             notification.recipientAuthUserId != device.authUserId ||
             notification.readAt != null ||
+            (notification.kind == 'campaignChat' &&
+                notification.chatMessageId != delivery.notificationVersion) ||
             clock.difference(notification.createdAt) >
                 const Duration(days: 1)) {
           delivery.status = 'skipped';
@@ -264,6 +342,9 @@ class InAppNotificationService {
             result = await sender.send(
               token: device.token,
               notificationId: notification.id!,
+              unreadCount: notification.kind == 'campaignChat'
+                  ? notification.unreadCount
+                  : 1,
             );
           } catch (_) {
             result = PushSendResult.retry;

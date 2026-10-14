@@ -4,8 +4,12 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:serverpod/serverpod.dart';
+// Serverpod 4.0.0 does not export its built-in storage endpoint publicly.
+// ignore: implementation_imports
+import 'package:serverpod/src/cloud_storage/public_endpoint.dart';
 
 import '../generated/protocol.dart';
+import '../generated/future_calls.dart';
 import 'services/ai_provider_router.dart';
 import 'services/content_moderation_service.dart';
 import 'services/gemini_ai_service.dart';
@@ -19,7 +23,6 @@ import 'services/razorpay_payment_service.dart';
 import 'services/campaign_events_service.dart';
 import 'services/campaign_lifecycle_service.dart';
 import 'services/campaign_validation.dart';
-import 'services/fieldnote_sweep_service.dart';
 import 'services/money.dart';
 import 'services/manual_payout_service.dart';
 import 'services/payment_reconciliation_service.dart';
@@ -32,6 +35,19 @@ import 'services/in_app_notification_service.dart';
 import 'services/rate_limiter.dart';
 
 class FieldnoteEndpoint extends Endpoint {
+  @override
+  void initialize(Server server, String name, String? moduleName) {
+    super.initialize(server, name, moduleName);
+    // Serverpod 4.0.0 clears all connectors on hot reload, but only restores
+    // generated endpoints. Restore the built-in database upload/download
+    // connector too, so evidence uploads keep working during development.
+    final pod = server.serverpod;
+    if (pod.storage.values.any((storage) => storage is DatabaseCloudStorage) &&
+        !server.endpoints.connectors.containsKey('serverpod_cloud_storage')) {
+      CloudStoragePublicEndpoint().register(pod);
+    }
+  }
+
   FieldnoteEndpoint({
     StructuredSummaryService? aiService,
     GeminiAiService? geminiService,
@@ -312,7 +328,7 @@ class FieldnoteEndpoint extends Endpoint {
     );
   }
 
-  /// Inbox IDs are an immutable keyset cursor, newest first.
+  /// Groups move to the top on new messages; the cursor uses timestamp and ID.
   Future<List<NotificationItem>> getMyNotifications(
     Session session, {
     int limit = 20,
@@ -326,13 +342,26 @@ class FieldnoteEndpoint extends Endpoint {
         message: 'Invalid notification page.',
       );
     }
+    final cursor = beforeId == null
+        ? null
+        : await InAppNotification.db.findFirstRow(
+            session,
+            where: (t) =>
+                t.id.equals(beforeId) &
+                t.recipientAuthUserId.equals(profile.authUserId),
+          );
+    if (beforeId != null && cursor == null) return [];
     final rows = await InAppNotification.db.find(
       session,
       where: (t) =>
           t.recipientAuthUserId.equals(profile.authUserId) &
-          (beforeId == null ? Constant.bool(true) : t.id < beforeId) &
+          (cursor == null
+              ? Constant.bool(true)
+              : ((t.createdAt < cursor.createdAt) |
+                    (t.createdAt.equals(cursor.createdAt) &
+                        (t.id < cursor.id!)))) &
           (unreadOnly ? t.readAt.equals(null) : Constant.bool(true)),
-      orderBy: (t) => t.id.desc(),
+      orderByList: (t) => [t.createdAt.desc(), t.id.desc()],
       limit: limit,
     );
     return rows.map(InAppNotificationService.item).toList();
@@ -354,27 +383,140 @@ class FieldnoteEndpoint extends Endpoint {
 
   Future<int> getMyUnreadNotificationCount(Session session) async {
     final profile = await _requireProfile(session);
-    return InAppNotification.db.count(
-      session,
-      where: (t) =>
-          t.recipientAuthUserId.equals(profile.authUserId) &
-          t.readAt.equals(null),
+    final count = await session.db.unsafeQuery(
+      'SELECT COALESCE(SUM("unreadCount"), 0)::bigint FROM "fieldnote_in_app_notification" WHERE "recipientAuthUserId" = @user::uuid AND "readAt" IS NULL',
+      parameters: QueryParameters.named({'user': profile.authUserId.uuid}),
+    );
+    return count.first.first as int;
+  }
+
+  Stream<NotificationItem> watchMyNotifications(Session session) async* {
+    final profile = await _requireProfile(session);
+    yield* session.messages.createStream<NotificationItem>(
+      InAppNotificationService.channel(profile.authUserId),
     );
   }
 
   Future<void> markMyNotificationRead(
     Session session,
-    int notificationId,
+    int notificationId, {
+    int? throughChatMessageId,
+  }) async {
+    final profile = await _requireProfile(session);
+    final updated = await session.db.transaction((transaction) async {
+      final row = await InAppNotification.db.findFirstRow(
+        session,
+        where: (t) =>
+            t.id.equals(notificationId) &
+            t.recipientAuthUserId.equals(profile.authUserId),
+        transaction: transaction,
+        lockMode: LockMode.forUpdate,
+      );
+      if (row == null || row.readAt != null) return row;
+      if (row.kind == 'campaignChat' && row.campaignId != null) {
+        await _readChatGroup(
+          session,
+          row,
+          profile.authUserId,
+          throughChatMessageId ?? row.chatMessageId ?? 0,
+          transaction,
+        );
+      } else {
+        row.readAt = DateTime.now().toUtc();
+        await InAppNotification.db.updateRow(
+          session,
+          row,
+          transaction: transaction,
+        );
+      }
+      return row;
+    });
+    if (updated != null) {
+      try {
+        await session.messages.postMessage(
+          InAppNotificationService.channel(profile.authUserId),
+          InAppNotificationService.item(updated),
+        );
+      } catch (_) {
+        // The durable read state is recovered by inbox refresh if streaming fails.
+      }
+    }
+  }
+
+  Future<void> _readChatGroup(
+    Session session,
+    InAppNotification row,
+    UuidValue userId,
+    int throughId,
+    Transaction transaction,
+  ) async {
+    if (throughId < 1) return;
+    final cutoff = math.min(throughId, row.chatMessageId ?? throughId);
+    final remaining = await CampaignChatMessage.db.count(
+      session,
+      where: (t) =>
+          t.campaignId.equals(row.campaignId!) &
+          (t.id > cutoff) &
+          (t.id <= (row.chatMessageId ?? cutoff)) &
+          t.senderAuthUserId.notEquals(userId),
+      transaction: transaction,
+    );
+    row.unreadCount = math.min(row.unreadCount, remaining);
+    row.readAt = row.unreadCount == 0 ? DateTime.now().toUtc() : null;
+    await InAppNotification.db.updateRow(
+      session,
+      row,
+      transaction: transaction,
+    );
+  }
+
+  Future<void> markCampaignChatRead(
+    Session session,
+    int campaignId,
+    int throughMessageId,
   ) async {
     final profile = await _requireProfile(session);
-    await InAppNotification.db.updateWhere(
+    await _requireChatMember(
       session,
-      columnValues: (t) => [t.readAt(DateTime.now().toUtc())],
-      where: (t) =>
-          t.id.equals(notificationId) &
-          t.recipientAuthUserId.equals(profile.authUserId) &
-          t.readAt.equals(null),
+      profile,
+      await _campaign(session, campaignId),
     );
+    final updated = await session.db.transaction((transaction) async {
+      final row = await InAppNotification.db.findFirstRow(
+        session,
+        where: (t) =>
+            t.recipientAuthUserId.equals(profile.authUserId) &
+            t.dedupeKey.equals('campaignChat:$campaignId'),
+        transaction: transaction,
+        lockMode: LockMode.forUpdate,
+      );
+      if (row != null) {
+        await _readChatGroup(
+          session,
+          row,
+          profile.authUserId,
+          throughMessageId,
+          transaction,
+        );
+      }
+      return row;
+    });
+    if (updated != null) {
+      await session.messages.postMessage(
+        InAppNotificationService.channel(profile.authUserId),
+        InAppNotificationService.item(updated),
+      );
+    }
+  }
+
+  Future<Campaign> getDiscussionCampaign(
+    Session session,
+    int campaignId,
+  ) async {
+    final profile = await _requireProfile(session);
+    final campaign = await _campaign(session, campaignId);
+    await _requireChatMember(session, profile, campaign);
+    return campaign;
   }
 
   /// Newer arrivals remain unread even if the request races with insertion.
@@ -395,6 +537,7 @@ class FieldnoteEndpoint extends Endpoint {
       columnValues: (t) => [t.readAt(DateTime.now().toUtc())],
       where: (t) =>
           t.recipientAuthUserId.equals(profile.authUserId) &
+          t.kind.notEquals('campaignChat') &
           (t.id <= cutoff) &
           t.readAt.equals(null),
     );
@@ -3374,6 +3517,13 @@ class FieldnoteEndpoint extends Endpoint {
       return (participation: participation, joined: true);
     });
     if (!result.joined) return result.participation;
+    await const NotificationService().volunteerActivity(
+      session,
+      campaignId: campaignId,
+      kind: NotificationKind.volunteerJoined,
+      eventKey:
+          '${result.participation.id}:${result.participation.joinedAt.toUtc().toIso8601String()}',
+    );
     await _refreshCampaignReadiness(session, campaignId);
     await _publish(
       session,
@@ -3432,6 +3582,13 @@ class FieldnoteEndpoint extends Endpoint {
       return (participation: updated, changed: true);
     });
     if (!result.changed) return result.participation;
+    await const NotificationService().volunteerActivity(
+      session,
+      campaignId: owned.campaignId,
+      kind: NotificationKind.volunteerLeft,
+      eventKey:
+          '${result.participation.id}:${result.participation.leftAt!.toUtc().toIso8601String()}',
+    );
     await _refreshCampaignReadiness(session, owned.campaignId);
     await _publish(
       session,
@@ -3600,6 +3757,12 @@ class FieldnoteEndpoint extends Endpoint {
     final updated = await CampaignParticipation.db.updateRow(
       session,
       participation,
+    );
+    await const NotificationService().volunteerActivity(
+      session,
+      campaignId: campaign.id!,
+      kind: NotificationKind.volunteerCheckedIn,
+      eventKey: '$participationId',
     );
     await _publish(
       session,
@@ -3969,6 +4132,12 @@ class FieldnoteEndpoint extends Endpoint {
     });
     if (!outcome.created) return outcome.evidence;
     final evidence = outcome.evidence;
+    await const NotificationService().volunteerActivity(
+      session,
+      campaignId: participation.campaignId,
+      kind: NotificationKind.evidenceSubmitted,
+      eventKey: '${evidence.id}',
+    );
     await _publish(
       session,
       participation.campaignId,
@@ -4412,6 +4581,7 @@ class FieldnoteEndpoint extends Endpoint {
     }
     // Serialize sends with joins, departures and campaign closure. This also
     // makes concurrent retries return the same row, without duplicate messages.
+    final inboxUpdates = <InAppNotification>[];
     final message = await session.db.transaction((transaction) async {
       final campaign = await Campaign.db.findById(
         session,
@@ -4456,7 +4626,7 @@ class FieldnoteEndpoint extends Endpoint {
       }
       await _limiter.hit(session, profile.authUserId, RateLimits.campaignChat);
       await _moderateOrThrow(session, text, 'campaignChat');
-      return CampaignChatMessage.db.insertRow(
+      final saved = await CampaignChatMessage.db.insertRow(
         session,
         CampaignChatMessage(
           campaignId: campaignId,
@@ -4468,6 +4638,41 @@ class FieldnoteEndpoint extends Endpoint {
         ),
         transaction: transaction,
       );
+      final participants = await CampaignParticipation.db.find(
+        session,
+        where: (t) =>
+            t.campaignId.equals(campaignId) &
+            t.status.inSet({
+              ParticipationStatus.joined,
+              ParticipationStatus.checkedIn,
+              ParticipationStatus.completed,
+              ParticipationStatus.incomplete,
+            }),
+        transaction: transaction,
+      );
+      final recipients = {
+        campaign.createdBy,
+        ...participants.map((p) => p.volunteerAuthUserId),
+      }..remove(profile.authUserId);
+      // All recipient locks use the same order across campaigns.
+      final profiles = await FieldnoteUserProfile.db.find(
+        session,
+        where: (t) => t.authUserId.inSet(recipients),
+        orderBy: (t) => t.authUserId,
+        transaction: transaction,
+        lockMode: LockMode.forUpdate,
+      );
+      for (final recipient in profiles) {
+        final update = await const InAppNotificationService().enqueueChat(
+          session,
+          transaction: transaction,
+          recipient: recipient.authUserId,
+          campaign: campaign,
+          message: saved,
+        );
+        if (update != null) inboxUpdates.add(update);
+      }
+      return saved;
     });
     // Persistence is authoritative: a broadcast failure must not turn a saved
     // message into a failed send. Clients recover it from history on reconnect.
@@ -4480,6 +4685,26 @@ class FieldnoteEndpoint extends Endpoint {
         exception: error,
         stackTrace: stack,
       );
+    }
+    for (final update in inboxUpdates) {
+      try {
+        await session.messages.postMessage(
+          InAppNotificationService.channel(update.recipientAuthUserId),
+          InAppNotificationService.item(update),
+        );
+      } catch (_) {
+        /* Durable inbox and push outbox recover missed broadcasts. */
+      }
+    }
+    if (inboxUpdates.isNotEmpty) {
+      try {
+        await session.serverpod.futureCalls
+            .callWithDelay(const Duration(seconds: 1))
+            .campaignChatPush
+            .deliver();
+      } catch (_) {
+        /* The recurring outbox sweep remains the fallback. */
+      }
     }
     return message;
   }
@@ -5362,14 +5587,6 @@ class FieldnoteEndpoint extends Endpoint {
     'Saturday',
     'Sunday',
   ][day - 1];
-}
-
-/// The 5-minute sweep: readiness cutoffs, expiry refunds, completion,
-/// payment reconciliation and the refund worker. Scheduled in `server.dart`.
-class CampaignReadinessFutureCall extends FutureCall {
-  Future<void> sweep(Session session) async {
-    await const FieldnoteSweepService().run(session);
-  }
 }
 
 class _ProfileLocation {

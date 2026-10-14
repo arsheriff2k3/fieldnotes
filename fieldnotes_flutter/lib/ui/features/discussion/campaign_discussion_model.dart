@@ -20,6 +20,8 @@ class CampaignDiscussionModel extends ChangeNotifier {
   int? _oldestLoaded;
   String? _pendingBody;
   String? _pendingRequest;
+  bool get loadingOlder => _loadingOlder;
+
   bool connected = false;
   bool readOnly = true;
   bool loading = true;
@@ -139,6 +141,7 @@ class CampaignDiscussionModel extends ChangeNotifier {
       return;
     }
     _loadingOlder = true;
+    _notify();
     try {
       final page = await repository.campaignMessages(
         campaignId,

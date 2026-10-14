@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:fieldnotes_server/src/fieldnotes/services/account_deletion_service.dart';
+import 'package:fieldnotes_server/src/fieldnotes/services/in_app_notification_service.dart';
+import 'package:fieldnotes_server/src/fieldnotes/services/firebase_push_sender.dart';
 import 'package:fieldnotes_server/src/generated/protocol.dart';
 import 'package:serverpod/serverpod.dart';
 import 'package:test/test.dart';
@@ -86,6 +88,183 @@ void main() {
         );
       }
     });
+
+    test(
+      '100 replies form one campaign group, preserve racing arrivals and reset after reading',
+      () async {
+        final push = DiscussionPushSender();
+        PushRuntime.senderResolver = (_) async => push;
+        addTearDown(PushRuntime.reset);
+        await endpoints.fieldnote.registerMyPushDevice(
+          volunteer,
+          'discussion-test-device-token-100',
+          'android',
+        );
+        final messages = <CampaignChatMessage>[];
+        for (var i = 0; i < 100; i++) {
+          // Advance simulated rate-limit windows without relaxing production limits.
+          if (i % 25 == 0)
+            await RateLimitBucket.db.deleteWhere(
+              session,
+              where: (t) => t.authUserId.equals(UuidValue.fromString(ids[0])),
+            );
+          messages.add(
+            await endpoints.fieldnote.sendCampaignMessage(
+              creator,
+              campaign.id!,
+              'Discussion reply $i',
+              'group-message-$i',
+            ),
+          );
+        }
+        final inbox = await endpoints.fieldnote.getMyNotifications(
+          volunteer,
+          limit: 20,
+          unreadOnly: false,
+        );
+        expect(inbox, hasLength(1));
+        expect(inbox.single.kind, 'campaignChat');
+        expect(inbox.single.unreadCount, 100);
+        expect(
+          await endpoints.fieldnote.getMyUnreadNotificationCount(volunteer),
+          100,
+        );
+        expect(
+          await endpoints.fieldnote.getMyNotifications(
+            creator,
+            limit: 20,
+            unreadOnly: false,
+          ),
+          isEmpty,
+        );
+        expect(
+          await endpoints.fieldnote.getMyNotifications(
+            funder,
+            limit: 20,
+            unreadOnly: false,
+          ),
+          isEmpty,
+        );
+        expect(
+          (await endpoints.fieldnote.getMyNotifications(
+            teammate,
+            limit: 20,
+            unreadOnly: false,
+          )).single.unreadCount,
+          100,
+        );
+        await endpoints.fieldnote.sendCampaignMessage(
+          creator,
+          campaign.id!,
+          'Discussion reply 99',
+          'group-message-99',
+        );
+        expect(
+          (await endpoints.fieldnote.getMyNotification(
+            volunteer,
+            inbox.single.id,
+          ))!.unreadCount,
+          100,
+        );
+        for (var i = 0; i < 4; i++)
+          await const InAppNotificationService().deliverDue(session);
+        expect(push.counts, [100]);
+        await endpoints.fieldnote.markMyNotificationRead(
+          volunteer,
+          inbox.single.id,
+          throughChatMessageId: messages[98].id,
+        );
+        expect(
+          (await endpoints.fieldnote.getMyNotification(
+            volunteer,
+            inbox.single.id,
+          ))!.unreadCount,
+          1,
+        );
+        await endpoints.fieldnote.markCampaignChatRead(
+          volunteer,
+          campaign.id!,
+          messages.last.id!,
+        );
+        expect(
+          await endpoints.fieldnote.getMyUnreadNotificationCount(volunteer),
+          0,
+        );
+        final next = await endpoints.fieldnote.sendCampaignMessage(
+          creator,
+          campaign.id!,
+          'One more reply',
+          'group-next',
+        );
+        final reopened = (await endpoints.fieldnote.getMyNotifications(
+          volunteer,
+          limit: 20,
+          unreadOnly: false,
+        )).single;
+        expect(reopened.id, inbox.single.id);
+        expect(reopened.unreadCount, 1);
+        expect(reopened.chatMessageId, next.id);
+        expect(reopened.readAt, isNull);
+        final other = await Campaign.db.insertRow(
+          session,
+          campaign.copyWith(id: null, name: 'Another neighborhood'),
+        );
+        await CampaignParticipation.db.insertRow(
+          session,
+          CampaignParticipation(
+            campaignId: other.id!,
+            volunteerAuthUserId: UuidValue.fromString(ids[1]),
+            status: ParticipationStatus.joined,
+          ),
+        );
+        await endpoints.fieldnote.sendCampaignMessage(
+          creator,
+          other.id!,
+          'Other campaign reply',
+          'other-group',
+        );
+        expect(
+          await endpoints.fieldnote.getMyNotifications(
+            volunteer,
+            limit: 20,
+            unreadOnly: false,
+          ),
+          hasLength(2),
+        );
+        await endpoints.fieldnote.sendCampaignMessage(
+          volunteer,
+          campaign.id!,
+          'Volunteer reply',
+          'volunteer-group',
+        );
+        expect(
+          (await endpoints.fieldnote.getMyNotifications(
+            creator,
+            limit: 20,
+            unreadOnly: false,
+          )).single.unreadCount,
+          1,
+        );
+        expect(
+          (await endpoints.fieldnote.getMyNotification(
+            volunteer,
+            inbox.single.id,
+          ))!.unreadCount,
+          1,
+        );
+        await expectLater(
+          endpoints.fieldnote.getDiscussionCampaign(funder, campaign.id!),
+          denied('chat_forbidden'),
+        );
+        expect(
+          (await endpoints.fieldnote.getDiscussionCampaign(
+            volunteer,
+            campaign.id!,
+          )).id,
+          campaign.id,
+        );
+      },
+    );
 
     test('creator and both volunteers share the same persisted room', () async {
       for (var i = 0; i < 3; i++) {
@@ -393,4 +572,20 @@ void main() {
       },
     );
   });
+}
+
+class DiscussionPushSender implements PushSender {
+  final counts = <int>[];
+  @override
+  Future<PushSendResult> send({
+    required String token,
+    required int notificationId,
+    int unreadCount = 1,
+  }) async {
+    counts.add(unreadCount);
+    return PushSendResult.sent;
+  }
+
+  @override
+  void close() {}
 }

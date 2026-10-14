@@ -7009,6 +7009,180 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Send message'**
   String get campaignDiscussionSend;
+
+  /// No description provided for @campaignDiscussionTeam.
+  ///
+  /// In en, this message translates to:
+  /// **'Campaign team'**
+  String get campaignDiscussionTeam;
+
+  /// No description provided for @campaignDiscussionInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'About this discussion'**
+  String get campaignDiscussionInfo;
+
+  /// No description provided for @campaignDiscussionToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get campaignDiscussionToday;
+
+  /// No description provided for @campaignDiscussionYesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get campaignDiscussionYesterday;
+
+  /// No description provided for @campaignDiscussionArchived.
+  ///
+  /// In en, this message translates to:
+  /// **'Read-only'**
+  String get campaignDiscussionArchived;
+
+  /// No description provided for @campaignDiscussionConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected'**
+  String get campaignDiscussionConnected;
+
+  /// No description provided for @campaignDiscussionNewMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'New messages'**
+  String get campaignDiscussionNewMessages;
+
+  /// No description provided for @campaignDiscussionMessageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Message your team…'**
+  String get campaignDiscussionMessageHint;
+
+  /// No description provided for @campaignDiscussionConnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting…'**
+  String get campaignDiscussionConnecting;
+
+  /// No description provided for @campaignDiscussionUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable'**
+  String get campaignDiscussionUnavailable;
+
+  /// No description provided for @notificationsCaughtUpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You’re all caught up'**
+  String get notificationsCaughtUpTitle;
+
+  /// No description provided for @notificationsUnreadCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 unread update} other{{count} unread updates}}'**
+  String notificationsUnreadCount(int count);
+
+  /// No description provided for @notificationsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Campaign activity, invitations and updates.'**
+  String get notificationsSubtitle;
+
+  /// No description provided for @notificationsAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get notificationsAll;
+
+  /// No description provided for @notificationsUnread.
+  ///
+  /// In en, this message translates to:
+  /// **'Unread'**
+  String get notificationsUnread;
+
+  /// No description provided for @notificationsStayUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Stay in the loop'**
+  String get notificationsStayUpdated;
+
+  /// No description provided for @notificationsEnablePushDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable device alerts to receive updates when FieldNote is closed.'**
+  String get notificationsEnablePushDescription;
+
+  /// No description provided for @notificationsConnectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to refresh'**
+  String get notificationsConnectionTitle;
+
+  /// No description provided for @notificationsEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No updates yet'**
+  String get notificationsEmptyTitle;
+
+  /// No description provided for @notificationsToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get notificationsToday;
+
+  /// No description provided for @notificationsYesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get notificationsYesterday;
+
+  /// No description provided for @notificationsCategoryInvitation.
+  ///
+  /// In en, this message translates to:
+  /// **'Invitation'**
+  String get notificationsCategoryInvitation;
+
+  /// No description provided for @notificationsCategoryTeam.
+  ///
+  /// In en, this message translates to:
+  /// **'Team activity'**
+  String get notificationsCategoryTeam;
+
+  /// No description provided for @notificationsCategoryCheckIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Check-in'**
+  String get notificationsCategoryCheckIn;
+
+  /// No description provided for @notificationsCategoryPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Payments'**
+  String get notificationsCategoryPayment;
+
+  /// No description provided for @notificationsCategoryEvidence.
+  ///
+  /// In en, this message translates to:
+  /// **'Evidence'**
+  String get notificationsCategoryEvidence;
+
+  /// No description provided for @notificationsCategoryCampaign.
+  ///
+  /// In en, this message translates to:
+  /// **'Campaign update'**
+  String get notificationsCategoryCampaign;
+
+  /// No description provided for @navSchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule'**
+  String get navSchedule;
+
+  /// No description provided for @campaignChatUnread.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 unread message} other{{count} unread messages}}'**
+  String campaignChatUnread(int count);
 }
 
 class _AppLocalizationsDelegate

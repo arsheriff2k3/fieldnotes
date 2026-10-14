@@ -4253,4 +4253,102 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get campaignDiscussionSend => 'संदेश भेजें';
+
+  @override
+  String get campaignDiscussionTeam => 'अभियान टीम';
+
+  @override
+  String get campaignDiscussionInfo => 'इस चर्चा के बारे में';
+
+  @override
+  String get campaignDiscussionToday => 'आज';
+
+  @override
+  String get campaignDiscussionYesterday => 'कल';
+
+  @override
+  String get campaignDiscussionArchived => 'केवल पढ़ें';
+
+  @override
+  String get campaignDiscussionConnected => 'जुड़ा हुआ';
+
+  @override
+  String get campaignDiscussionNewMessages => 'नए संदेश';
+
+  @override
+  String get campaignDiscussionMessageHint => 'अपनी टीम को संदेश लिखें…';
+
+  @override
+  String get campaignDiscussionConnecting => 'जुड़ रहा है…';
+
+  @override
+  String get campaignDiscussionUnavailable => 'अनुपलब्ध';
+
+  @override
+  String get notificationsCaughtUpTitle => 'आपने सभी अपडेट पढ़ लिए हैं';
+
+  @override
+  String notificationsUnreadCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count अपठित अपडेट',
+      one: '1 अपठित अपडेट',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notificationsSubtitle => 'अभियान की गतिविधियाँ, आमंत्रण और अपडेट।';
+
+  @override
+  String get notificationsAll => 'सभी';
+
+  @override
+  String get notificationsUnread => 'अपठित';
+
+  @override
+  String get notificationsStayUpdated => 'अपडेट पाते रहें';
+
+  @override
+  String get notificationsEnablePushDescription =>
+      'FieldNote बंद होने पर भी अपडेट पाने के लिए डिवाइस अलर्ट चालू करें।';
+
+  @override
+  String get notificationsConnectionTitle => 'रीफ़्रेश नहीं हो सका';
+
+  @override
+  String get notificationsEmptyTitle => 'अभी कोई अपडेट नहीं';
+
+  @override
+  String get notificationsToday => 'आज';
+
+  @override
+  String get notificationsYesterday => 'कल';
+
+  @override
+  String get notificationsCategoryInvitation => 'आमंत्रण';
+
+  @override
+  String get notificationsCategoryTeam => 'टीम गतिविधि';
+
+  @override
+  String get notificationsCategoryCheckIn => 'चेक-इन';
+
+  @override
+  String get notificationsCategoryPayment => 'भुगतान';
+
+  @override
+  String get notificationsCategoryEvidence => 'प्रमाण';
+
+  @override
+  String get notificationsCategoryCampaign => 'अभियान अपडेट';
+
+  @override
+  String get navSchedule => 'समय';
+
+  @override
+  String campaignChatUnread(int count) {
+    return '$count अपठित संदेश';
+  }
 }

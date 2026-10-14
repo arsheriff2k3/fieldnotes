@@ -20,9 +20,12 @@ import '../volunteer/volunteer_views.dart';
 import '../volunteer/volunteer_history_view.dart';
 import '../sponsor/payment_history_view.dart';
 import '../notifications/notification_view_model.dart';
+import '../discussion/campaign_discussion_view.dart';
+import '../discussion/campaign_discussion_visibility.dart';
 import '../notifications/notifications_view.dart';
 import 'package:fieldnotes_client/fieldnotes_client.dart';
 import 'fieldnote_view_model.dart';
+import 'workspace_navigation.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key, required this.campaignLink, this.repository});
@@ -53,6 +56,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     _viewModel = FieldnoteViewModel(widget.repository ?? FieldnoteRepository())
       ..initialize();
     _notifications = NotificationViewModel(_viewModel.repository);
+    _notifications.live.addListener(_liveNotification);
     WidgetsBinding.instance.addObserver(this);
     _viewModel.addListener(_syncNotifications);
     FirebasePushService.instance.incoming.addListener(_foregroundPush);
@@ -72,6 +76,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     }
     if (!_notificationsStarted) {
       _notificationsStarted = true;
+      _notifications.start();
       unawaited(
         FirebasePushService.instance.attach(
           _viewModel.repository,
@@ -107,6 +112,43 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     }
   }
 
+  int? _lastChatNoticeVersion;
+
+  void _liveNotification() {
+    final item = _notifications.live.value;
+    if (item == null || item.kind != 'campaignChat') return;
+    if (item.readAt != null || item.unreadCount <= 0) {
+      unawaited(FirebasePushService.instance.clearNotification(item.id));
+      return;
+    }
+    _showChatNotice(item);
+  }
+
+  void _showChatNotice(NotificationItem item) {
+    if (!mounted ||
+        item.readAt != null ||
+        item.unreadCount <= 0 ||
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed ||
+        item.chatMessageId == _lastChatNoticeVersion ||
+        CampaignDiscussionVisibility.campaignId == item.campaignId) {
+      return;
+    }
+    _lastChatNoticeVersion = item.chatMessageId;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          '${item.title} · ${context.l10n.campaignChatUnread(item.unreadCount)}',
+        ),
+        action: SnackBarAction(
+          label: context.l10n.notificationsOpen,
+          onPressed: () => unawaited(_openPush(item.id)),
+        ),
+      ),
+    );
+  }
+
   void _foregroundPush() {
     final id = FirebasePushService.instance.incoming.value;
     if (!_notificationsStarted || id == null) return;
@@ -122,6 +164,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
           ? _notifications.refresh()
           : _notifications.refreshCount());
       if (!mounted) return;
+      if (item.kind == 'campaignChat') {
+        _showChatNotice(item);
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(context.l10n.notificationsNewUpdate),
@@ -157,25 +203,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       }
       await _notifications.markRead(item);
       if (!mounted) return;
-      final l10n = context.l10n;
-      final navigate = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(item.title),
-          content: SingleChildScrollView(child: Text(item.body)),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(l10n.notificationsClose),
-            ),
-            if (item.campaignId != null)
-              FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: Text(l10n.notificationsViewActivity),
-              ),
-          ],
-        ),
-      );
+      if (item.kind == 'campaignChat') {
+        await _routeNotification(item);
+        return;
+      }
+      final navigate = await showNotificationDetails(context, item);
       if (navigate == true && mounted) await _routeNotification(item);
     } catch (_) {
       if (mounted) {
@@ -190,9 +222,37 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   }
 
   Future<void> _routeNotification(NotificationItem item) async {
+    if (item.kind == 'campaignChat' && item.campaignId != null) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      if (CampaignDiscussionVisibility.campaignId == item.campaignId) return;
+      final campaign = await _viewModel.repository.discussionCampaign(
+        item.campaignId!,
+      );
+      if (!mounted) return;
+      unawaited(
+        Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            builder: (_) => CampaignDiscussionView(
+              campaign: campaign,
+              repository: _viewModel.repository,
+              currentUserId: _viewModel.profile?.authUserId,
+            ),
+          ),
+        ),
+      );
+      return;
+    }
     await _viewModel.refresh();
     if (!mounted) return;
-    if (_viewModel.isSponsor) {
+    if (_viewModel.isSponsor &&
+        const {
+          'volunteerJoined',
+          'volunteerLeft',
+          'volunteerCheckedIn',
+          'evidenceSubmitted',
+        }.contains(item.kind)) {
+      _viewModel.selectSection(2);
+    } else if (_viewModel.isSponsor) {
       await Navigator.of(context).push<void>(
         MaterialPageRoute(
           builder: (_) => PaymentHistoryView(viewModel: _viewModel),
@@ -315,6 +375,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     FirebasePushService.instance.incoming.removeListener(_foregroundPush);
     FirebasePushService.instance.opened.removeListener(_openedPush);
     FirebasePushService.instance.detach();
+    _notifications.live.removeListener(_liveNotification);
     _notifications.dispose();
     widget.campaignLink.removeListener(_openCampaignLinkIfReady);
     _viewModel.removeListener(_openCampaignLinkIfReady);
@@ -349,54 +410,55 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         final l10n = context.l10n;
         final destinations = _viewModel.isSponsor
             ? [
-                _Destination(
+                WorkspaceDestination(
                   l10n.navDiscover,
                   Icons.explore_outlined,
                   Icons.explore,
                 ),
-                _Destination(
+                WorkspaceDestination(
                   l10n.navCreate,
-                  Icons.auto_awesome_outlined,
-                  Icons.auto_awesome,
+                  Icons.add_box_outlined,
+                  Icons.add_box_rounded,
                 ),
-                _Destination(
+                WorkspaceDestination(
                   l10n.navImpact,
                   Icons.insights_outlined,
                   Icons.insights,
                 ),
-                _Destination(
+                WorkspaceDestination(
                   l10n.navTrust,
                   Icons.shield_outlined,
                   Icons.shield,
                 ),
-                _Destination(
+                WorkspaceDestination(
                   l10n.navProfile,
                   Icons.person_outline,
                   Icons.person,
                 ),
               ]
             : [
-                _Destination(
+                WorkspaceDestination(
                   l10n.navMatches,
                   Icons.travel_explore_outlined,
                   Icons.travel_explore,
                 ),
-                _Destination(
+                WorkspaceDestination(
                   l10n.navMyWork,
                   Icons.hiking_outlined,
                   Icons.hiking,
                 ),
-                _Destination(
+                WorkspaceDestination(
                   l10n.navAvailability,
                   Icons.event_available_outlined,
                   Icons.event_available,
+                  compactLabel: l10n.navSchedule,
                 ),
-                _Destination(
+                WorkspaceDestination(
                   l10n.navTrust,
                   Icons.shield_outlined,
                   Icons.shield,
                 ),
-                _Destination(
+                WorkspaceDestination(
                   l10n.navProfile,
                   Icons.person_outline,
                   Icons.person,
@@ -493,21 +555,12 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                       controller: _sponsorVoiceController,
                       selectedIndex: _viewModel.selectedIndex,
                       onSelected: _viewModel.selectSection,
+                      destinations: destinations,
                     )
-                  : NavigationBar(
-                      height: 72,
-                      animationDuration: const Duration(milliseconds: 180),
+                  : WorkspaceBottomNavigation(
+                      destinations: destinations,
                       selectedIndex: _viewModel.selectedIndex,
-                      onDestinationSelected: _viewModel.selectSection,
-                      destinations: destinations
-                          .map(
-                            (item) => NavigationDestination(
-                              icon: Icon(item.icon),
-                              selectedIcon: Icon(item.selectedIcon),
-                              label: item.label,
-                            ),
-                          )
-                          .toList(),
+                      onSelected: _viewModel.selectSection,
                     ),
               floatingActionButton: desktop || !_viewModel.isSponsor
                   ? null
@@ -531,8 +584,10 @@ class _SponsorBottomBar extends StatefulWidget {
     required this.controller,
     required this.selectedIndex,
     required this.onSelected,
+    required this.destinations,
   });
 
+  final List<WorkspaceDestination> destinations;
   final SponsorVoiceActionController controller;
   final int selectedIndex;
   final ValueChanged<int> onSelected;
@@ -583,118 +638,35 @@ class _SponsorBottomBarState extends State<_SponsorBottomBar>
   @override
   Widget build(BuildContext context) {
     final c = context.fieldnoteColors;
-    final l10n = context.l10n;
-    return SizedBox(
-      height: 92,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned(
-            left: 0,
-            right: 0,
-            top: -145,
-            height: 160,
-            child: IgnorePointer(
-              child: AnimatedBuilder(
-                animation: _wave,
-                builder: (context, _) => CustomPaint(
-                  painter: _VoiceSemicirclePainter(
-                    progress: _wave.value,
-                    visible: widget.controller.captureActive,
-                    color: c.clay,
-                  ),
+    const order = [0, 2, 1, 3, 4];
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          left: 0,
+          right: 0,
+          top: -145,
+          height: 160,
+          child: IgnorePointer(
+            child: AnimatedBuilder(
+              animation: _wave,
+              builder: (context, _) => CustomPaint(
+                painter: _VoiceSemicirclePainter(
+                  progress: _wave.value,
+                  visible: widget.controller.captureActive,
+                  color: c.clay,
                 ),
               ),
-            ),
-          ),
-          Positioned.fill(
-            child: BottomAppBar(
-              elevation: 12,
-              color: c.mist,
-              shape: const CircularNotchedRectangle(),
-              notchMargin: 9,
-              padding: EdgeInsets.zero,
-              child: SafeArea(
-                top: false,
-                child: Row(
-                  children: [
-                    _item(
-                      0,
-                      Icons.explore_outlined,
-                      Icons.explore,
-                      l10n.navDiscover,
-                    ),
-                    _item(
-                      2,
-                      Icons.insights_outlined,
-                      Icons.insights,
-                      l10n.navImpact,
-                    ),
-                    const SizedBox(width: 70),
-                    _item(
-                      3,
-                      Icons.shield_outlined,
-                      Icons.shield,
-                      l10n.navTrust,
-                    ),
-                    _item(
-                      4,
-                      Icons.person_outline,
-                      Icons.person,
-                      l10n.navProfile,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _item(int index, IconData icon, IconData selectedIcon, String label) {
-    final selected = widget.selectedIndex == index;
-    final c = context.fieldnoteColors;
-    return Expanded(
-      child: InkResponse(
-        onTap: () => widget.onSelected(index),
-        radius: 34,
-        child: Semantics(
-          button: true,
-          selected: selected,
-          label: label,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 5, bottom: 3),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AnimatedScale(
-                  scale: selected ? 1.08 : 1,
-                  duration: const Duration(milliseconds: 180),
-                  curve: Curves.easeOutCubic,
-                  child: Icon(
-                    selected ? selectedIcon : icon,
-                    size: 21,
-                    color: selected ? c.forest : c.ink.withValues(alpha: .68),
-                  ),
-                ),
-                const SizedBox(height: 1),
-                AnimatedDefaultTextStyle(
-                  duration: const Duration(milliseconds: 180),
-                  curve: Curves.easeOutCubic,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                    color: selected ? c.forest : c.ink.withValues(alpha: .68),
-                  ),
-                  child: Text(label, maxLines: 1),
-                ),
-              ],
             ),
           ),
         ),
-      ),
+        WorkspaceBottomNavigation(
+          destinations: [for (final index in order) widget.destinations[index]],
+          selectedIndex: order.indexOf(widget.selectedIndex),
+          dockedActionIndex: 2,
+          onSelected: (index) => widget.onSelected(order[index]),
+        ),
+      ],
     );
   }
 }
@@ -863,113 +835,164 @@ class _DesktopNavigation extends StatelessWidget {
   });
 
   final FieldnoteViewModel viewModel;
-  final List<_Destination> destinations;
+  final List<WorkspaceDestination> destinations;
 
   @override
   Widget build(BuildContext context) {
     final c = context.fieldnoteColors;
+    final name = viewModel.profile!.displayName.trim();
     return Container(
-      width: 250,
-      color: c.inkFill,
-      padding: const EdgeInsets.fromLTRB(18, 28, 18, 22),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
+      width: 256,
+      decoration: BoxDecoration(
+        color: c.paper,
+        border: Border(right: BorderSide(color: c.ink.withValues(alpha: .08))),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Icon(Icons.eco, color: c.acid),
-              const SizedBox(width: FieldnoteSpacing.xs),
-              Text(
-                'FIELDNOTE',
-                style: TextStyle(
-                  color: c.onFill,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.4,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: FieldnoteSpacing.sm),
-          Text(
-            viewModel.isSponsor
-                ? context.l10n.shellSponsorWorkspace
-                : context.l10n.shellVolunteerWorkspace,
-            style: TextStyle(
-              color: c.acid.withValues(alpha: .72),
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.2,
-            ),
-          ),
-          const SizedBox(height: 36),
-          ...destinations.indexed.map((entry) {
-            final index = entry.$1;
-            final item = entry.$2;
-            final selected = viewModel.selectedIndex == index;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Material(
-                color: selected
-                    ? c.acid.withValues(alpha: .14)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(14),
-                child: ListTile(
-                  selected: selected,
-                  selectedColor: c.acid,
-                  textColor: c.onFill.withValues(alpha: .7),
-                  iconColor: c.onFill.withValues(alpha: .54),
-                  leading: Icon(selected ? item.selectedIcon : item.icon),
-                  title: Text(item.label),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  onTap: () => viewModel.selectSection(index),
-                ),
-              ),
-            );
-          }),
-          const Spacer(),
-          Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: c.acid,
-                foregroundColor: c.onAcid,
-                child: Text(
-                  viewModel.profile!.displayName.characters.first.toUpperCase(),
-                ),
-              ),
-              const SizedBox(width: FieldnoteSpacing.sm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Row(
                   children: [
-                    Text(
-                      viewModel.profile!.displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: c.forestFill,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(
+                        Icons.eco_outlined,
                         color: c.onFill,
-                        fontWeight: FontWeight.w800,
+                        size: 24,
                       ),
                     ),
-                    Text(
-                      viewModel.isSponsor
-                          ? viewModel.profile!.locationAddress ??
-                                viewModel.profile!.city
-                          : viewModel.profile!.city,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: c.onFill.withValues(alpha: .54),
-                        fontSize: 12,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'FIELDNOTE',
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1.2,
+                                ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            viewModel.isSponsor
+                                ? context.l10n.shellSponsorWorkspace
+                                : context.l10n.shellVolunteerWorkspace,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(height: 28),
+              Expanded(
+                child: ListView(
+                  children: [
+                    for (final (index, item) in destinations.indexed)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Semantics(
+                          selected: viewModel.selectedIndex == index,
+                          child: Material(
+                            color: viewModel.selectedIndex == index
+                                ? c.mist
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(16),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 6,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              leading: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: viewModel.selectedIndex == index
+                                      ? c.forestFill
+                                      : c.ink.withValues(alpha: .04),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(
+                                  viewModel.selectedIndex == index
+                                      ? item.selectedIcon
+                                      : item.icon,
+                                  size: 21,
+                                  color: viewModel.selectedIndex == index
+                                      ? c.onFill
+                                      : c.ink.withValues(alpha: .7),
+                                ),
+                              ),
+                              title: Text(
+                                item.label,
+                                style: Theme.of(context).textTheme.titleSmall
+                                    ?.copyWith(
+                                      color: viewModel.selectedIndex == index
+                                          ? c.forest
+                                          : c.ink,
+                                      fontWeight:
+                                          viewModel.selectedIndex == index
+                                          ? FontWeight.w700
+                                          : FontWeight.w500,
+                                    ),
+                              ),
+                              onTap: () => viewModel.selectSection(index),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const Divider(height: 28),
+              Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: c.mist,
+                    foregroundColor: c.forest,
+                    child: Text(
+                      name.isEmpty ? '?' : name.characters.first.toUpperCase(),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        Text(
+                          viewModel.profile!.city,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -1033,12 +1056,4 @@ class _ErrorView extends StatelessWidget {
       ),
     );
   }
-}
-
-class _Destination {
-  const _Destination(this.label, this.icon, this.selectedIcon);
-
-  final String label;
-  final IconData icon;
-  final IconData selectedIcon;
 }

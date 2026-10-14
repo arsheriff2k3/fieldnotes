@@ -25,7 +25,10 @@ abstract class InAppNotification
     this.campaignId,
     DateTime? createdAt,
     this.readAt,
-  }) : createdAt = createdAt ?? DateTime.now();
+    int? unreadCount,
+    this.chatMessageId,
+  }) : createdAt = createdAt ?? DateTime.now(),
+       unreadCount = unreadCount ?? 1;
 
   factory InAppNotification({
     int? id,
@@ -37,6 +40,8 @@ abstract class InAppNotification
     int? campaignId,
     DateTime? createdAt,
     DateTime? readAt,
+    int? unreadCount,
+    int? chatMessageId,
   }) = _InAppNotificationImpl;
 
   factory InAppNotification.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -56,6 +61,8 @@ abstract class InAppNotification
       readAt: jsonSerialization['readAt'] == null
           ? null
           : _is.DateTimeJsonExtension.fromJson(jsonSerialization['readAt']),
+      unreadCount: jsonSerialization['unreadCount'] as int?,
+      chatMessageId: jsonSerialization['chatMessageId'] as int?,
     );
   }
 
@@ -82,6 +89,10 @@ abstract class InAppNotification
 
   DateTime? readAt;
 
+  int unreadCount;
+
+  int? chatMessageId;
+
   @override
   _is.Table<int?> get table => t;
 
@@ -98,6 +109,8 @@ abstract class InAppNotification
     int? campaignId,
     DateTime? createdAt,
     DateTime? readAt,
+    int? unreadCount,
+    int? chatMessageId,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -112,6 +125,8 @@ abstract class InAppNotification
       if (campaignId != null) 'campaignId': campaignId,
       'createdAt': createdAt.toJson(),
       if (readAt != null) 'readAt': readAt?.toJson(),
+      'unreadCount': unreadCount,
+      if (chatMessageId != null) 'chatMessageId': chatMessageId,
     };
   }
 
@@ -161,6 +176,8 @@ class _InAppNotificationImpl extends InAppNotification {
     int? campaignId,
     DateTime? createdAt,
     DateTime? readAt,
+    int? unreadCount,
+    int? chatMessageId,
   }) : super._(
          id: id,
          recipientAuthUserId: recipientAuthUserId,
@@ -171,6 +188,8 @@ class _InAppNotificationImpl extends InAppNotification {
          campaignId: campaignId,
          createdAt: createdAt,
          readAt: readAt,
+         unreadCount: unreadCount,
+         chatMessageId: chatMessageId,
        );
 
   /// Returns a shallow copy of this [InAppNotification]
@@ -187,6 +206,8 @@ class _InAppNotificationImpl extends InAppNotification {
     Object? campaignId = _Undefined,
     DateTime? createdAt,
     Object? readAt = _Undefined,
+    int? unreadCount,
+    Object? chatMessageId = _Undefined,
   }) {
     return InAppNotification(
       id: id is int? ? id : this.id,
@@ -198,6 +219,8 @@ class _InAppNotificationImpl extends InAppNotification {
       campaignId: campaignId is int? ? campaignId : this.campaignId,
       createdAt: createdAt ?? this.createdAt,
       readAt: readAt is DateTime? ? readAt : this.readAt,
+      unreadCount: unreadCount ?? this.unreadCount,
+      chatMessageId: chatMessageId is int? ? chatMessageId : this.chatMessageId,
     );
   }
 }
@@ -249,6 +272,16 @@ class InAppNotificationUpdateTable
         table.readAt,
         value,
       );
+
+  _is.ColumnValue<int, int> unreadCount(int value) => _is.ColumnValue(
+    table.unreadCount,
+    value,
+  );
+
+  _is.ColumnValue<int, int> chatMessageId(int? value) => _is.ColumnValue(
+    table.chatMessageId,
+    value,
+  );
 }
 
 class InAppNotificationTable extends _is.Table<int?> {
@@ -288,6 +321,15 @@ class InAppNotificationTable extends _is.Table<int?> {
       'readAt',
       this,
     );
+    unreadCount = _is.ColumnInt(
+      'unreadCount',
+      this,
+      hasDefault: true,
+    );
+    chatMessageId = _is.ColumnInt(
+      'chatMessageId',
+      this,
+    );
   }
 
   late final InAppNotificationUpdateTable updateTable;
@@ -308,6 +350,10 @@ class InAppNotificationTable extends _is.Table<int?> {
 
   late final _is.ColumnDateTime readAt;
 
+  late final _is.ColumnInt unreadCount;
+
+  late final _is.ColumnInt chatMessageId;
+
   @override
   List<_is.Column> get columns => [
     id,
@@ -319,6 +365,8 @@ class InAppNotificationTable extends _is.Table<int?> {
     campaignId,
     createdAt,
     readAt,
+    unreadCount,
+    chatMessageId,
   ];
 }
 

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 import '../../firebase_options.dart';
 import '../repositories/fieldnote_repository.dart';
@@ -27,6 +28,17 @@ class FirebasePushService {
   int _generation = 0;
   StreamSubscription<String>? _tokenSubscription;
   Future<void> _registration = Future.value();
+
+  Future<void> clearNotification(int id) async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+    try {
+      await const MethodChannel(
+        'fieldnote/notifications',
+      ).invokeMethod<void>('clear', {'notificationId': id});
+    } catch (_) {
+      // Clearing a tray entry must never block authenticated read acknowledgement.
+    }
+  }
 
   Future<void> initialize() async {
     final options = FieldnoteFirebaseOptions.currentPlatform;

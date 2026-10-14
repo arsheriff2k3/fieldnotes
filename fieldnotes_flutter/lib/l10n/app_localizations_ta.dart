@@ -4254,4 +4254,104 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get campaignDiscussionSend => 'செய்தி அனுப்பு';
+
+  @override
+  String get campaignDiscussionTeam => 'பிரச்சார குழு';
+
+  @override
+  String get campaignDiscussionInfo => 'இந்தக் கலந்துரையாடல் பற்றி';
+
+  @override
+  String get campaignDiscussionToday => 'இன்று';
+
+  @override
+  String get campaignDiscussionYesterday => 'நேற்று';
+
+  @override
+  String get campaignDiscussionArchived => 'படிக்க மட்டும்';
+
+  @override
+  String get campaignDiscussionConnected => 'இணைக்கப்பட்டது';
+
+  @override
+  String get campaignDiscussionNewMessages => 'புதிய செய்திகள்';
+
+  @override
+  String get campaignDiscussionMessageHint => 'குழுவிற்கு செய்தி எழுதுங்கள்…';
+
+  @override
+  String get campaignDiscussionConnecting => 'இணைகிறது…';
+
+  @override
+  String get campaignDiscussionUnavailable => 'கிடைக்கவில்லை';
+
+  @override
+  String get notificationsCaughtUpTitle =>
+      'அனைத்து அறிவிப்புகளையும் படித்துவிட்டீர்கள்';
+
+  @override
+  String notificationsUnreadCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'படிக்காத $count அறிவிப்புகள்',
+      one: 'படிக்காத 1 அறிவிப்பு',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notificationsSubtitle =>
+      'பணித்திட்டச் செயல்பாடுகள், அழைப்புகள் மற்றும் அறிவிப்புகள்.';
+
+  @override
+  String get notificationsAll => 'அனைத்தும்';
+
+  @override
+  String get notificationsUnread => 'படிக்காதவை';
+
+  @override
+  String get notificationsStayUpdated => 'தொடர்ந்து தகவல் பெறுங்கள்';
+
+  @override
+  String get notificationsEnablePushDescription =>
+      'FieldNote மூடியிருக்கும்போதும் அறிவிப்புகளைப் பெற சாதன அறிவிப்புகளை இயக்கவும்.';
+
+  @override
+  String get notificationsConnectionTitle => 'புதுப்பிக்க முடியவில்லை';
+
+  @override
+  String get notificationsEmptyTitle => 'இன்னும் அறிவிப்புகள் இல்லை';
+
+  @override
+  String get notificationsToday => 'இன்று';
+
+  @override
+  String get notificationsYesterday => 'நேற்று';
+
+  @override
+  String get notificationsCategoryInvitation => 'அழைப்பு';
+
+  @override
+  String get notificationsCategoryTeam => 'குழுச் செயல்பாடு';
+
+  @override
+  String get notificationsCategoryCheckIn => 'வருகைப் பதிவு';
+
+  @override
+  String get notificationsCategoryPayment => 'கட்டணங்கள்';
+
+  @override
+  String get notificationsCategoryEvidence => 'சான்று';
+
+  @override
+  String get notificationsCategoryCampaign => 'பணித்திட்ட அறிவிப்பு';
+
+  @override
+  String get navSchedule => 'நேரம்';
+
+  @override
+  String campaignChatUnread(int count) {
+    return '$count படிக்காத செய்திகள்';
+  }
 }
