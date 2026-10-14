@@ -100,3 +100,8 @@ fieldnotes_server/config/firebase_service_account_key.json
 /docs/*_PLAN.md
 /docs/*_STORY.md
 /docs/DEMO_VIDEO_SCRIPT*.md
+
+# Firebase client configuration stays local, alongside server secrets.
+**/google-services.json
+**/GoogleService-Info.plist
+!**/.env.firebase.example.json
