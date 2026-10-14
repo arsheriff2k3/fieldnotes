@@ -14,12 +14,12 @@ Push payloads contain a generic alert and inbox ID, without private evidence.
 
 1. Register the Android application ID in Firebase and download the local,
    git-ignored `fieldnotes_flutter/android/app/google-services.json`.
-   Copy `fieldnotes_flutter/.env.firebase.example.json` to
-   `fieldnotes_flutter/.env.firebase.json` and fill in the matching Firebase
-   client settings. From `fieldnotes_flutter`, run or build with
-   `--dart-define-from-file=.env.firebase.json`, for example:
-   `flutter run --dart-define-from-file=.env.firebase.json`.
-   Without configuration, the app uses its inbox and skips Firebase push.
+   Normal Flutter run/build commands use this native configuration.
+   To supply explicit Dart options instead, copy
+   `fieldnotes_flutter/.env.firebase.example.json` to
+   `fieldnotes_flutter/.env.firebase.json`, fill in matching client settings,
+   and run/build with `--dart-define-from-file=.env.firebase.json`.
+   Without either configuration, the app uses its inbox and skips Firebase push.
    Never put a service-account private key in either client file.
 2. Enable the Firebase Cloud Messaging API and grant the server service account
    `roles/firebasecloudmessaging.admin` for the same project.

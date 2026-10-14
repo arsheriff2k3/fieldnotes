@@ -41,10 +41,13 @@ class FirebasePushService {
   }
 
   Future<void> initialize() async {
-    final options = FieldnoteFirebaseOptions.currentPlatform;
-    if (options == null) return;
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
     try {
-      await Firebase.initializeApp(options: options);
+      // Prefer explicit build settings, or use the ignored native Firebase
+      // configuration. Missing configuration falls back to the inbox below.
+      await Firebase.initializeApp(
+        options: FieldnoteFirebaseOptions.currentPlatform,
+      );
       available = await FirebaseMessaging.instance.isSupported();
       if (!available) return;
       FirebaseMessaging.onBackgroundMessage(fieldnotePushBackgroundHandler);
