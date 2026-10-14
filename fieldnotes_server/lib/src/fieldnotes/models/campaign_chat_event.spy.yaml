@@ -1,0 +1,5 @@
+class: CampaignChatEvent
+fields:
+  campaignId: int
+  readOnly: bool
+  message: CampaignChatMessage?

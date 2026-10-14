@@ -163,26 +163,26 @@ class _SharedCampaignViewState extends State<SharedCampaignView> {
                     letterSpacing: 1.5,
                   ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: FieldnoteSpacing.md),
                 Text(
                   campaign.name,
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: FieldnoteSpacing.md),
                 Text(campaign.description),
                 const Divider(height: 32),
                 Row(
                   children: [
                     const Icon(Icons.place_outlined, size: 20),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: FieldnoteSpacing.sm),
                     Expanded(child: Text(campaign.locationName)),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: FieldnoteSpacing.sm),
                 Row(
                   children: [
                     const Icon(Icons.event_outlined, size: 20),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: FieldnoteSpacing.sm),
                     Text(
                       DateFormat.MMMEd(
                         dateLocale(context.localeTag),
@@ -190,7 +190,7 @@ class _SharedCampaignViewState extends State<SharedCampaignView> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 22),
+                const SizedBox(height: FieldnoteSpacing.lg),
                 if (widget.viewModel.isVolunteer)
                   SizedBox(
                     width: double.infinity,

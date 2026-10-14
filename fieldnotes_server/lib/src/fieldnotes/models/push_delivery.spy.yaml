@@ -1,0 +1,22 @@
+### One durable push attempt sequence per inbox item and registered device.
+class: PushDelivery
+serverOnly: true
+table: fieldnote_push_delivery
+fields:
+  notificationId: int
+  deviceId: int
+  recipientAuthUserId: UuidValue
+  status: String, default='pending'
+  attempts: int, default=0
+  nextAttemptAt: DateTime?
+  lastError: String?
+  createdAt: DateTime, default=now
+  sentAt: DateTime?
+indexes:
+  fieldnote_push_delivery_dedupe_idx:
+    fields: notificationId, deviceId
+    unique: true
+  fieldnote_push_delivery_due_idx:
+    fields: status, nextAttemptAt
+  fieldnote_push_delivery_user_idx:
+    fields: recipientAuthUserId

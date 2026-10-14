@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import '../../../data/repositories/fieldnote_repository.dart';
 import '../../../data/services/campaign_link_service.dart';
 import '../../../data/services/client_request_id.dart';
+import '../../../data/services/firebase_push_service.dart';
 import '../../../data/services/pending_role_service.dart';
 import '../../core/error_messages.dart';
 
@@ -687,6 +688,11 @@ class FieldnoteViewModel extends ChangeNotifier {
     var signedOut = false;
     try {
       await _pendingRoles.clear();
+      try {
+        await FirebasePushService.instance.unregister(allDevices: allDevices);
+      } catch (_) {
+        // Sign-out must still clear authentication when push cleanup fails.
+      }
       signedOut = await _repository.signOut(allDevices: allDevices);
     } finally {
       // The shell is normally gone by now; clear anyway in case it is not.

@@ -322,7 +322,12 @@ class MapLegend extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 6),
-              Text(entry.label, style: Theme.of(context).textTheme.bodySmall),
+              Flexible(
+                child: Text(
+                  entry.label,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
             ],
           ),
       ],

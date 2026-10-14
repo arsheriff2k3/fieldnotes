@@ -16,6 +16,16 @@ class RateLimitPolicy {
 /// A-3 limits. Constants rather than config: they protect billed providers
 /// and abuse-prone actions, and are generous for a real person.
 abstract final class RateLimits {
+  static const campaignChat = RateLimitPolicy(
+    'campaignChat',
+    30,
+    Duration(minutes: 1),
+  );
+  static const pushRegistration = RateLimitPolicy(
+    'pushRegistration',
+    120,
+    Duration(hours: 1),
+  );
   static const proposeCampaign = RateLimitPolicy(
     'proposeCampaign',
     20,

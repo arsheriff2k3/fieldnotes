@@ -75,14 +75,14 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
       context: context,
       barrierDismissible: false,
       builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+        builder: (context, setDialogState) => fieldnoteDialog(
           title: Text(l10n.sponsorReadinessReviseTitle),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(l10n.sponsorReadinessReviseIntro),
-                const SizedBox(height: 14),
+                const SizedBox(height: FieldnoteSpacing.md),
                 TextField(
                   controller: goal,
                   keyboardType: TextInputType.number,
@@ -100,7 +100,7 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: FieldnoteSpacing.sm),
                 TextField(
                   controller: minimum,
                   keyboardType: TextInputType.number,
@@ -112,7 +112,7 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: FieldnoteSpacing.sm),
                 TextField(
                   controller: scope,
                   maxLines: 4,
@@ -122,7 +122,7 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
                   ),
                 ),
                 if (problem != null) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: FieldnoteSpacing.xs),
                   Text(
                     problem!,
                     style: TextStyle(
@@ -223,7 +223,7 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
     );
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => fieldnoteDialog(
         title: Text(l10n.sponsorReadinessCancelTitle),
         content: Text(l10n.sponsorReadinessCancelBody(joined, recorded)),
         actions: [
@@ -341,7 +341,7 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
                     campaign.name,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: FieldnoteSpacing.xs),
                   StatusPill(
                     label: status,
                     color: campaign.readinessState == 'confirmed'
@@ -351,7 +351,7 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
                         ? Icons.verified_outlined
                         : Icons.schedule,
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: FieldnoteSpacing.md),
                   SurfaceCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -360,14 +360,14 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
                           l10n.sponsorReadinessCutoffTitle,
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: FieldnoteSpacing.xs),
                         Text(
                           l10n.sponsorReadinessCheckedBefore(
                             _when(campaign.startsAt),
                           ),
                         ),
                         if (beforeCutoff) ...[
-                          const SizedBox(height: 10),
+                          const SizedBox(height: FieldnoteSpacing.sm),
                           Text(
                             fundingGap == 0 && teamGap == 0
                                 ? l10n.sponsorReadinessReadyBeforeCutoff(
@@ -378,7 +378,7 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
                                   ),
                           ),
                         ],
-                        const SizedBox(height: 10),
+                        const SizedBox(height: FieldnoteSpacing.sm),
                         Text(
                           l10n.sponsorReadinessFundingLine(
                             money(campaignSponsoredPaise(campaign)),
@@ -387,13 +387,13 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
                           ),
                         ),
                         if (refunded > 0) ...[
-                          const SizedBox(height: 4),
+                          const SizedBox(height: FieldnoteSpacing.xxs),
                           Text(
                             l10n.sponsorReadinessRefundedLine(money(refunded)),
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ],
-                        const SizedBox(height: 8),
+                        const SizedBox(height: FieldnoteSpacing.xs),
                         Text(
                           l10n.sponsorReadinessTeamLine(
                             joined,
@@ -402,20 +402,20 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
                           ),
                         ),
                         if (campaign.revision > 0) ...[
-                          const SizedBox(height: 10),
+                          const SizedBox(height: FieldnoteSpacing.sm),
                           Text(l10n.sponsorReadinessReconfirmNote),
                         ],
                       ],
                     ),
                   ),
                   if (!closed && !editable) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: FieldnoteSpacing.sm),
                     SurfaceCard(
                       child: Text(l10n.sponsorReadinessStartedLocked),
                     ),
                   ],
                   if (editable) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: FieldnoteSpacing.sm),
                     SurfaceCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -424,12 +424,12 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
                             l10n.sponsorReadinessDecisionsTitle,
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: FieldnoteSpacing.xs),
                           if (fundingGap > 0)
                             Text(l10n.sponsorReadinessTopUpHint),
                           if (teamGap > 0)
                             Text(l10n.sponsorReadinessRecruitHint),
-                          const SizedBox(height: 14),
+                          const SizedBox(height: FieldnoteSpacing.md),
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,

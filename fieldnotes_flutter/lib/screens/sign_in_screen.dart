@@ -1,4 +1,5 @@
 import 'package:fieldnotes_client/fieldnotes_client.dart';
+import '../ui/core/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
 
@@ -185,7 +186,7 @@ class _SignInScreenState extends State<SignInScreen> {
               ],
             );
           }
-          return panel;
+          return SafeArea(child: panel);
         },
       ),
     );
@@ -236,7 +237,7 @@ class _StoryPanel extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 22),
+                  const SizedBox(height: FieldnoteSpacing.lg),
                   Text(
                     context.l10n.signInHeroBody,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -272,21 +273,24 @@ class _RolePanel extends StatelessWidget {
     final l10n = context.l10n;
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(28),
+        padding: EdgeInsets.symmetric(
+          horizontal: FieldnoteSpacing.pageGutter(context),
+          vertical: FieldnoteSpacing.xl,
+        ),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 520),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const _Brand(),
-              const SizedBox(height: 34),
+              const SizedBox(height: FieldnoteSpacing.xl),
               Text(
                 l10n.signInRoleTitle,
                 style: Theme.of(context).textTheme.headlineLarge,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: FieldnoteSpacing.xs),
               Text(l10n.signInRoleSubtitle),
-              const SizedBox(height: 22),
+              const SizedBox(height: FieldnoteSpacing.lg),
               _RoleCard(
                 icon: Icons.volunteer_activism_outlined,
                 title: l10n.signInSponsorCardTitle,
@@ -294,7 +298,7 @@ class _RolePanel extends StatelessWidget {
                 accent: c.clay,
                 onTap: () => onRole(AccountRole.sponsor),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: FieldnoteSpacing.sm),
               _RoleCard(
                 icon: Icons.directions_walk_outlined,
                 title: l10n.signInVolunteerCardTitle,
@@ -302,14 +306,14 @@ class _RolePanel extends StatelessWidget {
                 accent: c.forest,
                 onTap: () => onRole(AccountRole.volunteer),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: FieldnoteSpacing.md),
               Center(
                 child: TextButton(
                   onPressed: onExistingAccount,
                   child: Text(l10n.signInExistingAccount),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: FieldnoteSpacing.sm),
               Center(
                 child: Text(
                   l10n.signInCreateAgreement,
@@ -362,13 +366,13 @@ class _RoleCard extends StatelessWidget {
                 ),
                 child: Icon(icon, color: accent, size: 29),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: FieldnoteSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(title, style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 5),
+                    const SizedBox(height: FieldnoteSpacing.xxs),
                     Text(subtitle),
                   ],
                 ),
@@ -399,7 +403,10 @@ class _AuthPanel extends StatelessWidget {
     final l10n = context.l10n;
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(28),
+        padding: EdgeInsets.symmetric(
+          horizontal: FieldnoteSpacing.pageGutter(context),
+          vertical: FieldnoteSpacing.xl,
+        ),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 470),
           child: Column(
@@ -410,7 +417,7 @@ class _AuthPanel extends StatelessWidget {
                 onPressed: onBack,
                 icon: const Icon(Icons.arrow_back),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: FieldnoteSpacing.sm),
               Text(
                 switch (selectedRole) {
                   null => l10n.signInWelcomeBack,
@@ -419,13 +426,13 @@ class _AuthPanel extends StatelessWidget {
                 },
                 style: Theme.of(context).textTheme.headlineLarge,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: FieldnoteSpacing.xs),
               Text(
                 selectedRole == null
                     ? l10n.signInExistingSubtitle
                     : l10n.signInNewSubtitle,
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: FieldnoteSpacing.lg),
               SignInWidget(
                 client: client,
                 onAuthenticated: () {},
@@ -441,7 +448,7 @@ class _AuthPanel extends StatelessWidget {
                   );
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: FieldnoteSpacing.md),
               Text(
                 l10n.signInContinueAgreement,
                 textAlign: TextAlign.center,
@@ -476,7 +483,7 @@ class _Brand extends StatelessWidget {
           ),
           child: Icon(Icons.eco, color: c.onAcid),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: FieldnoteSpacing.sm),
         Text(
           'FIELDNOTE',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(

@@ -10,6 +10,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'client.dart';
 import 'data/services/map_config_service.dart';
 import 'data/services/campaign_link_service.dart';
+import 'data/services/firebase_push_service.dart';
 import 'l10n/app_localizations.dart';
 import 'screens/sign_in_screen.dart';
 import 'ui/core/fieldnote_theme.dart';
@@ -56,6 +57,7 @@ void main() async {
   // Loads the Maps client key and, on web, the Maps JavaScript API. Never
   // throws; a missing key just leaves every map on its fallback panel.
   await MapConfig.load();
+  await FirebasePushService.instance.initialize();
   runApp(MyApp(appLinks: appLinks));
 }
 

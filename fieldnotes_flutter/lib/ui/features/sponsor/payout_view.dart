@@ -9,6 +9,7 @@ import '../../core/fieldnote_theme.dart';
 import '../../core/widgets.dart';
 import '../shell/fieldnote_view_model.dart';
 import 'sponsor_formatting.dart';
+import 'manual_payout_view.dart';
 
 /// Creator-only payout screen. In Razorpay Test Mode it is a test ledger
 /// that never requests a bank transfer; in live mode payouts are settled
@@ -192,18 +193,18 @@ class _CampaignPayoutViewState extends State<CampaignPayoutView> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: FieldnoteSpacing.sm),
                     Text(
                       campaign.name,
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     if (!manual) ...[
-                      const SizedBox(height: 8),
+                      const SizedBox(height: FieldnoteSpacing.xs),
                       Text(l10n.sponsorPayoutTestModeNotice),
                     ],
                     if (phase == CampaignPhase.cancelled ||
                         phase == CampaignPhase.expired) ...[
-                      const SizedBox(height: 12),
+                      const SizedBox(height: FieldnoteSpacing.sm),
                       Text(
                         phase == CampaignPhase.cancelled
                             ? l10n.sponsorPayoutCancelledRefunds
@@ -211,7 +212,14 @@ class _CampaignPayoutViewState extends State<CampaignPayoutView> {
                         style: TextStyle(color: context.fieldnoteColors.danger),
                       ),
                     ],
-                    const SizedBox(height: 16),
+                    if (manual) ...[
+                      const SizedBox(height: FieldnoteSpacing.md),
+                      ManualPayoutPanel(
+                        campaignId: campaign.id!,
+                        repository: widget.viewModel.repository,
+                      ),
+                    ],
+                    const SizedBox(height: FieldnoteSpacing.md),
                     SurfaceCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -220,13 +228,13 @@ class _CampaignPayoutViewState extends State<CampaignPayoutView> {
                             l10n.sponsorPayoutStatusTitle,
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
-                          const SizedBox(height: 18),
+                          const SizedBox(height: FieldnoteSpacing.md),
                           _row(
                             l10n.sponsorPayoutRecordedSponsorships,
                             money(campaignSponsoredPaise(campaign)),
                           ),
                           if (refunded > 0) ...[
-                            const SizedBox(height: 12),
+                            const SizedBox(height: FieldnoteSpacing.sm),
                             _row(
                               l10n.sponsorPayoutRefundedToSponsors,
                               money(refunded),
@@ -245,9 +253,9 @@ class _CampaignPayoutViewState extends State<CampaignPayoutView> {
                               l10n.sponsorPayoutSimulatedCredit,
                               money(simulated),
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: FieldnoteSpacing.sm),
                             _row(l10n.sponsorPayoutRealTransfer, money(0)),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: FieldnoteSpacing.md),
                             StatusPill(
                               label: _payouts.isEmpty
                                   ? l10n.sponsorPayoutNoSimulation
@@ -257,7 +265,7 @@ class _CampaignPayoutViewState extends State<CampaignPayoutView> {
                               color: context.fieldnoteColors.clay,
                               icon: Icons.science_outlined,
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: FieldnoteSpacing.md),
                             SizedBox(
                               width: double.infinity,
                               child: FilledButton.icon(
@@ -281,12 +289,12 @@ class _CampaignPayoutViewState extends State<CampaignPayoutView> {
                               ),
                             ),
                             if (blocked != null) ...[
-                              const SizedBox(height: 8),
+                              const SizedBox(height: FieldnoteSpacing.xs),
                               Text(blocked),
                             ],
                           ],
                           if (_error != null) ...[
-                            const SizedBox(height: 10),
+                            const SizedBox(height: FieldnoteSpacing.sm),
                             Text(
                               _error!,
                               style: TextStyle(
@@ -298,7 +306,7 @@ class _CampaignPayoutViewState extends State<CampaignPayoutView> {
                       ),
                     ),
                     if (!manual) ...[
-                      const SizedBox(height: 16),
+                      const SizedBox(height: FieldnoteSpacing.md),
                       SurfaceCard(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -307,9 +315,9 @@ class _CampaignPayoutViewState extends State<CampaignPayoutView> {
                               l10n.sponsorPayoutRecipientTitle,
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: FieldnoteSpacing.xs),
                             Text(l10n.sponsorPayoutRecipientAccount),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: FieldnoteSpacing.xs),
                             Text(l10n.sponsorPayoutRecipientHelp),
                           ],
                         ),
@@ -318,7 +326,7 @@ class _CampaignPayoutViewState extends State<CampaignPayoutView> {
                     if (_loading)
                       const Center(child: CircularProgressIndicator()),
                     if (_refunds.isNotEmpty) ...[
-                      const SizedBox(height: 16),
+                      const SizedBox(height: FieldnoteSpacing.md),
                       SurfaceCard(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -327,7 +335,7 @@ class _CampaignPayoutViewState extends State<CampaignPayoutView> {
                               l10n.sponsorPayoutRefundsTitle,
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: FieldnoteSpacing.xs),
                             for (final refund in _refunds)
                               Padding(
                                 padding: const EdgeInsets.symmetric(
@@ -340,7 +348,7 @@ class _CampaignPayoutViewState extends State<CampaignPayoutView> {
                       ),
                     ],
                     if (_payouts.isNotEmpty) ...[
-                      const SizedBox(height: 16),
+                      const SizedBox(height: FieldnoteSpacing.md),
                       SurfaceCard(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -349,7 +357,7 @@ class _CampaignPayoutViewState extends State<CampaignPayoutView> {
                               l10n.sponsorPayoutCreditHistoryTitle,
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: FieldnoteSpacing.xs),
                             ..._payouts.map(
                               (payout) => Padding(
                                 padding: const EdgeInsets.symmetric(
@@ -369,7 +377,7 @@ class _CampaignPayoutViewState extends State<CampaignPayoutView> {
                       ),
                     ],
                     if (!manual) ...[
-                      const SizedBox(height: 16),
+                      const SizedBox(height: FieldnoteSpacing.md),
                       SurfaceCard(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -378,11 +386,11 @@ class _CampaignPayoutViewState extends State<CampaignPayoutView> {
                               l10n.sponsorPayoutBeforeLiveTitle,
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: FieldnoteSpacing.sm),
                             Text(l10n.sponsorPayoutBeforeLiveStep1),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: FieldnoteSpacing.xs),
                             Text(l10n.sponsorPayoutBeforeLiveStep2),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: FieldnoteSpacing.xs),
                             Text(l10n.sponsorPayoutBeforeLiveStep3),
                           ],
                         ),
@@ -417,7 +425,7 @@ class _CampaignPayoutViewState extends State<CampaignPayoutView> {
           ),
           formatPaise(refundPaise(refund), localeTag: localeTag),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: FieldnoteSpacing.xxs),
         Row(
           children: [
             StatusPill(
@@ -425,7 +433,7 @@ class _CampaignPayoutViewState extends State<CampaignPayoutView> {
               color: style.color,
               icon: style.icon,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: FieldnoteSpacing.xs),
             Expanded(
               child: Text(
                 _when(refund.processedAt ?? refund.createdAt, localeTag),
@@ -464,7 +472,7 @@ class _ManualPayoutNotice extends StatelessWidget {
           Icons.account_balance_outlined,
           color: context.fieldnoteColors.moss,
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: FieldnoteSpacing.sm),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -474,7 +482,7 @@ class _ManualPayoutNotice extends StatelessWidget {
                 style: Theme.of(context).textTheme.titleSmall,
               ),
               if (!blocked) ...[
-                const SizedBox(height: 6),
+                const SizedBox(height: FieldnoteSpacing.xs),
                 Text(l10n.sponsorPayoutManualDetail),
               ],
             ],

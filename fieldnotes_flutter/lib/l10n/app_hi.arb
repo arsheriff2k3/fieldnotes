@@ -207,5 +207,17 @@
   "volunteerHistoryEmptyTitle": "अभी कोई इतिहास नहीं",
   "volunteerYouAreHere": "आप यहाँ हैं",
   "volunteerYourArea": "आपका क्षेत्र",
-  "exportSectionProfile": "प्रोफ़ाइल"
+  "exportSectionProfile": "प्रोफ़ाइल",
+  "campaignDiscussionTitle": "अभियान चर्चा",
+  "campaignDiscussionDescription": "अभियान संचालक और जुड़े स्वयंसेवकों के लिए एक साझा कमरा। सवाल पूछें और पूरी टीम से बात करें।",
+  "campaignDiscussionEmpty": "चर्चा शुरू करें। इस अभियान का हर सदस्य जवाब दे सकता है।",
+  "campaignDiscussionReadOnly": "यह अभियान बंद हो गया है। आप चर्चा पढ़ सकते हैं।",
+  "campaignDiscussionNoAccess": "अब आपके पास इस अभियान की चर्चा का अधिकार नहीं है।",
+  "campaignDiscussionReconnecting": "चर्चा से जुड़ रहे हैं…",
+  "campaignDiscussionOlder": "पुराने संदेश देखें",
+  "campaignDiscussionYou": "आप",
+  "campaignDiscussionCampaigner": "अभियान संचालक",
+  "campaignDiscussionVolunteer": "स्वयंसेवक",
+  "campaignDiscussionCompose": "सवाल पूछें या संदेश लिखें",
+  "campaignDiscussionSend": "संदेश भेजें"
 }

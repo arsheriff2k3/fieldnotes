@@ -1,0 +1,34 @@
+class: ManualPayoutRequest
+table: fieldnote_manual_payout_request
+fields:
+  campaignId: int, relation(parent=fieldnote_campaign)
+  creatorAuthUserId: UuidValue
+  clientRequestId: String
+  sponsorshipIds: List<int>
+  grossAmountPaise: int
+  deductionPaise: int, default=0
+  amountPaise: int
+  status: String, default='requested'
+  requestedAt: DateTime, default=now
+  updatedAt: DateTime, default=now
+  reviewedByAuthUserId: UuidValue?
+  reviewedAt: DateTime?
+  # Opaque operations references only; no bank account numbers or KYC documents.
+  settlementReference: String?
+  payeeVerificationReference: String?
+  reviewNote: String?
+  bankTransferReference: String?
+  paidAt: DateTime?
+indexes:
+  fieldnote_manual_payout_campaign_idx:
+    fields: campaignId
+  fieldnote_manual_payout_status_idx:
+    fields: status, requestedAt
+  fieldnote_manual_payout_creator_idx:
+    fields: creatorAuthUserId
+  fieldnote_manual_payout_client_idx:
+    fields: creatorAuthUserId, clientRequestId
+    unique: true
+  fieldnote_manual_payout_transfer_idx:
+    fields: bankTransferReference
+    unique: true

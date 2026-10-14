@@ -20,6 +20,10 @@ import 'package:fieldnotes_server/src/generated/fieldnotes/models/audit_event.da
     as _i3lt536m;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/campaign.dart'
     as _iuzdi22u;
+import 'package:fieldnotes_server/src/generated/fieldnotes/models/campaign_chat_event.dart'
+    as _ix0zcr3g;
+import 'package:fieldnotes_server/src/generated/fieldnotes/models/campaign_chat_message.dart'
+    as _in98trfa;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/campaign_invitation.dart'
     as _icudrue1;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/campaign_live_update.dart'
@@ -50,6 +54,12 @@ import 'package:fieldnotes_server/src/generated/fieldnotes/models/legal_consent_
     as _iocrnsa2;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/legal_policies.dart'
     as _iefbknsr;
+import 'package:fieldnotes_server/src/generated/fieldnotes/models/manual_payout_request.dart'
+    as _i6r832oo;
+import 'package:fieldnotes_server/src/generated/fieldnotes/models/manual_payout_summary.dart'
+    as _il807fda;
+import 'package:fieldnotes_server/src/generated/fieldnotes/models/notification_item.dart'
+    as _iy2z50hz;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/participation_history_entry.dart'
     as _io1qzx7f;
 import 'package:fieldnotes_server/src/generated/fieldnotes/models/place_suggestion.dart'
@@ -798,6 +808,262 @@ class _FieldnoteEndpoint {
                   _localCallContext.arguments,
                 )
                 as _ida.Future<_i3103swi.TrustCenterSummary>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<List<_iy2z50hz.NotificationItem>> getMyNotifications(
+    _ist.TestSessionBuilder sessionBuilder, {
+    required int limit,
+    int? beforeId,
+    required bool unreadOnly,
+  }) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'getMyNotifications',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'getMyNotifications',
+          parameters: _ist.testObjectToJson({
+            'limit': limit,
+            'beforeId': beforeId,
+            'unreadOnly': unreadOnly,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<List<_iy2z50hz.NotificationItem>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<_iy2z50hz.NotificationItem?> getMyNotification(
+    _ist.TestSessionBuilder sessionBuilder,
+    int notificationId,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'getMyNotification',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'getMyNotification',
+          parameters: _ist.testObjectToJson({'notificationId': notificationId}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_iy2z50hz.NotificationItem?>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<int> getMyUnreadNotificationCount(
+    _ist.TestSessionBuilder sessionBuilder,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'getMyUnreadNotificationCount',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'getMyUnreadNotificationCount',
+          parameters: _ist.testObjectToJson({}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<int>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<void> markMyNotificationRead(
+    _ist.TestSessionBuilder sessionBuilder,
+    int notificationId,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'markMyNotificationRead',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'markMyNotificationRead',
+          parameters: _ist.testObjectToJson({'notificationId': notificationId}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<void>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<void> markMyNotificationsReadThrough(
+    _ist.TestSessionBuilder sessionBuilder,
+    int throughId,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'markMyNotificationsReadThrough',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'markMyNotificationsReadThrough',
+          parameters: _ist.testObjectToJson({'throughId': throughId}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<void>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<void> registerMyPushDevice(
+    _ist.TestSessionBuilder sessionBuilder,
+    String token,
+    String platform,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'registerMyPushDevice',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'registerMyPushDevice',
+          parameters: _ist.testObjectToJson({
+            'token': token,
+            'platform': platform,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<void>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<void> unregisterMyPushDevice(
+    _ist.TestSessionBuilder sessionBuilder,
+    String token,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'unregisterMyPushDevice',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'unregisterMyPushDevice',
+          parameters: _ist.testObjectToJson({'token': token}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<void>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<void> unregisterAllMyPushDevices(
+    _ist.TestSessionBuilder sessionBuilder,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'unregisterAllMyPushDevices',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'unregisterAllMyPushDevices',
+          parameters: _ist.testObjectToJson({}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<void>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -2403,6 +2669,215 @@ class _FieldnoteEndpoint {
     });
   }
 
+  _ida.Future<_il807fda.ManualPayoutSummary> getManualPayoutSummary(
+    _ist.TestSessionBuilder sessionBuilder,
+    int campaignId,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'getManualPayoutSummary',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'getManualPayoutSummary',
+          parameters: _ist.testObjectToJson({'campaignId': campaignId}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_il807fda.ManualPayoutSummary>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<_i6r832oo.ManualPayoutRequest> requestManualPayout(
+    _ist.TestSessionBuilder sessionBuilder,
+    int campaignId,
+    String clientRequestId,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'requestManualPayout',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'requestManualPayout',
+          parameters: _ist.testObjectToJson({
+            'campaignId': campaignId,
+            'clientRequestId': clientRequestId,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_i6r832oo.ManualPayoutRequest>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<bool> isPayoutOperator(
+    _ist.TestSessionBuilder sessionBuilder,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'isPayoutOperator',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'isPayoutOperator',
+          parameters: _ist.testObjectToJson({}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<bool>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<List<_i6r832oo.ManualPayoutRequest>> listManualPayoutRequests(
+    _ist.TestSessionBuilder sessionBuilder, {
+    required int limit,
+    required int offset,
+  }) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'listManualPayoutRequests',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'listManualPayoutRequests',
+          parameters: _ist.testObjectToJson({
+            'limit': limit,
+            'offset': offset,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<List<_i6r832oo.ManualPayoutRequest>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<_i6r832oo.ManualPayoutRequest> reviewManualPayout(
+    _ist.TestSessionBuilder sessionBuilder,
+    int requestId,
+    bool approve,
+    int deductionPaise,
+    String settlementReference,
+    String payeeVerificationReference,
+    String note,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'reviewManualPayout',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'reviewManualPayout',
+          parameters: _ist.testObjectToJson({
+            'requestId': requestId,
+            'approve': approve,
+            'deductionPaise': deductionPaise,
+            'settlementReference': settlementReference,
+            'payeeVerificationReference': payeeVerificationReference,
+            'note': note,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_i6r832oo.ManualPayoutRequest>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<_i6r832oo.ManualPayoutRequest> recordManualPayoutPaid(
+    _ist.TestSessionBuilder sessionBuilder,
+    int requestId,
+    String bankTransferReference,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'recordManualPayoutPaid',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'recordManualPayoutPaid',
+          parameters: _ist.testObjectToJson({
+            'requestId': requestId,
+            'bankTransferReference': bankTransferReference,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_i6r832oo.ManualPayoutRequest>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
   _ida.Future<List<_i3ipc266.CampaignMatch>> getCampaignMatches(
     _ist.TestSessionBuilder sessionBuilder,
   ) async {
@@ -3009,6 +3484,115 @@ class _FieldnoteEndpoint {
         await _localUniqueSession.close();
       }
     });
+  }
+
+  _ida.Future<_in98trfa.CampaignChatMessage> sendCampaignMessage(
+    _ist.TestSessionBuilder sessionBuilder,
+    int campaignId,
+    String body,
+    String clientRequestId,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'sendCampaignMessage',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'sendCampaignMessage',
+          parameters: _ist.testObjectToJson({
+            'campaignId': campaignId,
+            'body': body,
+            'clientRequestId': clientRequestId,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_in98trfa.CampaignChatMessage>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<List<_in98trfa.CampaignChatMessage>> listCampaignMessages(
+    _ist.TestSessionBuilder sessionBuilder,
+    int campaignId, {
+    int? beforeId,
+    int? afterId,
+    int? limit,
+  }) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'listCampaignMessages',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'listCampaignMessages',
+          parameters: _ist.testObjectToJson({
+            'campaignId': campaignId,
+            'beforeId': beforeId,
+            'afterId': afterId,
+            'limit': limit,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<List<_in98trfa.CampaignChatMessage>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Stream<_ix0zcr3g.CampaignChatEvent> watchCampaignChat(
+    _ist.TestSessionBuilder sessionBuilder,
+    int campaignId,
+  ) {
+    var _localTestStreamManager =
+        _ist.TestStreamManager<_ix0zcr3g.CampaignChatEvent>();
+    _ist.callStreamFunctionAndHandleExceptions(
+      () async {
+        var _localUniqueSession =
+            (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+              endpoint: 'fieldnote',
+              method: 'watchCampaignChat',
+            );
+        var _localCallContext = await _endpointDispatch
+            .getMethodStreamCallContext(
+              createSessionCallback: (_) => _localUniqueSession,
+              endpointPath: 'fieldnote',
+              methodName: 'watchCampaignChat',
+              arguments: {'campaignId': campaignId},
+              requestedInputStreams: [],
+              serializationManager: _serializationManager,
+            );
+        await _localTestStreamManager.callStreamMethod(
+          _localCallContext,
+          _localUniqueSession,
+          {},
+        );
+      },
+      _localTestStreamManager.outputStreamController,
+    );
+    return _localTestStreamManager.outputStreamController.stream;
   }
 
   _ida.Future<_id4uw0jw.CampaignPost> createCampaignPost(

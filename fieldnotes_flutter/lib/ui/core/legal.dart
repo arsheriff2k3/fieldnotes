@@ -1,4 +1,5 @@
 import 'package:fieldnotes_client/fieldnotes_client.dart';
+import 'widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -146,14 +147,14 @@ Future<void> openLegalDocument(
   final l10n = context.l10n;
   await showDialog<void>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    builder: (dialogContext) => fieldnoteDialog(
       title: Text(title),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(l10n.legalOpenInBrowser),
-          const SizedBox(height: 8),
+          const SizedBox(height: FieldnoteSpacing.xs),
           SelectableText(url),
         ],
       ),

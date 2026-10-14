@@ -10,6 +10,7 @@ import 'package:serverpod_auth_idp_server/providers/email.dart' as email_idp;
 import '../../generated/protocol.dart';
 import 'fieldnote_time.dart';
 import 'money.dart';
+import 'in_app_notification_service.dart';
 
 /// Sends one transactional email. Tests install a fake via
 /// [NotificationRuntime.mailerResolver].
@@ -127,7 +128,19 @@ class NotificationService {
     required String subject,
     required String text,
     String? toEmail,
+    int? campaignId,
   }) async {
+    if (kind != NotificationKind.accountDeleted) {
+      await const InAppNotificationService().enqueue(
+        session,
+        recipient: recipient,
+        kind: kind,
+        dedupeKey: dedupeKey,
+        title: subject,
+        body: text,
+        campaignId: campaignId,
+      );
+    }
     try {
       final existing = await NotificationOutbox.db.findFirstRow(
         session,
@@ -226,6 +239,7 @@ class NotificationService {
         recipient: participation.volunteerAuthUserId,
         kind: kind,
         dedupeKey: key,
+        campaignId: campaign.id,
         subject: subject,
         text: text,
       )) {
@@ -247,6 +261,7 @@ class NotificationService {
         session,
         recipient: volunteer,
         kind: NotificationKind.invitationReceived,
+        campaignId: campaign.id,
         dedupeKey: 'invite:${campaign.id}',
         subject: 'You are invited: ${campaign.name}',
         text:
@@ -269,6 +284,7 @@ class NotificationService {
       session,
       recipient: sponsorship.sponsorAuthUserId,
       kind: NotificationKind.paymentVerified,
+      campaignId: sponsorship.campaignId,
       dedupeKey: 'payment:${sponsorship.id}:verified',
       subject: 'Payment received for ${campaign?.name ?? 'your campaign'}',
       text:
@@ -288,6 +304,7 @@ class NotificationService {
       session,
       recipient: sponsorship.sponsorAuthUserId,
       kind: NotificationKind.refundProcessed,
+      campaignId: refund.campaignId,
       dedupeKey: 'refund:${refund.id}:processed',
       subject: 'Refund processed',
       text:
@@ -308,6 +325,7 @@ class NotificationService {
     await enqueue(
       session,
       recipient: volunteer,
+      campaignId: campaign.id,
       kind: approved
           ? NotificationKind.evidenceApproved
           : NotificationKind.evidenceRejected,

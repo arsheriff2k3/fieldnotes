@@ -5,6 +5,7 @@ import 'package:fieldnotes_server/src/fieldnotes/fieldnote_endpoint.dart';
 import 'package:fieldnotes_server/src/fieldnotes/services/account_deletion_service.dart';
 import 'package:fieldnotes_server/src/fieldnotes/services/fieldnote_config.dart';
 import 'package:fieldnotes_server/src/fieldnotes/services/notification_service.dart';
+import 'package:fieldnotes_server/src/fieldnotes/services/in_app_notification_service.dart';
 import 'package:fieldnotes_server/src/fieldnotes/services/rate_limiter.dart';
 import 'package:fieldnotes_server/src/generated/protocol.dart';
 import 'package:fieldnotes_server/src/web/routes/campaign_share_route.dart';
@@ -227,10 +228,44 @@ void main() {
             1,
           );
 
+          await endpoints.fieldnote.registerMyPushDevice(
+            volunteer,
+            'test-delete-registration-token',
+            'android',
+          );
+          await const InAppNotificationService().enqueue(
+            session,
+            recipient: UuidValue.withValidation(userId),
+            kind: 'campaignCancelled',
+            dedupeKey: 'deletion-test',
+            title: 'Update',
+            body: 'Private inbox data',
+          );
           final run = await const AccountDeletionService().processDue(session);
           expect(run.completed, 1);
 
           final uuid = UuidValue.withValidation(userId);
+          expect(
+            await InAppNotification.db.count(
+              session,
+              where: (t) => t.recipientAuthUserId.equals(uuid),
+            ),
+            0,
+          );
+          expect(
+            await PushDelivery.db.count(
+              session,
+              where: (t) => t.recipientAuthUserId.equals(uuid),
+            ),
+            0,
+          );
+          expect(
+            await PushDevice.db.count(
+              session,
+              where: (t) => t.authUserId.equals(uuid),
+            ),
+            0,
+          );
           final status = await AccountDeletionRequest.db.findById(
             session,
             pending.id!,

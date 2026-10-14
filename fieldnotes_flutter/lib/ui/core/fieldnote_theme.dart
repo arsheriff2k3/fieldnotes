@@ -340,6 +340,26 @@ ThemeData _buildTheme(FieldnoteColorsTheme c, Brightness brightness) {
         borderRadius: BorderRadius.all(Radius.circular(22)),
       ),
     ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: c.paper,
+      surfaceTintColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      constraints: const BoxConstraints(minWidth: 0, maxWidth: 560),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(24)),
+      ),
+    ),
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: c.paper,
+      surfaceTintColor: Colors.transparent,
+      clipBehavior: Clip.antiAlias,
+      constraints: const BoxConstraints(maxWidth: 760),
+      showDragHandle: true,
+      dragHandleSize: const Size(40, 4),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+    ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: c.raised.withValues(alpha: .72),
@@ -360,10 +380,13 @@ ThemeData _buildTheme(FieldnoteColorsTheme c, Brightness brightness) {
         borderSide: BorderSide(color: c.forest, width: 2),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+      helperMaxLines: 3,
+      errorMaxLines: 3,
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         minimumSize: const Size(0, 52),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         textStyle: body.labelLarge?.copyWith(fontWeight: FontWeight.w800),
       ),
@@ -371,8 +394,15 @@ ThemeData _buildTheme(FieldnoteColorsTheme c, Brightness brightness) {
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         minimumSize: const Size(0, 48),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         side: BorderSide(color: c.ink.withValues(alpha: .18)),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        minimumSize: const Size(48, 48),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       ),
     ),
     dividerTheme: DividerThemeData(

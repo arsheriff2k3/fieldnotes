@@ -1649,7 +1649,7 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get sponsorPayoutManualDetail =>
-      'Once the campaign is completed, FieldNote operations verify your payee details outside the app, transfer the verified sponsorships that were not refunded, and email you the bank reference. FieldNote never asks for bank details in the app.';
+      'After campaign completion, request a payout above. Operations verify settlement and your payee details outside the app, then record the bank transfer reference in your payout history. FieldNote never asks for bank details in the app.';
 
   @override
   String get sponsorCheckoutFullyFundedTitle => 'Campaign fully funded';
@@ -3954,4 +3954,304 @@ class AppLocalizationsTa extends AppLocalizations {
   @override
   String get exportPdfPhotosNotice =>
       'Private photographs are not embedded in this report.';
+
+  @override
+  String get manualPayoutFunds => 'Campaign funds';
+
+  @override
+  String get manualPayoutRequest => 'Request payout';
+
+  @override
+  String get manualPayoutRequestNotice =>
+      'Request the full eligible balance. Operations verify settlement and your payee details outside the app before transferring funds. Agreed fees may reduce the final amount. Submitting a request does not send money.';
+
+  @override
+  String get manualPayoutRequested => 'Requested';
+
+  @override
+  String get manualPayoutProcessing => 'Processing';
+
+  @override
+  String get manualPayoutPaid => 'Paid out';
+
+  @override
+  String get manualPayoutRejected => 'Rejected';
+
+  @override
+  String get manualPayoutRefresh => 'Refresh payout records';
+
+  @override
+  String get manualPayoutEligible => 'Eligible live funding';
+
+  @override
+  String get manualPayoutAvailable => 'Available to request';
+
+  @override
+  String get manualPayoutReserved => 'Reserved for requests';
+
+  @override
+  String get manualPayoutLiveRequired =>
+      'Real requests require Razorpay Live keys. Test and unclassified legacy payments cannot fund real payouts.';
+
+  @override
+  String get manualPayoutCompletionRequired =>
+      'Payouts unlock after campaign completion.';
+
+  @override
+  String get manualPayoutHistory => 'Payout request history';
+
+  @override
+  String get manualPayoutGross => 'Gross amount';
+
+  @override
+  String get manualPayoutNet => 'Bank transfer amount';
+
+  @override
+  String get manualPayoutDeductions => 'Agreed deductions';
+
+  @override
+  String get manualPayoutBankReference => 'Bank transfer reference (UTR)';
+
+  @override
+  String get manualPayoutOperations => 'Payout operations';
+
+  @override
+  String get manualPayoutApprove => 'Approve for transfer';
+
+  @override
+  String get manualPayoutReject => 'Reject request';
+
+  @override
+  String get manualPayoutReviewNotice =>
+      'Approve only after matching payments have settled into the business bank account and the creator payee has been verified. Enter opaque evidence references, not bank account numbers or KYC documents. Approval reserves funds; it does not transfer them.';
+
+  @override
+  String get manualPayoutSettlementReference =>
+      'Settlement verification reference';
+
+  @override
+  String get manualPayoutPayeeReference => 'Payee verification reference';
+
+  @override
+  String get manualPayoutDeductionInput =>
+      'Agreed deductions in INR (e.g. 10.50)';
+
+  @override
+  String get manualPayoutInvalidAmount =>
+      'Enter a valid amount smaller than the requested amount.';
+
+  @override
+  String get manualPayoutReviewNote =>
+      'Creator-visible review note and fee explanation';
+
+  @override
+  String get manualPayoutRequired =>
+      'Enter at least 3 characters (references: maximum 120).';
+
+  @override
+  String get manualPayoutRecordPaid => 'Record completed transfer';
+
+  @override
+  String get manualPayoutPaidNotice =>
+      'Confirm the bank transfer succeeded for the approved net amount, then record its reference. This action records an external transfer; it does not initiate one. Keep the request processing if the bank outcome is uncertain.';
+
+  @override
+  String get manualPayoutOperationsNotice =>
+      'Restricted operations queue. Verify settlement and payee details, transfer the approved amount through your bank, then record its reference. Never record Test Mode funds as real transfers.';
+
+  @override
+  String get manualPayoutEmpty => 'No payout requests yet.';
+
+  @override
+  String get manualPayoutCampaign => 'Campaign';
+
+  @override
+  String get manualPayoutCreator => 'Creator account ID';
+
+  @override
+  String get manualPayoutLoadMore => 'Load more requests';
+
+  @override
+  String get impactReportTitle => 'Campaign impact report';
+
+  @override
+  String get impactReportRefresh => 'Refresh report';
+
+  @override
+  String get impactReportLoadFailed =>
+      'Could not load the campaign report. Try again.';
+
+  @override
+  String get impactReportExportFailed =>
+      'Could not save or share the report. Try again.';
+
+  @override
+  String get impactReportStarts => 'Starts';
+
+  @override
+  String get impactReportEnds => 'Ends';
+
+  @override
+  String get impactReportRetrieved => 'Retrieved';
+
+  @override
+  String get impactReportNetFunding => 'Net credited funding';
+
+  @override
+  String get impactReportGoal => 'Funding goal';
+
+  @override
+  String get impactReportRefunds => 'Processed refunds';
+
+  @override
+  String get impactReportParticipants => 'Active participants';
+
+  @override
+  String get impactReportSubmitted => 'Submitted contributions';
+
+  @override
+  String get impactReportApproved => 'Sponsor-approved contributions';
+
+  @override
+  String get impactReportPending => 'Awaiting review';
+
+  @override
+  String get impactReportChanges => 'Changes requested';
+
+  @override
+  String get impactReportRejected => 'Rejected';
+
+  @override
+  String get impactReportDemoCount => 'Demo GPS evidence';
+
+  @override
+  String get impactReportEmpty => 'No sponsor-approved contributions yet.';
+
+  @override
+  String get impactReportEvidence => 'Evidence';
+
+  @override
+  String get impactReportSubmittedAt => 'Submitted';
+
+  @override
+  String get impactReportReviewedAt => 'Reviewed';
+
+  @override
+  String get impactReportNotRecorded => 'Not recorded';
+
+  @override
+  String get impactReportDemoGps => 'Demo GPS — simulated location';
+
+  @override
+  String get impactReportLiveGps => 'Live GPS submission';
+
+  @override
+  String get impactReportAiSummary => 'AI-assisted summary';
+
+  @override
+  String get impactReportManualSummary => 'Manual summary';
+
+  @override
+  String get impactReportEvidenceNotice =>
+      'Contributions are volunteer-reported and sponsor-approved, not independently verified outcomes. Photos and location checks do not establish every claimed quantity. No environmental or carbon totals are inferred.';
+
+  @override
+  String get impactReportSharingNotice =>
+      'Later reviews and refunds can change the next report. Private photos and exact coordinates are omitted. Review summary text before sharing outside the team. PDF labels are in English.';
+
+  @override
+  String get notificationsTitle => 'Notifications';
+
+  @override
+  String get notificationsUnreadOnly => 'Unread only';
+
+  @override
+  String get notificationsMarkAllRead => 'Mark all read';
+
+  @override
+  String get notificationsEnablePush => 'Enable device alerts';
+
+  @override
+  String get notificationsPushEnabled => 'Device alerts enabled.';
+
+  @override
+  String get notificationsPushUnavailable =>
+      'Device alerts are unavailable here. Your inbox still works.';
+
+  @override
+  String get notificationsLoadFailed =>
+      'Could not load notifications. Check your connection and try again.';
+
+  @override
+  String get notificationsActionFailed =>
+      'Could not complete this action. Check notification permissions and try again.';
+
+  @override
+  String get notificationsRetry => 'Retry';
+
+  @override
+  String get notificationsClose => 'Close';
+
+  @override
+  String get notificationsViewActivity => 'View activity';
+
+  @override
+  String get notificationsEmpty => 'Your updates will appear here.';
+
+  @override
+  String get notificationsAllCaughtUp => 'You have no unread notifications.';
+
+  @override
+  String get notificationsLoadMore => 'Load more';
+
+  @override
+  String get notificationsNewUpdate => 'You have a new FieldNote update.';
+
+  @override
+  String get notificationsOpen => 'Open';
+
+  @override
+  String get notificationsUnavailable =>
+      'This update is no longer available for this account.';
+
+  @override
+  String get campaignDiscussionTitle => 'பிரச்சார கலந்துரையாடல்';
+
+  @override
+  String get campaignDiscussionDescription =>
+      'பிரச்சார அமைப்பாளரும் இணைந்த தன்னார்வலர்களும் பகிரும் ஒரே அறை. கேள்விகள் கேட்டு குழுவினருடன் பேசுங்கள்.';
+
+  @override
+  String get campaignDiscussionEmpty =>
+      'கலந்துரையாடலைத் தொடங்குங்கள். இந்தப் பிரச்சாரத்தின் அனைவரும் பதிலளிக்கலாம்.';
+
+  @override
+  String get campaignDiscussionReadOnly =>
+      'இந்தப் பிரச்சாரம் முடிவடைந்தது. கலந்துரையாடலைப் படிக்கலாம்.';
+
+  @override
+  String get campaignDiscussionNoAccess =>
+      'இந்தப் பிரச்சார கலந்துரையாடலுக்கான அணுகல் இனி உங்களுக்கு இல்லை.';
+
+  @override
+  String get campaignDiscussionReconnecting => 'கலந்துரையாடலுடன் இணைகிறது…';
+
+  @override
+  String get campaignDiscussionOlder => 'முந்தைய செய்திகளைப் பார்க்கவும்';
+
+  @override
+  String get campaignDiscussionYou => 'நீங்கள்';
+
+  @override
+  String get campaignDiscussionCampaigner => 'பிரச்சார அமைப்பாளர்';
+
+  @override
+  String get campaignDiscussionVolunteer => 'தன்னார்வலர்';
+
+  @override
+  String get campaignDiscussionCompose =>
+      'கேள்வி கேளுங்கள் அல்லது செய்தி எழுதுங்கள்';
+
+  @override
+  String get campaignDiscussionSend => 'செய்தி அனுப்பு';
 }

@@ -70,6 +70,13 @@ abstract final class FieldnoteConfig {
 
   static String? get geminiModel => _value('FIELDNOTE_GEMINI_MODEL');
 
+  /// Explicit server-side allowlist; never inferred from a user's app role.
+  static bool isPayoutOperator(String userId) =>
+      (_value('FIELDNOTE_PAYOUT_OPERATOR_IDS') ?? '')
+          .split(',')
+          .map((id) => id.trim().toLowerCase())
+          .contains(userId.toLowerCase());
+
   /// `https://<web-host>` without a trailing slash.
   static String publicWebBaseUrl(Serverpod pod) {
     final explicit = _httpsUrl(

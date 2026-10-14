@@ -142,5 +142,17 @@
   "volunteerOpenSettings": "அமைப்புகளைத் திற",
   "volunteerSave": "சேமி",
   "volunteerYouAreHere": "நீங்கள் இங்கே இருக்கிறீர்கள்",
-  "exportSectionProfile": "சுயவிவரம்"
+  "exportSectionProfile": "சுயவிவரம்",
+  "campaignDiscussionTitle": "பிரச்சார கலந்துரையாடல்",
+  "campaignDiscussionDescription": "பிரச்சார அமைப்பாளரும் இணைந்த தன்னார்வலர்களும் பகிரும் ஒரே அறை. கேள்விகள் கேட்டு குழுவினருடன் பேசுங்கள்.",
+  "campaignDiscussionEmpty": "கலந்துரையாடலைத் தொடங்குங்கள். இந்தப் பிரச்சாரத்தின் அனைவரும் பதிலளிக்கலாம்.",
+  "campaignDiscussionReadOnly": "இந்தப் பிரச்சாரம் முடிவடைந்தது. கலந்துரையாடலைப் படிக்கலாம்.",
+  "campaignDiscussionNoAccess": "இந்தப் பிரச்சார கலந்துரையாடலுக்கான அணுகல் இனி உங்களுக்கு இல்லை.",
+  "campaignDiscussionReconnecting": "கலந்துரையாடலுடன் இணைகிறது…",
+  "campaignDiscussionOlder": "முந்தைய செய்திகளைப் பார்க்கவும்",
+  "campaignDiscussionYou": "நீங்கள்",
+  "campaignDiscussionCampaigner": "பிரச்சார அமைப்பாளர்",
+  "campaignDiscussionVolunteer": "தன்னார்வலர்",
+  "campaignDiscussionCompose": "கேள்வி கேளுங்கள் அல்லது செய்தி எழுதுங்கள்",
+  "campaignDiscussionSend": "செய்தி அனுப்பு"
 }

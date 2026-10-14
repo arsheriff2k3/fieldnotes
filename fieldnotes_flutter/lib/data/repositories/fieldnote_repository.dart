@@ -6,6 +6,7 @@ import 'package:fieldnotes_client/fieldnotes_client.dart';
 import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
 
 import '../../client.dart';
+import '../models/campaign_impact_report.dart';
 import '../services/device_time_zone_service.dart';
 
 class FieldnoteRepository {
@@ -23,6 +24,30 @@ class FieldnoteRepository {
       : client.auth.signOutDevice();
 
   Future<FieldnoteUserProfile?> profile() => client.fieldnote.getMyProfile();
+
+  Future<List<NotificationItem>> notifications({
+    int limit = 30,
+    int? beforeId,
+    bool unreadOnly = false,
+  }) => client.fieldnote.getMyNotifications(
+    limit: limit,
+    beforeId: beforeId,
+    unreadOnly: unreadOnly,
+  );
+  Future<NotificationItem?> notification(int id) =>
+      client.fieldnote.getMyNotification(id);
+  Future<int> unreadNotificationCount() =>
+      client.fieldnote.getMyUnreadNotificationCount();
+  Future<void> markNotificationRead(int id) =>
+      client.fieldnote.markMyNotificationRead(id);
+  Future<void> markNotificationsReadThrough(int id) =>
+      client.fieldnote.markMyNotificationsReadThrough(id);
+  Future<void> registerPushDevice(String token, String platform) =>
+      client.fieldnote.registerMyPushDevice(token, platform);
+  Future<void> unregisterPushDevice(String token) =>
+      client.fieldnote.unregisterMyPushDevice(token);
+  Future<void> unregisterAllPushDevices() =>
+      client.fieldnote.unregisterAllMyPushDevices();
 
   Future<FieldnoteUserProfile> completeSponsorProfile({
     required String displayName,
@@ -225,6 +250,36 @@ class FieldnoteRepository {
   );
   Future<List<TestPayout>> simulateCampaignTestPayout(int campaignId) =>
       client.fieldnote.simulateCampaignTestPayout(campaignId);
+  Future<ManualPayoutSummary> manualPayoutSummary(int campaignId) =>
+      client.fieldnote.getManualPayoutSummary(campaignId);
+  Future<ManualPayoutRequest> requestManualPayout(
+    int campaignId,
+    String clientRequestId,
+  ) => client.fieldnote.requestManualPayout(campaignId, clientRequestId);
+  Future<bool> isPayoutOperator() => client.fieldnote.isPayoutOperator();
+  Future<List<ManualPayoutRequest>> manualPayoutRequests({
+    int limit = 50,
+    int offset = 0,
+  }) => client.fieldnote.listManualPayoutRequests(limit: limit, offset: offset);
+  Future<ManualPayoutRequest> reviewManualPayout(
+    int requestId, {
+    required bool approve,
+    required int deductionPaise,
+    required String settlementReference,
+    required String payeeVerificationReference,
+    required String note,
+  }) => client.fieldnote.reviewManualPayout(
+    requestId,
+    approve,
+    deductionPaise,
+    settlementReference,
+    payeeVerificationReference,
+    note,
+  );
+  Future<ManualPayoutRequest> recordManualPayoutPaid(
+    int requestId,
+    String reference,
+  ) => client.fieldnote.recordManualPayoutPaid(requestId, reference);
   Future<List<CampaignMatch>> matches() =>
       client.fieldnote.getCampaignMatches();
   Future<List<CampaignParticipation>> participations({
@@ -511,8 +566,55 @@ class FieldnoteRepository {
 
   Future<ImpactSummary> impact(int campaignId) =>
       client.fieldnote.getImpact(campaignId);
+
+  Future<CampaignImpactReport> campaignImpactReport(int campaignId) async {
+    // Authorize before requesting campaign metadata. The impact endpoint
+    // returns all evidence; dashboard previews are limited in the view.
+    final summary = await impact(campaignId);
+    const pageSize = 100;
+    for (var offset = 0; ; offset += pageSize) {
+      final page = await myCampaigns(limit: pageSize, offset: offset);
+      for (final campaign in page) {
+        if (campaign.id == campaignId) {
+          return CampaignImpactReport(
+            campaign: campaign,
+            impact: summary,
+            retrievedAt: DateTime.now().toUtc(),
+          );
+        }
+      }
+      if (page.length < pageSize) {
+        throw FieldnoteException(
+          code: 'forbidden',
+          message: 'You cannot view this campaign impact.',
+        );
+      }
+    }
+  }
+
   Future<String> evidenceUrl(int evidenceId) =>
       client.fieldnote.getEvidenceDownloadUrl(evidenceId);
+  Future<CampaignChatMessage> sendCampaignMessage(
+    int campaignId,
+    String body,
+    String clientRequestId,
+  ) => client.fieldnote.sendCampaignMessage(campaignId, body, clientRequestId);
+
+  Future<List<CampaignChatMessage>> campaignMessages(
+    int campaignId, {
+    int? beforeId,
+    int? afterId,
+    int limit = 50,
+  }) => client.fieldnote.listCampaignMessages(
+    campaignId,
+    beforeId: beforeId,
+    afterId: afterId,
+    limit: limit,
+  );
+
+  Stream<CampaignChatEvent> watchCampaignChat(int campaignId) =>
+      client.fieldnote.watchCampaignChat(campaignId);
+
   Stream<CampaignLiveUpdate> watchCampaign(int campaignId) =>
       client.fieldnote.watchCampaign(campaignId);
 

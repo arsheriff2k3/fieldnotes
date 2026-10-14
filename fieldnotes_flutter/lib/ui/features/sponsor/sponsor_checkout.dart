@@ -69,15 +69,7 @@ Future<bool> openSponsorCheckout(
           builder: (dialogContext) => StatefulBuilder(
             builder: (context, setDialogState) => PopScope(
               canPop: !saving,
-              child: AlertDialog(
-                scrollable: true,
-                insetPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 24,
-                ),
-                titlePadding: const EdgeInsets.fromLTRB(20, 22, 20, 12),
-                contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                actionsPadding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              child: fieldnoteDialog(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24),
                 ),
@@ -88,7 +80,7 @@ Future<bool> openSponsorCheckout(
                       l10n.sponsorCheckoutTitle,
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: FieldnoteSpacing.xs),
                     Text(
                       campaign.name,
                       maxLines: 2,
@@ -114,7 +106,7 @@ Future<bool> openSponsorCheckout(
                         child: Row(
                           children: [
                             const Icon(Icons.verified_user_outlined),
-                            const SizedBox(width: 9),
+                            const SizedBox(width: FieldnoteSpacing.xs),
                             Expanded(
                               child: Text(
                                 testMode
@@ -125,24 +117,25 @@ Future<bool> openSponsorCheckout(
                           ],
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: FieldnoteSpacing.lg),
                       Text(
                         l10n.sponsorCheckoutRemaining(money(remainingPaise)),
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: FieldnoteSpacing.xs),
                       Text(
                         l10n.sponsorCheckoutChooseAmount,
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: FieldnoteSpacing.sm),
                       Column(
                         children: [
                           for (var row = 0; row < 2; row++) ...[
                             Row(
                               children: [
                                 for (var column = 0; column < 2; column++) ...[
-                                  if (column > 0) const SizedBox(width: 12),
+                                  if (column > 0)
+                                    const SizedBox(width: FieldnoteSpacing.sm),
                                   Expanded(
                                     child: Builder(
                                       builder: (context) {
@@ -201,11 +194,12 @@ Future<bool> openSponsorCheckout(
                                 ],
                               ],
                             ),
-                            if (row == 0) const SizedBox(height: 12),
+                            if (row == 0)
+                              const SizedBox(height: FieldnoteSpacing.sm),
                           ],
                         ],
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: FieldnoteSpacing.lg),
                       FieldnoteTextField(
                         controller: note,
                         maxLines: 2,

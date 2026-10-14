@@ -17,6 +17,14 @@ fieldnote:
   - listMyConsentHistory:
   - setEmailNotifications:
   - getTrustCenter:
+  - getMyNotifications:
+  - getMyNotification:
+  - getMyUnreadNotificationCount:
+  - markMyNotificationRead:
+  - markMyNotificationsReadThrough:
+  - registerMyPushDevice:
+  - unregisterMyPushDevice:
+  - unregisterAllMyPushDevices:
   - exportMyData:
   - recordAccountDataExport:
   - requestAccountDeletion:
@@ -62,6 +70,12 @@ fieldnote:
   - isPayoutSimulationAvailable:
   - listCampaignTestPayouts:
   - simulateCampaignTestPayout:
+  - getManualPayoutSummary:
+  - requestManualPayout:
+  - isPayoutOperator:
+  - listManualPayoutRequests:
+  - reviewManualPayout:
+  - recordManualPayoutPaid:
   - getCampaignMatches:
   - joinCampaign:
   - leaveCampaign:
@@ -79,6 +93,9 @@ fieldnote:
   - listMyPaymentHistory:
   - listMyParticipationHistory:
   - listCampaignRefunds:
+  - sendCampaignMessage:
+  - listCampaignMessages:
+  - watchCampaignChat:
   - createCampaignPost:
   - listCampaignPosts:
   - watchCampaign:
