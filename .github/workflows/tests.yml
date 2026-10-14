@@ -11,8 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       VERSION: '4.0.0'
-      SERVERPOD_PASSWORD_database: 'REDACTED_CONFIGURE_LOCALLY'
-      SERVERPOD_PASSWORD_redis: 'REDACTED_CONFIGURE_LOCALLY'
+      SERVERPOD_PASSWORD_database: 'test-only-not-a-secret'
+      SERVERPOD_PASSWORD_redis: 'test-only-not-a-secret'
 
     steps:
       - uses: actions/checkout@v4

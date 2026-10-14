@@ -15,7 +15,7 @@ services:
     image: redis:6.2.6
     ports:
       - "8091:6379"
-    command: redis-server --requirepass "REDACTED_CONFIGURE_LOCALLY"
+    command: ["redis-server", "--requirepass", "${SERVERPOD_PASSWORD_redis:?Set SERVERPOD_PASSWORD_redis in the local .env}"]
     environment:
       - REDIS_REPLICATION_MODE=master
 
@@ -35,7 +35,7 @@ services:
     image: redis:6.2.6
     ports:
       - "9091:6379"
-    command: redis-server --requirepass "REDACTED_CONFIGURE_LOCALLY"
+    command: ["redis-server", "--requirepass", "${SERVERPOD_PASSWORD_redis_test:-test-only-not-a-secret}"]
     environment:
       - REDIS_REPLICATION_MODE=master
 
