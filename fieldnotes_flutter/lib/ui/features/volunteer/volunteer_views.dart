@@ -9,13 +9,18 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 import '../../../data/services/device_location_service.dart';
+import '../../../l10n/l10n.dart';
 import '../../core/in_app_maps.dart';
 import '../../core/fieldnote_map.dart';
+import '../../core/error_messages.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/widgets.dart';
 import '../shell/fieldnote_view_model.dart';
+import '../discussion/campaign_discussion_view.dart';
 import '../sponsor/sponsor_views.dart';
 import 'volunteer_area_map_screen.dart';
+import 'volunteer_history_view.dart';
+import 'volunteer_status.dart';
 
 class VolunteerMatchesView extends StatefulWidget {
   const VolunteerMatchesView({super.key, required this.viewModel});
@@ -29,15 +34,59 @@ class VolunteerMatchesView extends StatefulWidget {
 class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
   FieldnoteViewModel get viewModel => widget.viewModel;
 
+  /// Campaign ids with a join request in flight.
+  final Set<int> _joining = {};
+
+  bool _holdsPlace(int campaignId) =>
+      holdsPlace(viewModel.participationFor(campaignId));
+
+  bool _isFull(int campaignId) => viewModel.matches.any(
+    (match) => match.campaign.id == campaignId && match.isFull,
+  );
+
+  /// Label and action for a campaign card: My work, Full, Joining, or Join.
+  /// [short] is the label for the narrow map sheet button.
+  ({String label, String short, VoidCallback? onAction}) _joinAction(
+    BuildContext context,
+    Campaign campaign,
+  ) {
+    final l10n = context.l10n;
+    final id = campaign.id!;
+    if (_holdsPlace(id)) {
+      return (
+        label: l10n.volunteerViewMyWork,
+        short: l10n.navMyWork,
+        onAction: () => viewModel.selectSection(1),
+      );
+    }
+    if (_isFull(id)) {
+      return (
+        label: l10n.volunteerFull,
+        short: l10n.volunteerFull,
+        onAction: null,
+      );
+    }
+    if (_joining.contains(id)) {
+      return (
+        label: l10n.volunteerJoining,
+        short: l10n.volunteerJoining,
+        onAction: null,
+      );
+    }
+    return (
+      label: l10n.volunteerJoinCampaign,
+      short: l10n.volunteerJoin,
+      onAction: () => _join(context, campaign),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final availability = viewModel.availability;
     final invitedCampaigns = viewModel.invitations
         .map((invitation) => viewModel.campaignById(invitation.campaignId))
         .whereType<Campaign>()
-        .where(
-          (campaign) => viewModel.participationFor(campaign.id!) == null,
-        )
+        .where((campaign) => !_holdsPlace(campaign.id!))
         .toList();
     final orderedMatches = [...viewModel.matches]
       ..sort((a, b) {
@@ -45,6 +94,7 @@ class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
         final invitedB = viewModel.invitedTo(b.campaign.id!) ? 1 : 0;
         return invitedB.compareTo(invitedA);
       });
+    final l10n = context.l10n;
     return DefaultTabController(
       length: 3,
       child: Column(
@@ -57,20 +107,26 @@ class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
               12,
             ),
             child: SectionHeading(
-              eyebrow: 'Volunteer campaigns',
-              title: 'Find a campaign',
-              description: 'Browse nearby work and invitations.',
+              eyebrow: l10n.volunteerMatchesEyebrow,
+              title: l10n.volunteerMatchesTitle,
+              description: l10n.volunteerMatchesDescription,
             ),
           ),
-          const FieldnoteSectionTabs(
+          FieldnoteSectionTabs(
             compact: true,
             tabs: [
-              FieldnoteSectionTab('List', Icons.view_agenda_outlined),
-              FieldnoteSectionTab('Map', Icons.map_outlined),
-              FieldnoteSectionTab('Invites', Icons.mark_email_unread_outlined),
+              FieldnoteSectionTab(
+                l10n.volunteerTabList,
+                Icons.view_agenda_outlined,
+              ),
+              FieldnoteSectionTab(l10n.volunteerTabMap, Icons.map_outlined),
+              FieldnoteSectionTab(
+                l10n.volunteerTabInvites,
+                Icons.mark_email_unread_outlined,
+              ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: FieldnoteSpacing.xxs),
           Expanded(
             child: TabBarView(
               children: [
@@ -97,10 +153,10 @@ class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
         if (matches.isEmpty)
           EmptyPanel(
             icon: Icons.travel_explore,
-            title: 'No matches yet',
+            title: context.l10n.volunteerNoMatchesTitle,
             message: availability?.isAvailable == true
-                ? 'Try increasing your travel radius or choosing more available days.'
-                : 'Turn on availability to let AI recommend campaigns.',
+                ? context.l10n.volunteerNoMatchesWiden
+                : context.l10n.volunteerNoMatchesTurnOn,
           )
         else
           ResponsiveCardGrid(
@@ -108,25 +164,25 @@ class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
               for (final match in matches)
                 Builder(
                   builder: (context) {
-                    final joined = viewModel.participationFor(
-                      match.campaign.id!,
-                    );
+                    final action = _joinAction(context, match.campaign);
                     return CampaignCard(
                       campaign: match.campaign,
                       showFunding: false,
                       score: match.score,
                       reasons: [
+                        if (match.isFull && !_holdsPlace(match.campaign.id!))
+                          context.l10n.volunteerEveryPlaceTaken,
                         if (viewModel.invitedTo(match.campaign.id!))
-                          'The campaign creator invited you to join',
+                          context.l10n.volunteerInvitedReason,
                         ...match.reasons,
-                        distanceLabel(match),
+                        distanceLabel(
+                          match,
+                          l10n: context.l10n,
+                          locale: context.localeTag,
+                        ),
                       ],
-                      actionLabel: joined == null
-                          ? 'Join campaign'
-                          : 'View my work',
-                      onAction: joined == null
-                          ? () => _join(context, match.campaign)
-                          : () => viewModel.selectSection(1),
+                      actionLabel: action.label,
+                      onAction: action.onAction,
                     );
                   },
                 ),
@@ -146,16 +202,16 @@ class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
       top: 12,
       children: [
         if (!mapsAvailable)
-          const EmptyPanel(
+          EmptyPanel(
             icon: Icons.map_outlined,
-            title: 'Map unavailable',
-            message: 'Open List to browse and join campaigns.',
+            title: context.l10n.volunteerMapUnavailableTitle,
+            message: context.l10n.volunteerMapUnavailableMessage,
           )
         else if (matches.isEmpty)
-          const EmptyPanel(
+          EmptyPanel(
             icon: Icons.travel_explore,
-            title: 'No campaigns on the map yet',
-            message: 'Check your availability and travel radius, then refresh.',
+            title: context.l10n.volunteerMapEmptyTitle,
+            message: context.l10n.volunteerMapEmptyMessage,
           )
         else
           _MatchMap(
@@ -178,28 +234,28 @@ class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
             Expanded(
               child: Text(
                 campaigns.isEmpty
-                    ? 'Invitations'
-                    : 'Invitations (${campaigns.length})',
+                    ? context.l10n.volunteerInvitations
+                    : context.l10n.volunteerInvitationsCount(campaigns.length),
                 style: Theme.of(context).textTheme.titleLarge,
               ),
             ),
             IconButton.filledTonal(
-              tooltip: 'Check for invitations',
+              tooltip: context.l10n.volunteerCheckInvitations,
               onPressed: viewModel.refresh,
               icon: const Icon(Icons.refresh),
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: FieldnoteSpacing.sm),
         if (campaigns.isEmpty)
           SurfaceCard(
             child: Row(
               children: [
                 const Icon(Icons.mark_email_unread_outlined, size: 28),
-                const SizedBox(width: 14),
+                const SizedBox(width: FieldnoteSpacing.md),
                 Expanded(
                   child: Text(
-                    'No invitations yet. Pull down to check again.',
+                    context.l10n.volunteerNoInvitations,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ),
@@ -210,12 +266,17 @@ class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
           ResponsiveCardGrid(
             children: [
               for (final campaign in campaigns)
-                CampaignCard(
-                  campaign: campaign,
-                  showFunding: false,
-                  reasons: const ['The campaign creator invited you to join'],
-                  actionLabel: 'Join campaign',
-                  onAction: () => _join(context, campaign),
+                Builder(
+                  builder: (context) {
+                    final action = _joinAction(context, campaign);
+                    return CampaignCard(
+                      campaign: campaign,
+                      showFunding: false,
+                      reasons: [context.l10n.volunteerInvitedReason],
+                      actionLabel: action.label,
+                      onAction: action.onAction,
+                    );
+                  },
                 ),
             ],
           ),
@@ -224,15 +285,19 @@ class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
   );
 
   void _openMatch(CampaignMatch match) {
+    final l10n = context.l10n;
     final reasons = [
-      if (viewModel.invitedTo(match.campaign.id!))
-        'The campaign creator invited you to join',
+      if (viewModel.invitedTo(match.campaign.id!)) l10n.volunteerInvitedReason,
       ...match.reasons,
     ];
-    if (!reasons.any((reason) => reason.contains('by road'))) {
-      reasons.add(distanceLabel(match));
+    // Server reasons are English; one mentioning "by road" already carries
+    // the travel time.
+    if (!match.reasons.any((reason) => reason.contains('by road'))) {
+      reasons.add(
+        distanceLabel(match, l10n: l10n, locale: context.localeTag),
+      );
     }
-    showModalBottomSheet<void>(
+    showFieldnoteBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
@@ -247,15 +312,19 @@ class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
             Expanded(
               child: ListView(
                 controller: scrollController,
-                padding: const EdgeInsets.fromLTRB(24, 4, 24, 8),
+                padding: FieldnoteSpacing.sheetPadding(
+                  context,
+                  top: FieldnoteSpacing.xs,
+                  bottom: FieldnoteSpacing.sm,
+                ),
                 children: [
                   Text(
                     match.campaign.name,
                     style: Theme.of(sheetContext).textTheme.titleLarge,
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: FieldnoteSpacing.xs),
                   Text(match.campaign.locationName),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: FieldnoteSpacing.md),
                   for (final reason in reasons)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 7),
@@ -263,7 +332,7 @@ class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Icon(Icons.check_circle_outline, size: 17),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: FieldnoteSpacing.xs),
                           Expanded(child: Text(reason)),
                         ],
                       ),
@@ -274,8 +343,11 @@ class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
             SafeArea(
               top: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 12),
-                child: Row(
+                padding: FieldnoteSpacing.sheetPadding(
+                  context,
+                  bottom: FieldnoteSpacing.md,
+                ),
+                child: FieldnoteActionRow(
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
@@ -300,29 +372,29 @@ class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
                           );
                         },
                         icon: const Icon(Icons.directions_outlined),
-                        label: const Text('View route'),
+                        label: Text(l10n.volunteerViewRoute),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: FieldnoteSpacing.sm),
                     Expanded(
-                      child: FilledButton.icon(
-                        onPressed:
-                            viewModel.participationFor(match.campaign.id!) ==
-                                null
-                            ? () {
-                                Navigator.pop(sheetContext);
-                                _join(this.context, match.campaign);
-                              }
-                            : () {
-                                Navigator.pop(sheetContext);
-                                viewModel.selectSection(1);
-                              },
-                        icon: const Icon(Icons.how_to_reg_outlined),
-                        label: Text(
-                          viewModel.participationFor(match.campaign.id!) == null
-                              ? 'Join'
-                              : 'My work',
-                        ),
+                      child: Builder(
+                        builder: (_) {
+                          final action = _joinAction(
+                            this.context,
+                            match.campaign,
+                          );
+                          final onAction = action.onAction;
+                          return FilledButton.icon(
+                            onPressed: onAction == null
+                                ? null
+                                : () {
+                                    Navigator.pop(sheetContext);
+                                    onAction();
+                                  },
+                            icon: const Icon(Icons.how_to_reg_outlined),
+                            label: Text(action.short),
+                          );
+                        },
                       ),
                     ),
                   ],
@@ -336,15 +408,28 @@ class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
   }
 
   Future<void> _join(BuildContext context, Campaign campaign) async {
+    final id = campaign.id!;
+    if (_joining.contains(id)) return;
+    setState(() => _joining.add(id));
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = context.l10n;
     try {
       await viewModel.join(campaign);
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('You joined ${campaign.name}.')),
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.volunteerJoined(campaign.name))),
       );
     } catch (error) {
-      if (!context.mounted) return;
-      _showError(context, error, 'Could not join the campaign.');
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            UserError.from(
+              error,
+            ).messageIn(l10n, fallback: l10n.volunteerJoinCampaignFailed),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _joining.remove(id));
     }
   }
 }
@@ -352,13 +437,22 @@ class _VolunteerMatchesViewState extends State<VolunteerMatchesView> {
 /// Prefers the Routes API travel time over straight-line distance, because
 /// "18 min drive" is what a volunteer actually decides on. Falls back to the
 /// haversine figure whenever Routes is unconfigured or unreachable.
-String distanceLabel(CampaignMatch match) {
+String distanceLabel(
+  CampaignMatch match, {
+  AppLocalizations? l10n,
+  String? locale,
+}) {
+  final strings = l10n ?? lookupAppLocalizations(const Locale('en'));
+  final km = NumberFormat.decimalPatternDigits(
+    locale: locale ?? 'en',
+    decimalDigits: 1,
+  );
   final minutes = match.travelMinutes;
   if (minutes == null) {
-    return '${match.distanceKm.toStringAsFixed(1)} km away (straight line)';
+    return strings.volunteerDistanceStraight(km.format(match.distanceKm));
   }
   final byRoad = match.travelDistanceKm ?? match.distanceKm;
-  return '$minutes min drive · ${byRoad.toStringAsFixed(1)} km by road';
+  return strings.volunteerDistanceByRoad(minutes, km.format(byRoad));
 }
 
 /// Every match as a pin inside the volunteer's own travel radius.
@@ -385,13 +479,15 @@ class _MatchMap extends StatelessWidget {
       for (final match in matches)
         LatLng(match.campaign.latitude, match.campaign.longitude),
     ];
+    final l10n = context.l10n;
+    final locale = context.localeTag;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         FieldnoteMap(
           target: points.first,
           height: 330,
-          semanticLabel: 'Map of matched campaigns inside your travel radius',
+          semanticLabel: l10n.volunteerMatchMapSemantics,
           fitBounds: points,
           markers: {
             if (home != null)
@@ -402,7 +498,7 @@ class _MatchMap extends StatelessWidget {
                   FieldnoteMapPalette.volunteer,
                 ),
                 infoWindow: InfoWindow(
-                  title: 'Your area',
+                  title: l10n.volunteerYourArea,
                   snippet: availability?.locationLabel,
                 ),
               ),
@@ -423,8 +519,13 @@ class _MatchMap extends StatelessWidget {
                       : BitmapDescriptor.hueOrange,
                 ),
                 infoWindow: InfoWindow(
-                  title: '${match.campaign.name} · ${match.score.round()}%',
-                  snippet: distanceLabel(match),
+                  title: l10n.volunteerMatchPinTitle(
+                    match.campaign.name,
+                    NumberFormat.percentPattern(
+                      locale,
+                    ).format(match.score / 100),
+                  ),
+                  snippet: distanceLabel(match, l10n: l10n, locale: locale),
                 ),
                 onTap: () => onOpen(match),
               ),
@@ -439,18 +540,20 @@ class _MatchMap extends StatelessWidget {
               ),
           },
         ),
-        const SizedBox(height: 10),
-        const MapLegend(
+        const SizedBox(height: FieldnoteSpacing.sm),
+        MapLegend(
           entries: [
-            (color: FieldnoteColors.forest, label: 'Strong match'),
-            (color: Color(0xFFE0B341), label: 'Moderate match'),
-            (color: FieldnoteColors.clay, label: 'Weaker match'),
+            (color: FieldnoteColors.forest, label: l10n.volunteerLegendStrong),
+            (
+              color: const Color(0xFFE0B341),
+              label: l10n.volunteerLegendModerate,
+            ),
+            (color: FieldnoteColors.clay, label: l10n.volunteerLegendWeaker),
           ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: FieldnoteSpacing.xs),
         Text(
-          'Tap a pin for the full score explanation. The ring is your saved '
-          'travel radius.',
+          l10n.volunteerMatchMapHint,
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ],
@@ -463,54 +566,234 @@ class VolunteerWorkView extends StatelessWidget {
 
   final FieldnoteViewModel viewModel;
 
+  void _openHistory(BuildContext context) {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => VolunteerHistoryScreen(viewModel: viewModel),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final historyById = {
+      for (final entry in viewModel.participationHistory)
+        if (entry.participation.id != null) entry.participation.id!: entry,
+    };
+    // Participations from the history whose row is missing from the
+    // participations list are still shown.
+    final participations = [
+      ...viewModel.participations,
+      for (final entry in viewModel.participationHistory)
+        if (!viewModel.participations.any(
+          (item) => item.id == entry.participation.id,
+        ))
+          entry.participation,
+    ];
+    final active = <Widget>[];
+    final past = <Widget>[];
+    for (final participation in participations) {
+      final campaign =
+          viewModel.campaignById(participation.campaignId) ??
+          historyById[participation.id]?.campaign;
+      final display = participationDisplay(
+        participation,
+        campaign,
+        l10n: context.l10n,
+      );
+      final Widget card;
+      if (campaign == null) {
+        card = _MinimalParticipationCard(
+          participation: participation,
+          display: display,
+        );
+      } else if (display.isActive) {
+        card = _MissionCard(
+          key: ValueKey('mission-${participation.id}'),
+          campaign: campaign,
+          participation: participation,
+          viewModel: viewModel,
+        );
+      } else {
+        card = _ClosedMissionCard(
+          campaign: campaign,
+          participation: participation,
+          display: display,
+          evidence: historyById[participation.id]?.evidence,
+          onOpenHistory: () => _openHistory(context),
+        );
+      }
+      (display.isActive ? active : past).add(
+        Padding(padding: const EdgeInsets.only(bottom: 16), child: card),
+      );
+    }
+    final l10n = context.l10n;
     return RefreshIndicator(
-      onRefresh: viewModel.refresh,
+      onRefresh: () async {
+        await viewModel.refresh();
+        await viewModel.loadParticipationHistory();
+      },
       child: FieldnotePageList(
         children: [
-          const SectionHeading(
-            eyebrow: 'Your campaigns',
-            title: 'My work',
-            description:
-                'See your joined campaigns, directions, and next steps.',
+          SectionHeading(
+            eyebrow: l10n.volunteerWorkEyebrow,
+            title: l10n.navMyWork,
+            description: l10n.volunteerWorkDescription,
+            trailing: OutlinedButton.icon(
+              key: const Key('open-volunteer-history'),
+              onPressed: () => _openHistory(context),
+              icon: const Icon(Icons.history),
+              label: Text(l10n.volunteerOpenHistory),
+            ),
           ),
-          const SizedBox(height: 16),
-          if (viewModel.participations.isEmpty)
+          const SizedBox(height: FieldnoteSpacing.md),
+          if (active.isEmpty)
             SurfaceCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Icon(Icons.hiking_outlined, size: 30),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: FieldnoteSpacing.sm),
                   Text(
-                    'No joined campaigns yet',
+                    past.isEmpty
+                        ? l10n.volunteerNoJoinedCampaigns
+                        : l10n.volunteerNoUpcomingCampaigns,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  const SizedBox(height: 6),
-                  const Text('Find a campaign nearby and join when it fits.'),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: FieldnoteSpacing.xs),
+                  Text(l10n.volunteerFindNearby),
+                  const SizedBox(height: FieldnoteSpacing.md),
                   FilledButton.icon(
                     onPressed: () => viewModel.selectSection(0),
                     icon: const Icon(Icons.travel_explore),
-                    label: const Text('Browse campaigns'),
+                    label: Text(l10n.volunteerBrowseCampaigns),
                   ),
                 ],
               ),
             )
           else
-            ...viewModel.participations.map((participation) {
-              final campaign = viewModel.campaignById(participation.campaignId);
-              if (campaign == null) return const SizedBox.shrink();
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: _MissionCard(
-                  campaign: campaign,
-                  participation: participation,
-                  viewModel: viewModel,
-                ),
-              );
-            }),
+            ...active,
+          if (past.isNotEmpty) ...[
+            const SizedBox(height: FieldnoteSpacing.sm),
+            Text(
+              l10n.volunteerPastAndClosed,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: FieldnoteSpacing.sm),
+            ...past,
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// A participation whose campaign is in no loaded list.
+class _MinimalParticipationCard extends StatelessWidget {
+  const _MinimalParticipationCard({
+    required this.participation,
+    required this.display,
+  });
+
+  final CampaignParticipation participation;
+  final ParticipationDisplay display;
+
+  @override
+  Widget build(BuildContext context) {
+    return SurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          StatusPill(
+            label: display.label,
+            color: display.color,
+            icon: display.icon,
+          ),
+          const SizedBox(height: FieldnoteSpacing.sm),
+          Text(
+            context.l10n.volunteerCampaignNumber(participation.campaignId),
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: FieldnoteSpacing.xxs),
+          Text(
+            context.l10n.volunteerJoinedOnRefresh(
+              DateFormat.MMMEd(
+                dateLocale(context.localeTag),
+              ).format(participation.joinedAt.toLocal()),
+            ),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Compact card for a participation the volunteer can no longer act on.
+class _ClosedMissionCard extends StatelessWidget {
+  const _ClosedMissionCard({
+    required this.campaign,
+    required this.participation,
+    required this.display,
+    required this.evidence,
+    required this.onOpenHistory,
+  });
+
+  final Campaign campaign;
+  final CampaignParticipation participation;
+  final ParticipationDisplay display;
+  final CompletionEvidence? evidence;
+  final VoidCallback onOpenHistory;
+
+  @override
+  Widget build(BuildContext context) {
+    return SurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: FieldnoteSpacing.sm,
+            runSpacing: FieldnoteSpacing.xs,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              StatusPill(
+                label: display.label,
+                color: display.color,
+                icon: display.icon,
+              ),
+              Text(
+                DateFormat.MMMEd(
+                  dateLocale(context.localeTag),
+                ).format(campaign.startsAt.toLocal()),
+              ),
+            ],
+          ),
+          const SizedBox(height: FieldnoteSpacing.sm),
+          Text(campaign.name, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: FieldnoteSpacing.xxs),
+          Text(
+            campaign.locationName,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          if (display.detail != null) ...[
+            const SizedBox(height: FieldnoteSpacing.xs),
+            Text(display.detail!),
+          ],
+          if (evidence != null) ...[
+            const SizedBox(height: FieldnoteSpacing.xs),
+            Text(
+              reviewStateLabel(evidence!.reviewState, l10n: context.l10n),
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+          ],
+          if (participation.status == ParticipationStatus.completed) ...[
+            const SizedBox(height: FieldnoteSpacing.sm),
+            TextButton.icon(
+              onPressed: onOpenHistory,
+              icon: const Icon(Icons.photo_outlined),
+              label: Text(context.l10n.volunteerViewMyEvidence),
+            ),
+          ],
         ],
       ),
     );
@@ -519,6 +802,7 @@ class VolunteerWorkView extends StatelessWidget {
 
 class _MissionCard extends StatefulWidget {
   const _MissionCard({
+    super.key,
     required this.campaign,
     required this.participation,
     required this.viewModel,
@@ -536,19 +820,49 @@ class _MissionCardState extends State<_MissionCard> {
   final _locationService = DeviceLocationService();
   StreamSubscription<DeviceLocation>? _locationTracking;
   DeviceLocation? _liveLocation;
-  String? _locationError;
+
+  /// The fix the server accepted for check-in, reused for evidence while it
+  /// is still fresh (V-8).
+  DeviceLocation? _checkInFix;
+  Object? _locationError;
   bool _tracking = false;
   bool _working = false;
+  bool _leaving = false;
   String? _contactPhone;
   bool _loadingContact = true;
   bool _contactLoadFailed = false;
   late Future<List<CampaignPost>> _posts;
+
+  /// Rebuilds the card when the check-in window opens or closes (V-7).
+  Timer? _windowTimer;
 
   @override
   void initState() {
     super.initState();
     _loadContact();
     _posts = widget.viewModel.repository.campaignPosts(widget.campaign.id!);
+    _scheduleWindowTimer();
+  }
+
+  void _scheduleWindowTimer() {
+    _windowTimer?.cancel();
+    final now = DateTime.now().toUtc();
+    final next = [
+      checkInOpensAt(widget.campaign),
+      campaignEnd(widget.campaign),
+    ].where((at) => at.isAfter(now)).firstOrNull;
+    if (next == null) return;
+    // Timers are capped so a far-future campaign never schedules a huge
+    // delay; the card simply re-checks.
+    final delay = next.difference(now) + const Duration(seconds: 1);
+    _windowTimer = Timer(
+      delay > const Duration(hours: 6) ? const Duration(hours: 6) : delay,
+      () {
+        if (!mounted) return;
+        setState(() {});
+        _scheduleWindowTimer();
+      },
+    );
   }
 
   @override
@@ -557,6 +871,10 @@ class _MissionCardState extends State<_MissionCard> {
     if (oldWidget.campaign.revision != widget.campaign.revision ||
         oldWidget.campaign.readinessState != widget.campaign.readinessState) {
       _posts = widget.viewModel.repository.campaignPosts(widget.campaign.id!);
+    }
+    if (oldWidget.campaign.startsAt != widget.campaign.startsAt ||
+        oldWidget.campaign.endsAt != widget.campaign.endsAt) {
+      _scheduleWindowTimer();
     }
     if (oldWidget.campaign.id != widget.campaign.id) {
       _contactPhone = null;
@@ -582,11 +900,7 @@ class _MissionCardState extends State<_MissionCard> {
         });
         if (showResult && phone == null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'This campaign creator has no saved phone number yet.',
-              ),
-            ),
+            SnackBar(content: Text(context.l10n.volunteerCreatorNoPhone)),
           );
         }
         if (showResult && phone != null) await _dialPhone(phone);
@@ -596,7 +910,7 @@ class _MissionCardState extends State<_MissionCard> {
         setState(() => _contactLoadFailed = true);
         if (showResult) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not load contact. Try again.')),
+            SnackBar(content: Text(context.l10n.volunteerContactLoadFailed)),
           );
         }
       }
@@ -623,13 +937,14 @@ class _MissionCardState extends State<_MissionCard> {
     }
     if (!opened && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open the phone dialer.')),
+        SnackBar(content: Text(context.l10n.volunteerDialerFailed)),
       );
     }
   }
 
   @override
   void dispose() {
+    _windowTimer?.cancel();
     _locationTracking?.cancel();
     super.dispose();
   }
@@ -654,7 +969,7 @@ class _MissionCardState extends State<_MissionCard> {
         if (!mounted) return;
         setState(() {
           _tracking = false;
-          _locationError = error.toString().replaceFirst('Bad state: ', '');
+          _locationError = error;
         });
       },
       onDone: () {
@@ -672,14 +987,26 @@ class _MissionCardState extends State<_MissionCard> {
   Future<void> _checkIn() async {
     setState(() => _working = true);
     try {
+      final now = DateTime.now().toUtc();
       final recentLive = _liveLocation;
       final canUseTrackedLocation =
           recentLive != null &&
-          DateTime.now().toUtc().difference(recentLive.capturedAt).abs() <
-              const Duration(seconds: 30);
+          now.difference(recentLive.capturedAt).abs() <
+              const Duration(seconds: 30) &&
+          recentLive.accuracyMeters <= maxAcceptedAccuracyMeters;
       final location = canUseTrackedLocation
           ? recentLive
           : await _locationService.current();
+      if (location.accuracyMeters > maxAcceptedAccuracyMeters) {
+        if (mounted) {
+          setState(() => _liveLocation = location);
+          _showMessage(
+            context,
+            accuracyMessage(location.accuracyMeters, l10n: context.l10n),
+          );
+        }
+        return;
+      }
       await widget.viewModel.checkIn(
         widget.participation,
         location.latitude,
@@ -689,20 +1016,82 @@ class _MissionCardState extends State<_MissionCard> {
         location.isDemo,
         location.capturedAt,
       );
+      _checkInFix = location;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'On-site GPS check-in confirmed.',
-          ),
-        ),
+        SnackBar(content: Text(context.l10n.volunteerCheckInConfirmed)),
       );
     } catch (error) {
       if (!mounted) return;
-      _showError(context, error, 'Live GPS check-in was not available.');
+      _showError(context, error, context.l10n.volunteerCheckInFailed);
     } finally {
       if (mounted) setState(() => _working = false);
     }
+  }
+
+  Future<void> _leave() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => fieldnoteDialog(
+        title: Text(dialogContext.l10n.volunteerLeaveTitle),
+        content: Text(
+          dialogContext.l10n.volunteerLeaveBody(widget.campaign.name),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(dialogContext.l10n.volunteerStay),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              // A solid fill with white text in both brightnesses.
+              backgroundColor: FieldnoteColors.danger,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(dialogContext.l10n.volunteerLeaveCampaign),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _leaving = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = context.l10n;
+    try {
+      await _stopTracking();
+      await widget.viewModel.leaveCampaign(widget.participation);
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.volunteerLeft(widget.campaign.name))),
+      );
+    } catch (error) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            UserError.from(
+              error,
+            ).messageIn(l10n, fallback: l10n.volunteerLeaveFailed),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _leaving = false);
+    }
+  }
+
+  /// The freshest accurate fix this card holds, for evidence submission.
+  DeviceLocation? _bestRecentFix() {
+    final now = DateTime.now().toUtc();
+    final candidates =
+        [
+              _liveLocation,
+              _checkInFix,
+            ]
+            .where((fix) => isReusableFix(fix, now))
+            .cast<DeviceLocation>()
+            .toList()
+          ..sort((a, b) => b.capturedAt.compareTo(a.capturedAt));
+    return candidates.firstOrNull;
   }
 
   Future<void> _reconfirm() async {
@@ -714,7 +1103,7 @@ class _MissionCardState extends State<_MissionCard> {
       await widget.viewModel.refresh();
     } catch (error) {
       if (mounted) {
-        _showError(context, error, 'Could not reconfirm your place.');
+        _showError(context, error, context.l10n.volunteerReconfirmFailed);
       }
     } finally {
       if (mounted) setState(() => _working = false);
@@ -723,69 +1112,111 @@ class _MissionCardState extends State<_MissionCard> {
 
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now().toUtc();
+    final l10n = context.l10n;
+    final locale = context.localeTag;
+    final display = participationDisplay(
+      widget.participation,
+      widget.campaign,
+      now: now,
+      l10n: l10n,
+    );
     final status = widget.participation.status;
     final checkedIn = status == ParticipationStatus.checkedIn;
-    final completed = status == ParticipationStatus.completed;
     final needsReconfirmation =
-        widget.participation.confirmedRevision != widget.campaign.revision &&
-        !completed;
+        widget.participation.confirmedRevision != widget.campaign.revision;
     final eventConfirmed = widget.campaign.readinessState == 'confirmed';
+    final window = checkInWindow(widget.campaign, now);
+    final busy = _working || _leaving;
     return SurfaceCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Wrap(
+            spacing: FieldnoteSpacing.sm,
+            runSpacing: FieldnoteSpacing.xs,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               StatusPill(
-                label: completed
-                    ? 'Impact submitted'
-                    : checkedIn
-                    ? 'GPS checked in'
-                    : 'Joined',
-                color: completed || checkedIn
-                    ? FieldnoteColors.forest
-                    : FieldnoteColors.clay,
-                icon: completed
-                    ? Icons.verified
-                    : checkedIn
-                    ? Icons.gps_fixed
-                    : Icons.how_to_reg,
+                label: display.label,
+                color: display.color,
+                icon: display.icon,
               ),
-              const Spacer(),
               Text(
-                DateFormat(
-                  'EEE, d MMM',
+                DateFormat.MMMEd(
+                  dateLocale(locale),
                 ).format(widget.campaign.startsAt.toLocal()),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: FieldnoteSpacing.sm),
           Text(
             widget.campaign.name,
             style: Theme.of(context).textTheme.titleLarge,
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: FieldnoteSpacing.xxs),
           Text(
             widget.campaign.locationName,
             style: Theme.of(context).textTheme.bodySmall,
           ),
-          const SizedBox(height: 10),
-          StatusPill(
-            label: switch (widget.campaign.readinessState) {
-              'confirmed' => 'Event confirmed',
-              'postponed' => 'Postponed · new proposed date',
-              'cancelled' => 'Event cancelled',
-              'expired' => 'Proposed date expired',
-              'fundingShort' ||
-              'volunteersShort' ||
-              'bothShort' => 'Awaiting sponsor decision',
-              _ => 'Date tentative',
-            },
-            color: eventConfirmed
-                ? FieldnoteColors.forest
-                : FieldnoteColors.clay,
-            icon: eventConfirmed ? Icons.verified_outlined : Icons.schedule,
+          const SizedBox(height: FieldnoteSpacing.sm),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              StatusPill(
+                label: switch (widget.campaign.readinessState) {
+                  'confirmed' => l10n.volunteerReadinessConfirmed,
+                  'postponed' => l10n.volunteerReadinessPostponed,
+                  'fundingShort' ||
+                  'volunteersShort' ||
+                  'bothShort' => l10n.volunteerReadinessAwaitingSponsor,
+                  _ => l10n.volunteerReadinessTentative,
+                },
+                color: eventConfirmed
+                    ? FieldnoteColors.forest
+                    : FieldnoteColors.clay,
+                icon: eventConfirmed ? Icons.verified_outlined : Icons.schedule,
+              ),
+              StatusPill(
+                label: l10n.volunteerTimeRange(
+                  DateFormat.Hm(
+                    dateLocale(locale),
+                  ).format(widget.campaign.startsAt.toLocal()),
+                  DateFormat.Hm(
+                    dateLocale(locale),
+                  ).format(campaignEnd(widget.campaign).toLocal()),
+                ),
+                color: FieldnoteColors.moss,
+                icon: Icons.access_time,
+              ),
+            ],
           ),
+          if (display.detail != null) ...[
+            const SizedBox(height: FieldnoteSpacing.xs),
+            Text(display.detail!),
+          ],
+          if (const {
+            ParticipationStatus.joined,
+            ParticipationStatus.checkedIn,
+            ParticipationStatus.completed,
+            ParticipationStatus.incomplete,
+          }.contains(status)) ...[
+            const SizedBox(height: FieldnoteSpacing.md),
+            FieldnoteCardAction(
+              onPressed: () => Navigator.of(context).push<void>(
+                MaterialPageRoute(
+                  builder: (_) => CampaignDiscussionView(
+                    campaign: widget.campaign,
+                    repository: widget.viewModel.repository,
+                    currentUserId: widget.viewModel.profile?.authUserId,
+                  ),
+                ),
+              ),
+              icon: Icons.forum_outlined,
+              label: context.l10n.campaignDiscussionTitle,
+            ),
+          ],
           FutureBuilder<List<CampaignPost>>(
             future: _posts,
             builder: (context, snapshot) {
@@ -793,54 +1224,46 @@ class _MissionCardState extends State<_MissionCard> {
               if (latest == null) return const SizedBox.shrink();
               return Padding(
                 padding: const EdgeInsets.only(top: 10),
-                child: Text('Organizer update: ${latest.body}'),
+                child: Text(context.l10n.volunteerOrganizerUpdate(latest.body)),
               );
             },
           ),
-          if (needsReconfirmation &&
-              !const {
-                'cancelled',
-                'expired',
-              }.contains(widget.campaign.readinessState)) ...[
-            const SizedBox(height: 8),
-            const Text(
-              'The sponsor changed the date or work scope. Review the details, then reconfirm your place.',
-            ),
-            const SizedBox(height: 8),
+          if (needsReconfirmation && !checkedIn) ...[
+            const SizedBox(height: FieldnoteSpacing.xs),
+            Text(l10n.volunteerReconfirmNeeded),
+            const SizedBox(height: FieldnoteSpacing.xs),
             OutlinedButton.icon(
-              onPressed: _working ? null : _reconfirm,
+              onPressed: busy ? null : _reconfirm,
               icon: const Icon(Icons.how_to_reg_outlined),
-              label: const Text('Reconfirm my place'),
+              label: Text(l10n.volunteerReconfirm),
             ),
           ],
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
+          const SizedBox(height: FieldnoteSpacing.sm),
+          FieldnoteCardAction(
             onPressed: _loadingContact
                 ? null
                 : _contactPhone == null
                 ? () => _loadContact(showResult: true)
                 : _callCreator,
-            icon: const Icon(Icons.call_outlined),
-            label: Text(
-              _loadingContact
-                  ? 'Loading campaign contact…'
-                  : _contactPhone == null
-                  ? 'Refresh creator contact'
-                  : 'Call campaign creator',
-            ),
+            icon: Icons.call_outlined,
+            label: _loadingContact
+                ? l10n.volunteerContactLoading
+                : _contactPhone == null
+                ? l10n.volunteerContactRefresh
+                : l10n.volunteerContactCall,
           ),
           if (!_loadingContact && _contactPhone == null) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: FieldnoteSpacing.xs),
             Text(
               _contactLoadFailed
-                  ? 'Could not load the contact. Tap to retry.'
-                  : 'The creator of this campaign has not added a phone number yet. They can add it in their Profile.',
+                  ? l10n.volunteerContactRetry
+                  : l10n.volunteerContactMissing,
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
           const Divider(height: 28),
           Text(
-            'Field checklist',
+            l10n.volunteerFieldChecklist,
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 9),
@@ -852,65 +1275,109 @@ class _MissionCardState extends State<_MissionCard> {
                   padding: const EdgeInsets.only(bottom: 7),
                   child: Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.check_circle_outline,
                         size: 18,
-                        color: FieldnoteColors.moss,
+                        color: context.fieldnoteColors.moss,
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: FieldnoteSpacing.xs),
                       Expanded(child: Text(item.trim())),
                     ],
                   ),
                 ),
               ),
-          const SizedBox(height: 14),
+          const SizedBox(height: FieldnoteSpacing.md),
           _locationPanel(context),
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            child: completed
-                ? OutlinedButton.icon(
-                    onPressed: null,
-                    icon: Icon(Icons.celebration_outlined),
-                    label: Text('Mission complete'),
-                  )
-                : checkedIn
-                ? FilledButton.icon(
-                    onPressed: _working
-                        ? null
-                        : () => showModalBottomSheet<void>(
-                            context: context,
-                            isScrollControlled: true,
-                            useSafeArea: true,
-                            builder: (_) => CompletionEvidenceSheet(
-                              campaign: widget.campaign,
-                              participation: widget.participation,
-                              viewModel: widget.viewModel,
-                            ),
-                          ),
-                    icon: const Icon(Icons.add_a_photo_outlined),
-                    label: const Text('Submit photo + AI field note'),
-                  )
-                : FilledButton.icon(
-                    onPressed:
-                        _working || !eventConfirmed || needsReconfirmation
-                        ? null
-                        : _checkIn,
-                    icon: _working
-                        ? const SizedBox.square(
-                            dimension: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.my_location),
-                    label: Text(
-                      !eventConfirmed
-                          ? 'Await event confirmation'
-                          : needsReconfirmation
-                          ? 'Reconfirm your place first'
-                          : 'GPS check in on site',
-                    ),
-                  ),
-          ),
+          const SizedBox(height: FieldnoteSpacing.md),
+          if (display.canComplete)
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: busy
+                    ? null
+                    : () => showFieldnoteBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        useSafeArea: true,
+                        builder: (_) => CompletionEvidenceSheet(
+                          campaign: widget.campaign,
+                          participation: widget.participation,
+                          viewModel: widget.viewModel,
+                          recentFix: _bestRecentFix,
+                        ),
+                      ),
+                icon: const Icon(Icons.add_a_photo_outlined),
+                label: Text(l10n.volunteerSubmitEvidence),
+              ),
+            )
+          else if (display.canCheckIn) ...[
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                key: const Key('check-in-button'),
+                onPressed:
+                    busy ||
+                        !eventConfirmed ||
+                        needsReconfirmation ||
+                        window != CheckInWindow.open
+                    ? null
+                    : _checkIn,
+                icon: _working
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.my_location),
+                label: Text(
+                  !eventConfirmed
+                      ? l10n.volunteerAwaitConfirmation
+                      : needsReconfirmation
+                      ? l10n.volunteerReconfirmFirst
+                      : window == CheckInWindow.notYetOpen
+                      ? checkInOpensLabel(
+                          widget.campaign,
+                          now,
+                          l10n: l10n,
+                          locale: locale,
+                        )
+                      : window == CheckInWindow.closed
+                      ? l10n.volunteerCheckInClosed
+                      : l10n.volunteerCheckInOnSite,
+                ),
+              ),
+            ),
+            if (eventConfirmed && window == CheckInWindow.notYetOpen) ...[
+              const SizedBox(height: FieldnoteSpacing.xs),
+              Text(
+                l10n.volunteerCheckInWindowHint,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ],
+          if (display.canLeave) ...[
+            const SizedBox(height: FieldnoteSpacing.xs),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                key: const Key('leave-campaign-button'),
+                style: TextButton.styleFrom(
+                  foregroundColor: context.fieldnoteColors.danger,
+                ),
+                onPressed: busy ? null : _leave,
+                icon: _leaving
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.logout),
+                label: Text(
+                  _leaving
+                      ? l10n.volunteerLeaving
+                      : l10n.volunteerLeaveCampaign,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -925,19 +1392,28 @@ class _MissionCardState extends State<_MissionCard> {
             widget.campaign.latitude,
             widget.campaign.longitude,
           );
+    // The server rejects fixes weaker than 150 m, so a poor fix is never
+    // reported as inside the geofence.
+    final accuracyTooLow =
+        location != null && location.accuracyMeters > maxAcceptedAccuracyMeters;
     final inside =
         distance != null &&
+        !accuracyTooLow &&
         distance <= widget.campaign.geofenceMeters + location!.accuracyMeters;
+    final locationError = _locationError;
+    final c = context.fieldnoteColors;
+    final l10n = context.l10n;
+    final number = NumberFormat.decimalPattern(context.localeTag);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: FieldnoteColors.mist,
+        color: c.mist,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: inside
-              ? FieldnoteColors.forest.withValues(alpha: .3)
-              : FieldnoteColors.ink.withValues(alpha: .08),
+              ? c.forest.withValues(alpha: .3)
+              : c.ink.withValues(alpha: .08),
         ),
       ),
       child: Column(
@@ -946,75 +1422,106 @@ class _MissionCardState extends State<_MissionCard> {
           Row(
             children: [
               const Icon(Icons.location_searching, size: 20),
-              const SizedBox(width: 8),
+              const SizedBox(width: FieldnoteSpacing.xs),
               Expanded(
                 child: Text(
-                  'Live location check',
+                  l10n.volunteerLiveLocationCheck,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
-              StatusPill(
-                label: _tracking
-                    ? 'GPS streaming'
-                    : location == null
-                    ? 'Not started'
-                    : 'GPS paused',
-                color: _tracking
-                    ? FieldnoteColors.forest
-                    : FieldnoteColors.clay,
-                icon: _tracking ? Icons.sensors : Icons.gps_not_fixed,
-              ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: FieldnoteSpacing.xs),
+          StatusPill(
+            label: _tracking
+                ? l10n.volunteerGpsStreaming
+                : location == null
+                ? l10n.volunteerGpsNotStarted
+                : l10n.volunteerGpsPaused,
+            color: _tracking ? FieldnoteColors.forest : FieldnoteColors.clay,
+            icon: _tracking ? Icons.sensors : Icons.gps_not_fixed,
+          ),
+          const SizedBox(height: FieldnoteSpacing.sm),
           _approachMap(context, location, distance, inside),
-          const SizedBox(height: 12),
+          const SizedBox(height: FieldnoteSpacing.sm),
           if (location == null && _locationError == null)
-            const Text(
-              'Start tracking to request Precise Location and show live coordinates, accuracy, mock-location status, and geofence distance.',
-            ),
-          if (_locationError != null)
+            Text(l10n.volunteerTrackingIntro),
+          if (locationError != null) ...[
             Text(
-              _locationError!,
-              style: const TextStyle(color: FieldnoteColors.clay),
+              _errorText(
+                context,
+                locationError,
+                l10n.volunteerLiveLocationUnavailable,
+              ),
+              style: TextStyle(color: c.clay),
             ),
+            ?_settingsButton(context, locationError),
+          ],
+          if (accuracyTooLow) ...[
+            Text(
+              accuracyMessage(location.accuracyMeters, l10n: l10n),
+              style: TextStyle(color: c.clay),
+            ),
+            const SizedBox(height: FieldnoteSpacing.xs),
+          ],
           if (location != null) ...[
             SelectableText(
               '${location.latitude.toStringAsFixed(6)}, ${location.longitude.toStringAsFixed(6)}',
               style: const TextStyle(fontWeight: FontWeight.w800),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: FieldnoteSpacing.xs),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
                 _LocationFact(
                   icon: Icons.gps_fixed,
-                  label: '±${location.accuracyMeters.round()} m',
+                  label: l10n.volunteerAccuracyFact(
+                    number.format(location.accuracyMeters.round()),
+                  ),
                 ),
                 _LocationFact(
                   icon: location.isMocked
                       ? Icons.gpp_bad_outlined
                       : Icons.verified_user_outlined,
                   label: location.isMocked
-                      ? 'Mock flag detected'
-                      : 'No mock flag',
+                      ? l10n.volunteerMockDetected
+                      : l10n.volunteerNoMock,
                 ),
                 _LocationFact(
-                  icon: inside ? Icons.check_circle : Icons.cancel_outlined,
+                  icon: inside
+                      ? Icons.check_circle
+                      : accuracyTooLow
+                      ? Icons.gps_not_fixed
+                      : Icons.cancel_outlined,
                   label: distance == null
-                      ? 'Calculating distance'
-                      : '${distance.round()} m · ${inside ? 'inside' : 'outside'} geofence',
+                      ? l10n.volunteerCalculatingDistance
+                      : accuracyTooLow
+                      ? l10n.volunteerDistanceAccuracyLow(
+                          number.format(distance.round()),
+                        )
+                      : inside
+                      ? l10n.volunteerDistanceInside(
+                          number.format(distance.round()),
+                        )
+                      : l10n.volunteerDistanceOutside(
+                          number.format(distance.round()),
+                        ),
                 ),
                 _LocationFact(
                   icon: Icons.schedule,
-                  label:
-                      '${DateTime.now().toUtc().difference(location.capturedAt).inSeconds.abs()} s old',
+                  label: l10n.volunteerFixAge(
+                    DateTime.now()
+                        .toUtc()
+                        .difference(location.capturedAt)
+                        .inSeconds
+                        .abs(),
+                  ),
                 ),
               ],
             ),
           ],
-          const SizedBox(height: 10),
+          const SizedBox(height: FieldnoteSpacing.sm),
           Wrap(
             spacing: 10,
             runSpacing: 10,
@@ -1025,7 +1532,9 @@ class _MissionCardState extends State<_MissionCard> {
                   _tracking ? Icons.stop_circle_outlined : Icons.my_location,
                 ),
                 label: Text(
-                  _tracking ? 'Stop live tracking' : 'Enable live location',
+                  _tracking
+                      ? l10n.volunteerStopTracking
+                      : l10n.volunteerEnableTracking,
                 ),
               ),
               OutlinedButton.icon(
@@ -1053,16 +1562,16 @@ class _MissionCardState extends State<_MissionCard> {
                   const {'cancelled', 'expired'}.contains(
                         widget.campaign.readinessState,
                       )
-                      ? 'Route unavailable'
-                      : 'View route',
+                      ? l10n.volunteerRouteUnavailable
+                      : l10n.volunteerViewRoute,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          const Text(
-            'Tracking stays on this screen. Only the check-in snapshot is sent to the server.',
-            style: TextStyle(fontSize: 12),
+          const SizedBox(height: FieldnoteSpacing.xxs),
+          Text(
+            l10n.volunteerTrackingPrivacy,
+            style: const TextStyle(fontSize: 12),
           ),
         ],
       ),
@@ -1085,6 +1594,9 @@ class _MissionCardState extends State<_MissionCard> {
     final here = location == null
         ? null
         : LatLng(location.latitude, location.longitude);
+    final l10n = context.l10n;
+    final number = NumberFormat.decimalPattern(context.localeTag);
+    final geofence = number.format(widget.campaign.geofenceMeters.round());
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1092,8 +1604,7 @@ class _MissionCardState extends State<_MissionCard> {
           target: campaignPoint,
           zoom: zoomForRadius(widget.campaign.geofenceMeters),
           height: 210,
-          semanticLabel:
-              'Map showing the campaign geofence and your live position',
+          semanticLabel: l10n.volunteerApproachMapSemantics,
           fitBounds: here == null ? null : [campaignPoint, here],
           myLocationEnabled: _tracking,
           markers: {
@@ -1118,10 +1629,12 @@ class _MissionCardState extends State<_MissionCard> {
                       : FieldnoteMapPalette.volunteer,
                 ),
                 infoWindow: InfoWindow(
-                  title: 'You are here',
+                  title: l10n.volunteerYouAreHere,
                   snippet: distance == null
                       ? null
-                      : '${distance.round()} m from the pin',
+                      : l10n.volunteerMetersFromPin(
+                          number.format(distance.round()),
+                        ),
                 ),
               ),
           },
@@ -1153,25 +1666,29 @@ class _MissionCardState extends State<_MissionCard> {
           },
           fallback: MapUnavailableNotice(
             message: distance == null
-                ? 'Map preview is off. Enable live location for a distance '
-                      'readout, or add a Maps key to draw the geofence.'
-                : 'Map preview is off. You are ${distance.round()} m from the '
-                      'campaign pin (geofence '
-                      '${widget.campaign.geofenceMeters.round()} m).',
+                ? l10n.volunteerApproachFallbackNoFix
+                : l10n.volunteerApproachFallback(
+                    number.format(distance.round()),
+                    geofence,
+                  ),
           ),
         ),
         if (mapsAvailable) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: FieldnoteSpacing.xs),
           MapLegend(
             entries: [
-              (color: FieldnoteColors.forest, label: 'Campaign pin'),
+              (
+                color: FieldnoteColors.forest,
+                label: l10n.volunteerLegendCampaignPin,
+              ),
               (
                 color: inside ? FieldnoteColors.forest : FieldnoteColors.clay,
-                label:
-                    'Geofence '
-                    '${widget.campaign.geofenceMeters.round()} m',
+                label: l10n.volunteerLegendGeofence(geofence),
               ),
-              (color: FieldnoteColors.moss, label: 'Your GPS accuracy'),
+              (
+                color: FieldnoteColors.moss,
+                label: l10n.volunteerLegendAccuracy,
+              ),
             ],
           ),
         ],
@@ -1191,15 +1708,17 @@ class _LocationFact extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.fieldnoteColors.raised,
         borderRadius: BorderRadius.circular(99),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 15),
-          const SizedBox(width: 5),
-          Text(label, style: Theme.of(context).textTheme.labelSmall),
+          const SizedBox(width: FieldnoteSpacing.xs),
+          Flexible(
+            child: Text(label, style: Theme.of(context).textTheme.labelSmall),
+          ),
         ],
       ),
     );
@@ -1212,16 +1731,23 @@ class CompletionEvidenceSheet extends StatefulWidget {
     required this.campaign,
     required this.participation,
     required this.viewModel,
+    this.recentFix,
   });
 
   final Campaign campaign;
   final CampaignParticipation participation;
   final FieldnoteViewModel viewModel;
 
+  /// Returns a fresh, accurate fix the caller already holds (live tracking or
+  /// the check-in fix), so submission does not need a second GPS read (V-8).
+  final DeviceLocation? Function()? recentFix;
+
   @override
   State<CompletionEvidenceSheet> createState() =>
       _CompletionEvidenceSheetState();
 }
+
+enum _SubmitPhase { idle, locating, uploading }
 
 class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
   final _note = TextEditingController();
@@ -1232,35 +1758,92 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
   Uint8List? _photo;
   String _extension = 'jpg';
   CompletionProposal? _proposal;
-  bool _working = false;
+
+  /// The volunteer writes the summary themselves (P0-8): AI is unavailable,
+  /// the server returned its non-AI fallback, analysis failed, or the
+  /// volunteer chose to.
+  bool _manual = false;
+  bool _analyzing = false;
+  _SubmitPhase _phase = _SubmitPhase.idle;
   bool _listening = false;
+  bool _speechReady = false;
+  String _noteBeforeDictation = '';
+  String? _accuracyProblem;
+
+  bool get _working => _analyzing || _phase != _SubmitPhase.idle;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.viewModel.aiAvailable == false) _manual = true;
+    if (widget.viewModel.aiAvailable == null) {
+      unawaited(
+        widget.viewModel.loadAiAvailability().then((_) {
+          if (mounted && widget.viewModel.aiAvailable == false) {
+            setState(() => _manual = true);
+          }
+        }),
+      );
+    }
+  }
 
   @override
   void dispose() {
-    _speech.stop();
+    _speech.cancel();
     _note.dispose();
     _summary.dispose();
     super.dispose();
   }
 
   Future<void> _pick(ImageSource source) async {
-    final selected = await _picker.pickImage(
-      source: source,
-      imageQuality: 78,
-      maxWidth: 1600,
-    );
-    if (selected == null) return;
-    final bytes = await selected.readAsBytes();
-    final suffix = selected.name.split('.').last.toLowerCase();
-    if (mounted) {
-      setState(() {
-        _photo = bytes;
-        _extension = {'jpg', 'jpeg', 'png', 'webp'}.contains(suffix)
-            ? suffix
-            : 'jpg';
-      });
+    try {
+      final selected = await _picker.pickImage(
+        source: source,
+        imageQuality: 78,
+        maxWidth: 1600,
+      );
+      if (selected == null) return;
+      final bytes = await selected.readAsBytes();
+      final suffix = selected.name.split('.').last.toLowerCase();
+      if (mounted) {
+        setState(() {
+          _photo = bytes;
+          _extension = {'jpg', 'jpeg', 'png', 'webp'}.contains(suffix)
+              ? suffix
+              : 'jpg';
+        });
+      }
+    } on Object catch (error) {
+      if (mounted) {
+        _showError(
+          context,
+          error,
+          source == ImageSource.camera
+              ? context.l10n.volunteerCameraUnavailable
+              : context.l10n.volunteerGalleryFailed,
+        );
+      }
     }
   }
+
+  void _speechError(String message, {bool permission = false}) {
+    if (!mounted) return;
+    setState(() => _listening = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        action: permission
+            ? SnackBarAction(
+                label: context.l10n.volunteerOpenSettings,
+                onPressed: () =>
+                    unawaited(_openSafely(_location.openAppSettings)),
+              )
+            : null,
+      ),
+    );
+  }
+
+  String get _micPermissionMessage => context.l10n.volunteerMicPermission;
 
   Future<void> _toggleSpeech() async {
     if (_listening) {
@@ -1268,65 +1851,121 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
       if (mounted) setState(() => _listening = false);
       return;
     }
-    final ready = await _speech.initialize();
-    if (!ready) {
-      if (mounted) {
-        _showError(
-          context,
-          StateError('Speech unavailable'),
-          'Speech recognition is unavailable on this device.',
+    if (!_speechReady) {
+      try {
+        _speechReady = await _speech.initialize(
+          onError: (error) {
+            final permission = error.errorMsg.contains('permission');
+            _speechError(
+              permission
+                  ? _micPermissionMessage
+                  : error.errorMsg == 'error_no_match' ||
+                        error.errorMsg == 'error_speech_timeout'
+                  ? context.l10n.volunteerNoSpeech
+                  : context.l10n.volunteerDictationStopped,
+              permission: permission,
+            );
+          },
+          onStatus: (status) {
+            if (!mounted) return;
+            if (status == SpeechToText.doneStatus ||
+                status == SpeechToText.notListeningStatus) {
+              setState(() => _listening = false);
+            }
+          },
         );
+      } on Object {
+        _speechReady = false;
       }
-      return;
+      if (!_speechReady) {
+        var permitted = true;
+        try {
+          permitted = await _speech.hasPermission;
+        } on Object {
+          permitted = true;
+        }
+        if (!mounted) return;
+        _speechError(
+          permitted
+              ? context.l10n.volunteerSpeechUnavailable
+              : _micPermissionMessage,
+          permission: !permitted,
+        );
+        return;
+      }
     }
+    _noteBeforeDictation = _note.text.trim();
     setState(() => _listening = true);
-    await _speech.listen(
-      onResult: (result) {
-        _note.text = result.recognizedWords;
-        _note.selection = TextSelection.collapsed(offset: _note.text.length);
-        if (result.finalResult && mounted) setState(() => _listening = false);
-      },
-    );
+    try {
+      await _speech.listen(
+        onResult: (result) {
+          final words = result.recognizedWords;
+          _note.text = _noteBeforeDictation.isEmpty
+              ? words
+              : '$_noteBeforeDictation $words';
+          _note.selection = TextSelection.collapsed(offset: _note.text.length);
+          if (result.finalResult && mounted) setState(() => _listening = false);
+        },
+      );
+    } on Object {
+      if (mounted) _speechError(context.l10n.volunteerDictationFailed);
+    }
+  }
+
+  bool _requirePhoto() {
+    if (_photo != null) return true;
+    _showMessage(context, context.l10n.volunteerPhotoFirst);
+    return false;
   }
 
   Future<void> _analyze() async {
-    if (_photo == null) {
-      _showError(
+    if (!_requirePhoto()) return;
+    if (_note.text.trim().length < minSummaryLength) {
+      _showMessage(
         context,
-        StateError('Missing photograph'),
-        'Take or choose an evidence photograph so AI can analyze it with your note.',
+        context.l10n.volunteerNoteTooShort(minSummaryLength),
       );
       return;
     }
-    if (_note.text.trim().length < 5) {
-      _showError(
-        context,
-        StateError('Short note'),
-        'Add or dictate a short field note first.',
-      );
-      return;
-    }
-    setState(() => _working = true);
+    setState(() => _analyzing = true);
     try {
       final value = await widget.viewModel.repository.analyzeCompletion(
         widget.participation.id!,
-        _note.text,
+        _note.text.trim(),
         _photo,
         _mimeType(_extension),
       );
       if (mounted) {
         setState(() {
           _proposal = value;
+          _manual = isFallbackProposal(value);
           _summary.text = value.summary;
         });
       }
     } catch (error) {
       if (mounted) {
-        _showError(context, error, 'AI could not analyze this field note.');
+        // Never block submission on AI: fall back to a summary the volunteer
+        // writes from their own note.
+        setState(() {
+          _manual = true;
+          if (_summary.text.trim().isEmpty) _summary.text = _note.text.trim();
+        });
+        _showError(
+          context,
+          error,
+          context.l10n.volunteerAnalyzeFailed,
+        );
       }
     } finally {
-      if (mounted) setState(() => _working = false);
+      if (mounted) setState(() => _analyzing = false);
     }
+  }
+
+  void _writeMyself() {
+    setState(() {
+      _manual = true;
+      if (_summary.text.trim().isEmpty) _summary.text = _note.text.trim();
+    });
   }
 
   static String _mimeType(String extension) => switch (extension) {
@@ -1335,47 +1974,94 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
     _ => 'image/jpeg',
   };
 
+  bool get _deadlinePassed =>
+      isCampaignClosed(widget.campaign) ||
+      DateTime.now().toUtc().isAfter(completionDeadline(widget.campaign));
+
+  Future<DeviceLocation?> _submissionFix() async {
+    final recent = widget.recentFix?.call();
+    if (isReusableFix(recent, DateTime.now().toUtc())) return recent;
+    final gps = await _location.current();
+    if (!mounted) return null;
+    final problem = locationProblem(
+      gps,
+      DateTime.now().toUtc(),
+      l10n: context.l10n,
+    );
+    if (problem != null) {
+      if (mounted) setState(() => _accuracyProblem = problem);
+      return null;
+    }
+    return gps;
+  }
+
   Future<void> _submit() async {
-    if (_photo == null || _proposal == null || _summary.text.trim().isEmpty) {
-      _showError(
+    if (!_requirePhoto()) return;
+    final summary = _summary.text.trim();
+    if (summary.length < minSummaryLength ||
+        summary.length > maxSummaryLength) {
+      _showMessage(
         context,
-        StateError('Missing evidence'),
-        'Add a photo and confirm the AI summary first.',
+        context.l10n.volunteerSummaryLength(minSummaryLength, maxSummaryLength),
       );
       return;
     }
-    setState(() => _working = true);
+    if (_note.text.trim().length > maxSummaryLength) {
+      _showMessage(
+        context,
+        context.l10n.volunteerNoteTooLong(maxSummaryLength),
+      );
+      return;
+    }
+    setState(() {
+      _phase = _SubmitPhase.locating;
+      _accuracyProblem = null;
+    });
     try {
-      final gps = await _location.current();
+      final gps = await _submissionFix();
+      if (gps == null || !mounted) return;
+      setState(() => _phase = _SubmitPhase.uploading);
+      final manual = _manual || _proposal == null;
+      final proposal = _proposal;
       await widget.viewModel.repository.completeWithEvidence(
         participationId: widget.participation.id!,
         photograph: _photo!,
         extension: _extension,
-        originalNote: _note.text,
-        confirmedSummary: _summary.text,
-        structuredResults: _proposal!.structuredResults,
+        originalNote: _note.text.trim(),
+        confirmedSummary: summary,
+        structuredResults: manual || proposal == null
+            ? manualResultsFrom(summary)
+            : proposal.structuredResults,
         latitude: gps.latitude,
         longitude: gps.longitude,
         accuracyMeters: gps.accuracyMeters,
         deviceReportedMock: gps.isMocked,
         explicitDemo: gps.isDemo,
         capturedAt: gps.capturedAt,
+        manualSummary: manual,
       );
       await widget.viewModel.participationCompleted();
+      unawaited(widget.viewModel.loadParticipationHistory());
       if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      final sent = context.l10n.volunteerEvidenceSent;
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Impact evidence sent to the sponsor.')),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(sent)));
     } catch (error) {
-      if (mounted) _showError(context, error, 'Could not submit evidence.');
+      if (mounted) {
+        _showError(context, error, context.l10n.volunteerSubmitFailed);
+      }
     } finally {
-      if (mounted) setState(() => _working = false);
+      if (mounted) setState(() => _phase = _SubmitPhase.idle);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final aiOff = widget.viewModel.aiAvailable == false;
+    final proposal = _proposal;
+    final showSummary = _manual || proposal != null;
+    final l10n = context.l10n;
     return DraggableScrollableSheet(
       expand: false,
       initialChildSize: .9,
@@ -1383,42 +2069,41 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
       maxChildSize: .96,
       builder: (context, scrollController) => ListView(
         controller: scrollController,
-        padding: const EdgeInsets.fromLTRB(24, 14, 24, 40),
+        padding: FieldnoteSpacing.sheetPadding(context),
         children: [
-          Center(
-            child: Container(
-              width: 44,
-              height: 5,
-              decoration: BoxDecoration(
-                color: FieldnoteColors.ink.withValues(alpha: .18),
-                borderRadius: BorderRadius.circular(99),
-              ),
+          SectionHeading(
+            eyebrow: aiOff
+                ? l10n.volunteerEvidenceEyebrow
+                : l10n.volunteerEvidenceEyebrowAi,
+            title: l10n.volunteerEvidenceTitle,
+            description: aiOff
+                ? l10n.volunteerEvidenceDescription
+                : l10n.volunteerEvidenceDescriptionAi,
+          ),
+          if (_deadlinePassed) ...[
+            const SizedBox(height: FieldnoteSpacing.sm),
+            Text(
+              l10n.volunteerEvidenceWindowClosed,
+              style: TextStyle(color: context.fieldnoteColors.danger),
             ),
-          ),
-          const SizedBox(height: 20),
-          const SectionHeading(
-            eyebrow: 'AI evidence assistant',
-            title: 'Show what changed',
-            description:
-                'Capture one photo, describe the result, then confirm the structured summary.',
-          ),
-          const SizedBox(height: 20),
+          ],
+          const SizedBox(height: FieldnoteSpacing.lg),
           GestureDetector(
-            onTap: () => _pick(ImageSource.camera),
+            onTap: _working ? null : () => _pick(ImageSource.camera),
             child: Container(
               height: 220,
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
-                color: FieldnoteColors.mist,
+                color: context.fieldnoteColors.mist,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: _photo == null
-                  ? const Column(
+                  ? Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.add_a_photo_outlined, size: 42),
-                        SizedBox(height: 8),
-                        Text('Take evidence photograph'),
+                        const Icon(Icons.add_a_photo_outlined, size: 42),
+                        const SizedBox(height: FieldnoteSpacing.xs),
+                        Text(l10n.volunteerTakePhoto),
                       ],
                     )
                   : Image.memory(
@@ -1428,75 +2113,138 @@ class _CompletionEvidenceSheetState extends State<CompletionEvidenceSheet> {
                     ),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: FieldnoteSpacing.sm),
           OutlinedButton.icon(
-            onPressed: () => _pick(ImageSource.gallery),
+            onPressed: _working ? null : () => _pick(ImageSource.gallery),
             icon: const Icon(Icons.photo_library_outlined),
-            label: const Text('Choose from gallery'),
+            label: Text(l10n.volunteerChooseGallery),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: FieldnoteSpacing.md),
           FieldnoteTextField(
             controller: _note,
             minLines: 3,
             maxLines: 6,
+            maxLength: maxSummaryLength,
             decoration: InputDecoration(
-              labelText: 'What did your team complete?',
-              hintText: 'We planted 12 saplings and cleared 8 bags of waste…',
+              labelText: l10n.volunteerNoteLabel,
+              hintText: l10n.volunteerNoteHint,
               suffixIcon: IconButton(
-                tooltip: _listening ? 'Stop listening' : 'Dictate note',
+                tooltip: _listening
+                    ? l10n.volunteerStopListening
+                    : l10n.volunteerDictateNote,
                 onPressed: _toggleSpeech,
                 icon: Icon(_listening ? Icons.mic : Icons.mic_none),
-                color: _listening ? FieldnoteColors.clay : null,
+                color: _listening ? context.fieldnoteColors.clay : null,
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          FilledButton.icon(
-            onPressed: _working ? null : _analyze,
-            icon: const Icon(Icons.auto_awesome),
-            label: Text(_working ? 'Analyzing…' : 'AI analyze field note'),
-          ),
-          if (_proposal != null) ...[
-            const SizedBox(height: 18),
+          const SizedBox(height: FieldnoteSpacing.sm),
+          if (!aiOff)
+            FilledButton.icon(
+              onPressed: _working ? null : _analyze,
+              icon: _analyzing
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.auto_awesome),
+              label: Text(
+                _analyzing ? l10n.volunteerAnalyzing : l10n.volunteerAnalyze,
+              ),
+            ),
+          if (!showSummary) ...[
+            const SizedBox(height: FieldnoteSpacing.xs),
+            TextButton(
+              key: const Key('write-summary-myself'),
+              onPressed: _working ? null : _writeMyself,
+              child: Text(l10n.volunteerWriteMyself),
+            ),
+          ],
+          if (showSummary) ...[
+            const SizedBox(height: FieldnoteSpacing.md),
             SurfaceCard(
-              color: FieldnoteColors.acid.withValues(alpha: .35),
+              color: _manual
+                  ? context.fieldnoteColors.mist
+                  : context.fieldnoteColors.acid.withValues(
+                      alpha: context.fieldnoteColors.isDark ? .12 : .35,
+                    ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const StatusPill(
-                    label: 'AI draft · volunteer confirms',
+                  StatusPill(
+                    label: _manual
+                        ? l10n.volunteerSummaryManualPill
+                        : l10n.volunteerSummaryAiPill,
                     color: FieldnoteColors.clay,
-                    icon: Icons.auto_awesome,
+                    icon: _manual ? Icons.edit_note : Icons.auto_awesome,
                   ),
-                  const SizedBox(height: 12),
+                  if (_manual) ...[
+                    const SizedBox(height: FieldnoteSpacing.xs),
+                    Text(
+                      aiOff ||
+                              (proposal != null && isFallbackProposal(proposal))
+                          ? l10n.volunteerAiUnavailableDescribe
+                          : l10n.volunteerDescribeOwnWords,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                  const SizedBox(height: FieldnoteSpacing.sm),
                   FieldnoteTextField(
+                    key: const Key('confirmed-summary-field'),
                     controller: _summary,
                     minLines: 2,
-                    maxLines: 4,
-                    decoration: const InputDecoration(
-                      labelText: 'Confirmed impact summary',
+                    maxLines: 6,
+                    maxLength: maxSummaryLength,
+                    decoration: InputDecoration(
+                      labelText: l10n.volunteerConfirmedSummary,
+                      helperText: l10n.volunteerSummaryHelper(minSummaryLength),
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  ..._proposal!.structuredResults.map(
-                    (result) => Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.insights, size: 17),
-                          const SizedBox(width: 7),
-                          Expanded(child: Text(result)),
-                        ],
+                  if (!_manual && proposal != null) ...[
+                    const SizedBox(height: FieldnoteSpacing.sm),
+                    ...proposal.structuredResults.map(
+                      (result) => Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.insights, size: 17),
+                            const SizedBox(width: FieldnoteSpacing.xs),
+                            Expanded(child: Text(result)),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
+                  ],
+                  if (_accuracyProblem != null) ...[
+                    const SizedBox(height: FieldnoteSpacing.sm),
+                    Text(
+                      _accuracyProblem!,
+                      style: TextStyle(color: context.fieldnoteColors.clay),
+                    ),
+                  ],
+                  if (_phase != _SubmitPhase.idle) ...[
+                    const SizedBox(height: FieldnoteSpacing.sm),
+                    const LinearProgressIndicator(),
+                    const SizedBox(height: FieldnoteSpacing.xs),
+                    Text(
+                      _phase == _SubmitPhase.locating
+                          ? l10n.volunteerCheckingGps
+                          : l10n.volunteerUploading,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                  const SizedBox(height: FieldnoteSpacing.sm),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
-                      onPressed: _working ? null : _submit,
+                      key: const Key('submit-evidence-button'),
+                      onPressed: _working || _deadlinePassed ? null : _submit,
                       icon: const Icon(Icons.verified_outlined),
-                      label: const Text('Confirm and submit evidence'),
+                      label: Text(
+                        _phase == _SubmitPhase.uploading
+                            ? l10n.volunteerSubmitting
+                            : l10n.volunteerConfirmSubmit,
+                      ),
                     ),
                   ),
                 ],
@@ -1526,6 +2274,8 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
   bool _available = true;
   bool _today = false;
   double _radius = 10;
+  int _startMinutes = 7 * 60;
+  int _endMinutes = 13 * 60;
   DeviceLocation? _location;
   bool _saving = false;
 
@@ -1549,7 +2299,9 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
     if (value != null) {
       _available = value.isAvailable;
       _today = value.availableToday;
-      _radius = value.maximumTravelKm;
+      _radius = value.maximumTravelKm.clamp(1, 100).toDouble();
+      _startMinutes = value.startMinutes;
+      _endMinutes = value.endMinutes;
       _days.addAll(
         value.weekdays.split(',').map(int.tryParse).whereType<int>(),
       );
@@ -1560,7 +2312,7 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
           latitude: value.latitude!,
           longitude: value.longitude!,
           accuracyMeters: 50,
-          isLive: true,
+          isLive: false,
           isMocked: false,
           capturedAt: DateTime.now().toUtc(),
           isDemo: false,
@@ -1614,13 +2366,14 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
       if (!mounted || request != _searchRequest) return;
       setState(() {
         _suggestions = results;
-        _searchMessage = results.isEmpty ? 'No matching places found.' : null;
+        _searchMessage = results.isEmpty
+            ? context.l10n.volunteerNoPlacesFound
+            : null;
       });
     } on Object {
       if (mounted && request == _searchRequest) {
         setState(
-          () => _searchMessage =
-              'Place search is unavailable. Move the pin or use GPS.',
+          () => _searchMessage = context.l10n.volunteerPlaceSearchUnavailable,
         );
       }
     } finally {
@@ -1656,7 +2409,7 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
           latitude: place.latitude,
           longitude: place.longitude,
           accuracyMeters: 50,
-          isLive: true,
+          isLive: false,
           isMocked: false,
           capturedAt: DateTime.now().toUtc(),
           isDemo: false,
@@ -1665,8 +2418,7 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
     } on Object {
       if (mounted && request == _geocodeRequest) {
         setState(
-          () => _searchMessage =
-              'Could not select that place. Try another result.',
+          () => _searchMessage = context.l10n.volunteerPlaceSelectFailed,
         );
       }
     }
@@ -1690,7 +2442,7 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
         latitude: point.latitude,
         longitude: point.longitude,
         accuracyMeters: 50,
-        isLive: true,
+        isLive: false,
         isMocked: false,
         capturedAt: DateTime.now().toUtc(),
         isDemo: false,
@@ -1742,16 +2494,49 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
   String get _savedLabel {
     final name = _areaName?.trim();
     if (name != null && name.isNotEmpty) return name;
+    // Stored as the location label, so this deliberately stays English.
     return _pinnedByHand ? 'Chosen map area' : 'Current GPS area';
   }
 
+  Future<void> _pickTime({required bool start}) async {
+    final current = start ? _startMinutes : _endMinutes;
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(
+        hour: (current ~/ 60).clamp(0, 23),
+        minute: current >= 1440 ? 59 : current % 60,
+      ),
+      helpText: start
+          ? context.l10n.volunteerAvailableFrom
+          : context.l10n.volunteerAvailableUntil,
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      final minutes = picked.hour * 60 + picked.minute;
+      if (start) {
+        _startMinutes = minutes;
+      } else {
+        // 00:00 as an end time means the end of the day.
+        _endMinutes = minutes == 0 ? 1440 : minutes;
+      }
+    });
+  }
+
   Future<void> _save() async {
+    final windowProblem = availabilityWindowProblem(
+      _startMinutes,
+      _endMinutes,
+      l10n: context.l10n,
+    );
+    if (windowProblem != null) {
+      _showMessage(context, windowProblem);
+      return;
+    }
     if (_searchAvailable &&
         _placeSearch.text.trim().isNotEmpty &&
         _placeSearch.text.trim() != _savedLabel) {
       setState(
-        () => _searchMessage =
-            'Select a search result, or clear the search to keep the current pin.',
+        () => _searchMessage = context.l10n.volunteerSelectSearchResult,
       );
       return;
     }
@@ -1762,8 +2547,8 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
         isAvailable: _available,
         availableToday: _today,
         weekdays: _days.toList(),
-        startMinutes: widget.viewModel.availability?.startMinutes ?? 7 * 60,
-        endMinutes: widget.viewModel.availability?.endMinutes ?? 13 * 60,
+        startMinutes: _startMinutes,
+        endMinutes: _endMinutes,
         maximumTravelKm: _radius,
         latitude: _location!.latitude,
         longitude: _location!.longitude,
@@ -1772,13 +2557,13 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
       await widget.viewModel.availabilityUpdated();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Availability saved.'),
-          ),
+          SnackBar(content: Text(context.l10n.volunteerAvailabilitySaved)),
         );
       }
     } catch (error) {
-      if (mounted) _showError(context, error, 'Could not update availability.');
+      if (mounted) {
+        _showError(context, error, context.l10n.volunteerAvailabilityFailed);
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -1786,23 +2571,24 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
 
   @override
   Widget build(BuildContext context) {
-    const names = {
-      1: 'Mon',
-      2: 'Tue',
-      3: 'Wed',
-      4: 'Thu',
-      5: 'Fri',
-      6: 'Sat',
-      7: 'Sun',
+    final l10n = context.l10n;
+    final locale = context.localeTag;
+    // 1 January 2024 was a Monday, so day `i` of that month is weekday `i`.
+    final dayFormat = DateFormat.E(dateLocale(locale));
+    final names = {
+      for (var day = 1; day <= 7; day++)
+        day: dayFormat.format(DateTime(2024, 1, day)),
     };
+    final number = NumberFormat.decimalPattern(locale);
+    final radius = number.format(_radius.round());
     return FieldnotePageList(
       children: [
-        const SectionHeading(
-          eyebrow: 'Volunteer preferences',
-          title: 'Availability',
-          description: 'Choose when and how far you can travel.',
+        SectionHeading(
+          eyebrow: l10n.volunteerAvailabilityEyebrow,
+          title: l10n.navAvailability,
+          description: l10n.volunteerAvailabilityDescription,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: FieldnoteSpacing.md),
         SurfaceCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1810,21 +2596,20 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
               SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,
                 value: _available,
-                title: const Text('I am available for campaigns'),
-                subtitle: const Text(
-                  'Pause this without deleting your preferences.',
-                ),
+                title: Text(l10n.volunteerAvailableToggle),
+                subtitle: Text(l10n.volunteerAvailableToggleHint),
                 onChanged: (value) => setState(() => _available = value),
               ),
               SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,
                 value: _today,
-                title: const Text('I can help today'),
+                title: Text(l10n.volunteerTodayToggle),
+                subtitle: Text(l10n.volunteerTodayToggleHint),
                 onChanged: (value) => setState(() => _today = value),
               ),
               const Divider(height: 28),
               Text(
-                'Regular days',
+                l10n.volunteerRegularDays,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 9),
@@ -1845,25 +2630,65 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
                     )
                     .toList(),
               ),
-              const SizedBox(height: 22),
+              const SizedBox(height: FieldnoteSpacing.lg),
               Text(
-                'Where you can travel from',
+                l10n.volunteerTimeWindow,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 9),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  OutlinedButton.icon(
+                    key: const Key('availability-start-time'),
+                    onPressed: () => _pickTime(start: true),
+                    icon: const Icon(Icons.schedule),
+                    label: Text(
+                      l10n.volunteerFromTime(formatMinutes(_startMinutes)),
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    key: const Key('availability-end-time'),
+                    onPressed: () => _pickTime(start: false),
+                    icon: const Icon(Icons.schedule_outlined),
+                    label: Text(
+                      l10n.volunteerUntilTime(formatMinutes(_endMinutes)),
+                    ),
+                  ),
+                ],
+              ),
+              if (availabilityWindowProblem(
+                    _startMinutes,
+                    _endMinutes,
+                    l10n: l10n,
+                  )
+                  case final problem?) ...[
+                const SizedBox(height: FieldnoteSpacing.xs),
+                Text(
+                  problem,
+                  style: TextStyle(color: context.fieldnoteColors.danger),
+                ),
+              ],
+              const SizedBox(height: FieldnoteSpacing.lg),
               Text(
-                'Drag the pin to the area you actually set out from. The ring '
-                'is the radius below, drawn to scale.',
+                l10n.volunteerTravelFrom,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: FieldnoteSpacing.xxs),
+              Text(
+                l10n.volunteerTravelFromHint,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: FieldnoteSpacing.sm),
               if (_searchAvailable) ...[
                 TextField(
                   controller: _placeSearch,
                   onChanged: _onSearchChanged,
                   decoration: InputDecoration(
-                    labelText: 'Search Google Places',
-                    hintText: 'Address, landmark, or city',
+                    labelText: l10n.corePlacesSearchLabel,
+                    hintText: l10n.volunteerPlaceSearchHint,
                     prefixIcon: const Icon(Icons.search),
                     suffixIcon: _searching
                         ? const Padding(
@@ -1877,7 +2702,7 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
                   ),
                 ),
                 if (_searchMessage != null) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: FieldnoteSpacing.xs),
                   Text(_searchMessage!),
                 ],
                 if (_suggestions.isNotEmpty)
@@ -1899,23 +2724,23 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
                       },
                     ),
                   ),
-                const SizedBox(height: 12),
+                const SizedBox(height: FieldnoteSpacing.sm),
               ],
               _areaMap(context),
-              const SizedBox(height: 16),
+              const SizedBox(height: FieldnoteSpacing.md),
               Text(
-                'Maximum travel · ${_radius.round()} km',
+                l10n.volunteerMaximumTravel(radius),
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               Slider(
                 value: _radius,
-                min: 2,
-                max: 50,
-                divisions: 24,
-                label: '${_radius.round()} km',
+                min: 1,
+                max: 100,
+                divisions: 99,
+                label: l10n.volunteerKm(radius),
                 onChanged: (value) => setState(() => _radius = value),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: FieldnoteSpacing.xs),
               OutlinedButton.icon(
                 onPressed: () async {
                   try {
@@ -1939,7 +2764,7 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
                       _showError(
                         this.context,
                         error,
-                        'Could not get your current location.',
+                        this.context.l10n.volunteerCurrentLocationFailed,
                       );
                     }
                   }
@@ -1947,15 +2772,13 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
                 icon: const Icon(Icons.my_location),
                 label: Text(
                   _location == null
-                      ? 'Use my current GPS area'
-                      : _pinnedByHand
-                      ? 'Reset to my current GPS area'
-                      : _location!.isLive
-                      ? 'Live GPS area selected'
-                      : 'Location selected',
+                      ? l10n.volunteerUseGpsArea
+                      : _location!.isLive && !_pinnedByHand
+                      ? l10n.volunteerLiveGpsSelected
+                      : l10n.volunteerUseGpsAreaInstead,
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: FieldnoteSpacing.lg),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
@@ -1966,7 +2789,7 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.save_outlined),
-                  label: Text(_saving ? 'Saving…' : 'Save'),
+                  label: Text(_saving ? l10n.commonSaving : l10n.volunteerSave),
                 ),
               ),
             ],
@@ -2003,6 +2826,7 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
           )
         : LatLng(location.latitude, location.longitude);
     final radiusMeters = _radius * 1000;
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2012,7 +2836,7 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
               target: point,
               zoom: zoomForRadius(radiusMeters),
               height: 260,
-              semanticLabel: 'Draggable map pin for your travel area',
+              semanticLabel: l10n.volunteerAreaMapPinSemantics,
               onTap: _movePin,
               markers: location == null
                   ? const {}
@@ -2026,7 +2850,7 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
                           FieldnoteMapPalette.volunteer,
                         ),
                         infoWindow: InfoWindow(
-                          title: 'Your travel area',
+                          title: l10n.volunteerYourTravelArea,
                           snippet: _areaName ?? _savedLabel,
                         ),
                       ),
@@ -2043,12 +2867,14 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
                     },
               fallback: MapUnavailableNotice(
                 message: location == null
-                    ? 'Map preview is off. Use the GPS button below to set your '
-                          'area.'
-                    : 'Map preview is off. Saved area: '
-                          '${point.latitude.toStringAsFixed(4)}, '
-                          '${point.longitude.toStringAsFixed(4)} '
-                          '(${_radius.round()} km radius).',
+                    ? l10n.volunteerAreaFallbackNoArea
+                    : l10n.volunteerAreaFallback(
+                        '${point.latitude.toStringAsFixed(4)}, '
+                        '${point.longitude.toStringAsFixed(4)}',
+                        NumberFormat.decimalPattern(
+                          context.localeTag,
+                        ).format(_radius.round()),
+                      ),
               ),
             ),
             if (mapsAvailable)
@@ -2057,7 +2883,7 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
                 right: 8,
                 child: IconButton.filledTonal(
                   key: const Key('expand-volunteer-area-map'),
-                  tooltip: 'Expand map',
+                  tooltip: l10n.volunteerExpandMap,
                   onPressed: _expandAreaMap,
                   icon: const Icon(Icons.fullscreen),
                 ),
@@ -2065,11 +2891,11 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
           ],
         ),
         if (mapsAvailable) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: FieldnoteSpacing.xs),
           Row(
             children: [
               const Icon(Icons.place_outlined, size: 16),
-              const SizedBox(width: 6),
+              const SizedBox(width: FieldnoteSpacing.xs),
               Expanded(
                 child: Text(
                   _areaName ?? _savedLabel,
@@ -2085,12 +2911,67 @@ class _VolunteerAvailabilityViewState extends State<VolunteerAvailabilityView> {
 }
 
 void _showError(BuildContext context, Object error, String fallback) {
+  final settings = _settingsActionFor(context, error);
   ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text(_errorText(error, fallback))),
+    SnackBar(
+      content: Text(_errorText(context, error, fallback)),
+      action: settings == null
+          ? null
+          : SnackBarAction(label: settings.label, onPressed: settings.open),
+    ),
   );
 }
 
-String _errorText(Object error, String fallback) {
-  if (error is FieldnoteException) return error.message;
-  return fallback;
+void _showMessage(BuildContext context, String message) {
+  ScaffoldMessenger.of(
+    context,
+  ).showSnackBar(SnackBar(content: Text(message)));
 }
+
+/// "Open settings" for location problems the user must fix in Settings
+/// (V-6): app permissions when blocked, Location when switched off.
+({String label, VoidCallback open})? _settingsActionFor(
+  BuildContext context,
+  Object error,
+) {
+  if (error is! LocationAccessException) return null;
+  final service = DeviceLocationService();
+  final label = context.l10n.volunteerOpenSettings;
+  return switch (error.issue) {
+    LocationAccessIssue.serviceDisabled => (
+      label: label,
+      open: () => unawaited(_openSafely(service.openLocationSettings)),
+    ),
+    LocationAccessIssue.permissionDeniedForever => (
+      label: label,
+      open: () => unawaited(_openSafely(service.openAppSettings)),
+    ),
+    _ => null,
+  };
+}
+
+Future<void> _openSafely(Future<bool> Function() open) async {
+  try {
+    await open();
+  } on Object {
+    // Not every platform (web) can open system settings.
+  }
+}
+
+Widget? _settingsButton(BuildContext context, Object error) {
+  final settings = _settingsActionFor(context, error);
+  if (settings == null) return null;
+  return TextButton.icon(
+    onPressed: settings.open,
+    icon: const Icon(Icons.settings_outlined),
+    label: Text(
+      error is LocationAccessException &&
+              error.issue == LocationAccessIssue.serviceDisabled
+          ? context.l10n.volunteerOpenLocationSettings
+          : context.l10n.volunteerOpenAppSettings,
+    ),
+  );
+}
+
+String _errorText(BuildContext context, Object error, String fallback) =>
+    userMessageFor(error, fallback: fallback, context: context);

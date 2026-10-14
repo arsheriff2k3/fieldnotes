@@ -1,0 +1,25 @@
+### One account deletion request (P0-6). Created by requestAccountDeletion and
+### executed by the outbox future call. The row keeps only the deleted auth
+### user id so the request stays idempotent; it never stores the anonymous id
+### that replaced the user in retained financial records.
+###
+### status: pending | processing | completed | failed
+class: AccountDeletionRequest
+table: fieldnote_account_deletion_request
+fields:
+  authUserId: UuidValue
+  status: String, default='pending'
+  ### Client-safe error code when the last attempt failed.
+  lastError: String?
+  attempts: int, default=0
+  nextAttemptAt: DateTime?
+  requestedAt: DateTime, default=now
+  processedAt: DateTime?
+  completedAt: DateTime?
+  updatedAt: DateTime, default=now
+indexes:
+  fieldnote_account_deletion_user_idx:
+    fields: authUserId
+    unique: true
+  fieldnote_account_deletion_status_idx:
+    fields: status

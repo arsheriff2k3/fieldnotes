@@ -1,0 +1,9 @@
+# One row of a sponsor's payment history, including failed, uncredited and
+# refunded attempts.
+class: SponsorshipHistoryEntry
+fields:
+  sponsorship: Sponsorship
+  campaignName: String
+  campaignStatus: CampaignStatus
+  campaignReadinessState: String
+  refund: TestRefund?

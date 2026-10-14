@@ -13,10 +13,25 @@ fieldnote:
   - getMyProfile:
   - getMyLegalConsent:
   - acceptLegalConsent:
+  - withdrawConsent:
+  - listMyConsentHistory:
+  - setEmailNotifications:
   - getTrustCenter:
+  - getMyNotifications:
+  - getMyNotification:
+  - getMyUnreadNotificationCount:
+  - watchMyNotifications:
+  - markMyNotificationRead:
+  - markCampaignChatRead:
+  - getDiscussionCampaign:
+  - markMyNotificationsReadThrough:
+  - registerMyPushDevice:
+  - unregisterMyPushDevice:
+  - unregisterAllMyPushDevices:
   - exportMyData:
   - recordAccountDataExport:
   - requestAccountDeletion:
+  - getAccountDeletionStatus:
   - completeSponsorProfile:
   - completeVolunteerProfile:
   - updateMyProfile:
@@ -26,6 +41,8 @@ fieldnote:
   - proposeCampaign:
   - createCampaignFromProposal:
   - listCampaigns:
+  - getSharedCampaignBySlug:
+  - getCampaignShareLink:
   - getSharedCampaign:
   - listMyCreatedCampaigns:
   - refreshCampaignReadiness:
@@ -53,20 +70,37 @@ fieldnote:
   - verifyRazorpayPayment:
   - recordRazorpayFailure:
   - listMySponsorships:
+  - isPayoutSimulationAvailable:
   - listCampaignTestPayouts:
   - simulateCampaignTestPayout:
+  - getManualPayoutSummary:
+  - requestManualPayout:
+  - isPayoutOperator:
+  - listManualPayoutRequests:
+  - reviewManualPayout:
+  - recordManualPayoutPaid:
   - getCampaignMatches:
   - joinCampaign:
+  - leaveCampaign:
   - getCampaignContactPhone:
   - listMyParticipations:
   - checkIn:
   - analyzeCompletion:
+  - isAiAvailable:
   - getEvidenceUploadDescription:
   - completeParticipation:
+  - reviewEvidence:
   - getEvidenceDownloadUrl:
   - getImpact:
+  - listMyCampaigns:
+  - listMyPaymentHistory:
+  - listMyParticipationHistory:
+  - listCampaignRefunds:
+  - sendCampaignMessage:
+  - listCampaignMessages:
+  - watchCampaignChat:
   - createCampaignPost:
   - listCampaignPosts:
   - watchCampaign:
-greeting:
-  - hello:
+legal:
+  - getLegalPolicies:

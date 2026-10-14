@@ -4,6 +4,7 @@ import 'package:fieldnotes_client/fieldnotes_client.dart';
 import 'package:flutter/material.dart';
 
 import '../../data/repositories/fieldnote_repository.dart';
+import '../../l10n/l10n.dart';
 import 'fieldnote_map.dart';
 
 class SelectedLocation {
@@ -115,15 +116,12 @@ class _LocationPickerState extends State<LocationPicker> {
       if (!mounted || request != _request) return;
       setState(() {
         _suggestions = results;
-        _message = results.isEmpty
-            ? 'No matching places. Try a nearby landmark.'
-            : null;
+        _message = results.isEmpty ? context.l10n.corePickerNoMatches : null;
       });
     } on Object {
       if (mounted && request == _request) {
         setState(
-          () => _message =
-              'Place search is unavailable. Tap the map to set a pin.',
+          () => _message = context.l10n.corePickerSearchUnavailable,
         );
       }
     } finally {
@@ -157,7 +155,7 @@ class _LocationPickerState extends State<LocationPicker> {
     } on Object {
       if (mounted) {
         setState(
-          () => _message = 'Could not open that place. Try another result.',
+          () => _message = context.l10n.corePickerOpenFailed,
         );
       }
     }
@@ -213,6 +211,7 @@ class _LocationPickerState extends State<LocationPicker> {
             widget.initialLongitude ?? 78.9629,
           )
         : LatLng(selected.latitude, selected.longitude);
+    final l10n = context.l10n;
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: AppBar(title: Text(widget.title)),
@@ -225,8 +224,8 @@ class _LocationPickerState extends State<LocationPicker> {
                 controller: _search,
                 onChanged: _changed,
                 decoration: InputDecoration(
-                  labelText: 'Search Google Places',
-                  hintText: 'City, address, or landmark',
+                  labelText: l10n.corePlacesSearchLabel,
+                  hintText: l10n.corePickerSearchHint,
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon: _searching
                       ? const Padding(
@@ -275,7 +274,7 @@ class _LocationPickerState extends State<LocationPicker> {
                   target: point,
                   zoom: selected == null ? 5 : 15,
                   height: constraints.maxHeight,
-                  semanticLabel: 'Google map. Tap to select an exact location.',
+                  semanticLabel: l10n.corePickerMapSemantics,
                   onTap: _pin,
                   markers: selected == null
                       ? const {}
@@ -287,9 +286,8 @@ class _LocationPickerState extends State<LocationPicker> {
                             onDragEnd: _pin,
                           ),
                         },
-                  fallback: const MapUnavailableNotice(
-                    message:
-                        'Map tiles are unavailable. Search for a place above.',
+                  fallback: MapUnavailableNotice(
+                    message: l10n.corePickerTilesUnavailable,
                   ),
                 ),
               ),
@@ -300,8 +298,7 @@ class _LocationPickerState extends State<LocationPicker> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    selected?.label ??
-                        'Search or tap the map to choose a location.',
+                    selected?.label ?? l10n.corePickerPrompt,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -311,7 +308,7 @@ class _LocationPickerState extends State<LocationPicker> {
                         ? null
                         : () => Navigator.pop(context, selected),
                     icon: const Icon(Icons.check),
-                    label: const Text('Use this location'),
+                    label: Text(l10n.corePickerUseLocation),
                   ),
                 ],
               ),

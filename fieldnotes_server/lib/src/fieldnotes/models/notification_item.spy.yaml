@@ -1,0 +1,11 @@
+class: NotificationItem
+fields:
+  id: int
+  kind: String
+  title: String
+  body: String
+  campaignId: int?
+  createdAt: DateTime
+  readAt: DateTime?
+  unreadCount: int, default=1
+  chatMessageId: int?

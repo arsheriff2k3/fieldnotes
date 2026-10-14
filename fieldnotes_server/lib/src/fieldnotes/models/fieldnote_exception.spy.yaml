@@ -2,3 +2,5 @@ exception: FieldnoteException
 fields:
   message: String
   code: String
+  ### Set with code `rate_limited`: seconds until the window resets.
+  retryAfterSeconds: int?

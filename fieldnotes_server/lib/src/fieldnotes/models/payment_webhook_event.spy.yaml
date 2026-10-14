@@ -1,0 +1,19 @@
+# One received provider webhook delivery, deduplicated by provider event id.
+#
+# status: received | processed | ignored | failed
+class: PaymentWebhookEvent
+table: fieldnote_payment_webhook_event
+fields:
+  provider: String, default='razorpay'
+  eventId: String
+  eventType: String
+  payloadSha256: String
+  status: String, default='received'
+  detail: String?
+  attempts: int, default=1
+  receivedAt: DateTime, default=now
+  processedAt: DateTime?
+indexes:
+  fieldnote_payment_webhook_event_id_idx:
+    fields: provider, eventId
+    unique: true

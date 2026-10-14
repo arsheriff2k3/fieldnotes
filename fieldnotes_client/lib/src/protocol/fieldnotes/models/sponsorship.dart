@@ -19,15 +19,24 @@ abstract class Sponsorship
     required this.campaignId,
     required this.sponsorAuthUserId,
     required this.amount,
+    int? amountPaise,
     this.message,
     String? paymentProvider,
+    this.paymentTestMode,
     String? paymentStatus,
     this.providerOrderId,
     this.providerPaymentId,
     this.verifiedAt,
+    this.failureReason,
+    int? reconcileAttempts,
+    this.lastReconciledAt,
+    this.updatedAt,
+    this.clientRequestId,
     DateTime? createdAt,
-  }) : paymentProvider = paymentProvider ?? 'razorpay',
+  }) : amountPaise = amountPaise ?? 0,
+       paymentProvider = paymentProvider ?? 'razorpay',
        paymentStatus = paymentStatus ?? 'created',
+       reconcileAttempts = reconcileAttempts ?? 0,
        createdAt = createdAt ?? DateTime.now();
 
   factory Sponsorship({
@@ -35,12 +44,19 @@ abstract class Sponsorship
     required int campaignId,
     required _isc.UuidValue sponsorAuthUserId,
     required double amount,
+    int? amountPaise,
     String? message,
     String? paymentProvider,
+    bool? paymentTestMode,
     String? paymentStatus,
     String? providerOrderId,
     String? providerPaymentId,
     DateTime? verifiedAt,
+    String? failureReason,
+    int? reconcileAttempts,
+    DateTime? lastReconciledAt,
+    DateTime? updatedAt,
+    String? clientRequestId,
     DateTime? createdAt,
   }) = _SponsorshipImpl;
 
@@ -52,8 +68,14 @@ abstract class Sponsorship
         jsonSerialization['sponsorAuthUserId'],
       ),
       amount: (jsonSerialization['amount'] as num).toDouble(),
+      amountPaise: jsonSerialization['amountPaise'] as int?,
       message: jsonSerialization['message'] as String?,
       paymentProvider: jsonSerialization['paymentProvider'] as String?,
+      paymentTestMode: jsonSerialization['paymentTestMode'] == null
+          ? null
+          : _isc.BoolJsonExtension.fromJson(
+              jsonSerialization['paymentTestMode'],
+            ),
       paymentStatus: jsonSerialization['paymentStatus'] as String?,
       providerOrderId: jsonSerialization['providerOrderId'] as String?,
       providerPaymentId: jsonSerialization['providerPaymentId'] as String?,
@@ -62,6 +84,17 @@ abstract class Sponsorship
           : _isc.DateTimeJsonExtension.fromJson(
               jsonSerialization['verifiedAt'],
             ),
+      failureReason: jsonSerialization['failureReason'] as String?,
+      reconcileAttempts: jsonSerialization['reconcileAttempts'] as int?,
+      lastReconciledAt: jsonSerialization['lastReconciledAt'] == null
+          ? null
+          : _isc.DateTimeJsonExtension.fromJson(
+              jsonSerialization['lastReconciledAt'],
+            ),
+      updatedAt: jsonSerialization['updatedAt'] == null
+          ? null
+          : _isc.DateTimeJsonExtension.fromJson(jsonSerialization['updatedAt']),
+      clientRequestId: jsonSerialization['clientRequestId'] as String?,
       createdAt: jsonSerialization['createdAt'] == null
           ? null
           : _isc.DateTimeJsonExtension.fromJson(jsonSerialization['createdAt']),
@@ -79,9 +112,13 @@ abstract class Sponsorship
 
   double amount;
 
+  int amountPaise;
+
   String? message;
 
   String paymentProvider;
+
+  bool? paymentTestMode;
 
   String paymentStatus;
 
@@ -90,6 +127,16 @@ abstract class Sponsorship
   String? providerPaymentId;
 
   DateTime? verifiedAt;
+
+  String? failureReason;
+
+  int reconcileAttempts;
+
+  DateTime? lastReconciledAt;
+
+  DateTime? updatedAt;
+
+  String? clientRequestId;
 
   DateTime createdAt;
 
@@ -101,12 +148,19 @@ abstract class Sponsorship
     int? campaignId,
     _isc.UuidValue? sponsorAuthUserId,
     double? amount,
+    int? amountPaise,
     String? message,
     String? paymentProvider,
+    bool? paymentTestMode,
     String? paymentStatus,
     String? providerOrderId,
     String? providerPaymentId,
     DateTime? verifiedAt,
+    String? failureReason,
+    int? reconcileAttempts,
+    DateTime? lastReconciledAt,
+    DateTime? updatedAt,
+    String? clientRequestId,
     DateTime? createdAt,
   });
   @override
@@ -117,12 +171,20 @@ abstract class Sponsorship
       'campaignId': campaignId,
       'sponsorAuthUserId': sponsorAuthUserId.toJson(),
       'amount': amount,
+      'amountPaise': amountPaise,
       if (message != null) 'message': message,
       'paymentProvider': paymentProvider,
+      if (paymentTestMode != null) 'paymentTestMode': paymentTestMode,
       'paymentStatus': paymentStatus,
       if (providerOrderId != null) 'providerOrderId': providerOrderId,
       if (providerPaymentId != null) 'providerPaymentId': providerPaymentId,
       if (verifiedAt != null) 'verifiedAt': verifiedAt?.toJson(),
+      if (failureReason != null) 'failureReason': failureReason,
+      'reconcileAttempts': reconcileAttempts,
+      if (lastReconciledAt != null)
+        'lastReconciledAt': lastReconciledAt?.toJson(),
+      if (updatedAt != null) 'updatedAt': updatedAt?.toJson(),
+      if (clientRequestId != null) 'clientRequestId': clientRequestId,
       'createdAt': createdAt.toJson(),
     };
   }
@@ -135,12 +197,20 @@ abstract class Sponsorship
       'campaignId': campaignId,
       'sponsorAuthUserId': sponsorAuthUserId.toJson(),
       'amount': amount,
+      'amountPaise': amountPaise,
       if (message != null) 'message': message,
       'paymentProvider': paymentProvider,
+      if (paymentTestMode != null) 'paymentTestMode': paymentTestMode,
       'paymentStatus': paymentStatus,
       if (providerOrderId != null) 'providerOrderId': providerOrderId,
       if (providerPaymentId != null) 'providerPaymentId': providerPaymentId,
       if (verifiedAt != null) 'verifiedAt': verifiedAt?.toJson(),
+      if (failureReason != null) 'failureReason': failureReason,
+      'reconcileAttempts': reconcileAttempts,
+      if (lastReconciledAt != null)
+        'lastReconciledAt': lastReconciledAt?.toJson(),
+      if (updatedAt != null) 'updatedAt': updatedAt?.toJson(),
+      if (clientRequestId != null) 'clientRequestId': clientRequestId,
       'createdAt': createdAt.toJson(),
     };
   }
@@ -159,24 +229,38 @@ class _SponsorshipImpl extends Sponsorship {
     required int campaignId,
     required _isc.UuidValue sponsorAuthUserId,
     required double amount,
+    int? amountPaise,
     String? message,
     String? paymentProvider,
+    bool? paymentTestMode,
     String? paymentStatus,
     String? providerOrderId,
     String? providerPaymentId,
     DateTime? verifiedAt,
+    String? failureReason,
+    int? reconcileAttempts,
+    DateTime? lastReconciledAt,
+    DateTime? updatedAt,
+    String? clientRequestId,
     DateTime? createdAt,
   }) : super._(
          id: id,
          campaignId: campaignId,
          sponsorAuthUserId: sponsorAuthUserId,
          amount: amount,
+         amountPaise: amountPaise,
          message: message,
          paymentProvider: paymentProvider,
+         paymentTestMode: paymentTestMode,
          paymentStatus: paymentStatus,
          providerOrderId: providerOrderId,
          providerPaymentId: providerPaymentId,
          verifiedAt: verifiedAt,
+         failureReason: failureReason,
+         reconcileAttempts: reconcileAttempts,
+         lastReconciledAt: lastReconciledAt,
+         updatedAt: updatedAt,
+         clientRequestId: clientRequestId,
          createdAt: createdAt,
        );
 
@@ -189,12 +273,19 @@ class _SponsorshipImpl extends Sponsorship {
     int? campaignId,
     _isc.UuidValue? sponsorAuthUserId,
     double? amount,
+    int? amountPaise,
     Object? message = _Undefined,
     String? paymentProvider,
+    Object? paymentTestMode = _Undefined,
     String? paymentStatus,
     Object? providerOrderId = _Undefined,
     Object? providerPaymentId = _Undefined,
     Object? verifiedAt = _Undefined,
+    Object? failureReason = _Undefined,
+    int? reconcileAttempts,
+    Object? lastReconciledAt = _Undefined,
+    Object? updatedAt = _Undefined,
+    Object? clientRequestId = _Undefined,
     DateTime? createdAt,
   }) {
     return Sponsorship(
@@ -202,8 +293,12 @@ class _SponsorshipImpl extends Sponsorship {
       campaignId: campaignId ?? this.campaignId,
       sponsorAuthUserId: sponsorAuthUserId ?? this.sponsorAuthUserId,
       amount: amount ?? this.amount,
+      amountPaise: amountPaise ?? this.amountPaise,
       message: message is String? ? message : this.message,
       paymentProvider: paymentProvider ?? this.paymentProvider,
+      paymentTestMode: paymentTestMode is bool?
+          ? paymentTestMode
+          : this.paymentTestMode,
       paymentStatus: paymentStatus ?? this.paymentStatus,
       providerOrderId: providerOrderId is String?
           ? providerOrderId
@@ -212,6 +307,17 @@ class _SponsorshipImpl extends Sponsorship {
           ? providerPaymentId
           : this.providerPaymentId,
       verifiedAt: verifiedAt is DateTime? ? verifiedAt : this.verifiedAt,
+      failureReason: failureReason is String?
+          ? failureReason
+          : this.failureReason,
+      reconcileAttempts: reconcileAttempts ?? this.reconcileAttempts,
+      lastReconciledAt: lastReconciledAt is DateTime?
+          ? lastReconciledAt
+          : this.lastReconciledAt,
+      updatedAt: updatedAt is DateTime? ? updatedAt : this.updatedAt,
+      clientRequestId: clientRequestId is String?
+          ? clientRequestId
+          : this.clientRequestId,
       createdAt: createdAt ?? this.createdAt,
     );
   }

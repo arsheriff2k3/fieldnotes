@@ -30,6 +30,10 @@ abstract class CampaignParticipation
     this.locationIntegrityStatus,
     this.locationIntegrityReasons,
     bool? locationIsDemo,
+    this.leftAt,
+    this.resolvedAt,
+    this.evidenceUploadPath,
+    this.aiAnalyzedAt,
   }) : confirmedRevision = confirmedRevision ?? 0,
        joinedAt = joinedAt ?? DateTime.now(),
        locationIsDemo = locationIsDemo ?? false;
@@ -49,6 +53,10 @@ abstract class CampaignParticipation
     String? locationIntegrityStatus,
     String? locationIntegrityReasons,
     bool? locationIsDemo,
+    DateTime? leftAt,
+    DateTime? resolvedAt,
+    String? evidenceUploadPath,
+    DateTime? aiAnalyzedAt,
   }) = _CampaignParticipationImpl;
 
   factory CampaignParticipation.fromJson(
@@ -90,6 +98,18 @@ abstract class CampaignParticipation
       locationIsDemo: jsonSerialization['locationIsDemo'] == null
           ? null
           : _is.BoolJsonExtension.fromJson(jsonSerialization['locationIsDemo']),
+      leftAt: jsonSerialization['leftAt'] == null
+          ? null
+          : _is.DateTimeJsonExtension.fromJson(jsonSerialization['leftAt']),
+      resolvedAt: jsonSerialization['resolvedAt'] == null
+          ? null
+          : _is.DateTimeJsonExtension.fromJson(jsonSerialization['resolvedAt']),
+      evidenceUploadPath: jsonSerialization['evidenceUploadPath'] as String?,
+      aiAnalyzedAt: jsonSerialization['aiAnalyzedAt'] == null
+          ? null
+          : _is.DateTimeJsonExtension.fromJson(
+              jsonSerialization['aiAnalyzedAt'],
+            ),
     );
   }
 
@@ -126,6 +146,14 @@ abstract class CampaignParticipation
 
   bool locationIsDemo;
 
+  DateTime? leftAt;
+
+  DateTime? resolvedAt;
+
+  String? evidenceUploadPath;
+
+  DateTime? aiAnalyzedAt;
+
   @override
   _is.Table<int?> get table => t;
 
@@ -147,6 +175,10 @@ abstract class CampaignParticipation
     String? locationIntegrityStatus,
     String? locationIntegrityReasons,
     bool? locationIsDemo,
+    DateTime? leftAt,
+    DateTime? resolvedAt,
+    String? evidenceUploadPath,
+    DateTime? aiAnalyzedAt,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -169,6 +201,10 @@ abstract class CampaignParticipation
       if (locationIntegrityReasons != null)
         'locationIntegrityReasons': locationIntegrityReasons,
       'locationIsDemo': locationIsDemo,
+      if (leftAt != null) 'leftAt': leftAt?.toJson(),
+      if (resolvedAt != null) 'resolvedAt': resolvedAt?.toJson(),
+      if (evidenceUploadPath != null) 'evidenceUploadPath': evidenceUploadPath,
+      if (aiAnalyzedAt != null) 'aiAnalyzedAt': aiAnalyzedAt?.toJson(),
     };
   }
 
@@ -193,6 +229,10 @@ abstract class CampaignParticipation
       if (locationIntegrityReasons != null)
         'locationIntegrityReasons': locationIntegrityReasons,
       'locationIsDemo': locationIsDemo,
+      if (leftAt != null) 'leftAt': leftAt?.toJson(),
+      if (resolvedAt != null) 'resolvedAt': resolvedAt?.toJson(),
+      if (evidenceUploadPath != null) 'evidenceUploadPath': evidenceUploadPath,
+      if (aiAnalyzedAt != null) 'aiAnalyzedAt': aiAnalyzedAt?.toJson(),
     };
   }
 
@@ -242,6 +282,10 @@ class _CampaignParticipationImpl extends CampaignParticipation {
     String? locationIntegrityStatus,
     String? locationIntegrityReasons,
     bool? locationIsDemo,
+    DateTime? leftAt,
+    DateTime? resolvedAt,
+    String? evidenceUploadPath,
+    DateTime? aiAnalyzedAt,
   }) : super._(
          id: id,
          campaignId: campaignId,
@@ -257,6 +301,10 @@ class _CampaignParticipationImpl extends CampaignParticipation {
          locationIntegrityStatus: locationIntegrityStatus,
          locationIntegrityReasons: locationIntegrityReasons,
          locationIsDemo: locationIsDemo,
+         leftAt: leftAt,
+         resolvedAt: resolvedAt,
+         evidenceUploadPath: evidenceUploadPath,
+         aiAnalyzedAt: aiAnalyzedAt,
        );
 
   /// Returns a shallow copy of this [CampaignParticipation]
@@ -278,6 +326,10 @@ class _CampaignParticipationImpl extends CampaignParticipation {
     Object? locationIntegrityStatus = _Undefined,
     Object? locationIntegrityReasons = _Undefined,
     bool? locationIsDemo,
+    Object? leftAt = _Undefined,
+    Object? resolvedAt = _Undefined,
+    Object? evidenceUploadPath = _Undefined,
+    Object? aiAnalyzedAt = _Undefined,
   }) {
     return CampaignParticipation(
       id: id is int? ? id : this.id,
@@ -304,6 +356,14 @@ class _CampaignParticipationImpl extends CampaignParticipation {
           ? locationIntegrityReasons
           : this.locationIntegrityReasons,
       locationIsDemo: locationIsDemo ?? this.locationIsDemo,
+      leftAt: leftAt is DateTime? ? leftAt : this.leftAt,
+      resolvedAt: resolvedAt is DateTime? ? resolvedAt : this.resolvedAt,
+      evidenceUploadPath: evidenceUploadPath is String?
+          ? evidenceUploadPath
+          : this.evidenceUploadPath,
+      aiAnalyzedAt: aiAnalyzedAt is DateTime?
+          ? aiAnalyzedAt
+          : this.aiAnalyzedAt,
     );
   }
 }
@@ -387,6 +447,30 @@ class CampaignParticipationUpdateTable
     table.locationIsDemo,
     value,
   );
+
+  _is.ColumnValue<DateTime, DateTime> leftAt(DateTime? value) =>
+      _is.ColumnValue(
+        table.leftAt,
+        value,
+      );
+
+  _is.ColumnValue<DateTime, DateTime> resolvedAt(DateTime? value) =>
+      _is.ColumnValue(
+        table.resolvedAt,
+        value,
+      );
+
+  _is.ColumnValue<String, String> evidenceUploadPath(String? value) =>
+      _is.ColumnValue(
+        table.evidenceUploadPath,
+        value,
+      );
+
+  _is.ColumnValue<DateTime, DateTime> aiAnalyzedAt(DateTime? value) =>
+      _is.ColumnValue(
+        table.aiAnalyzedAt,
+        value,
+      );
 }
 
 class CampaignParticipationTable extends _is.Table<int?> {
@@ -449,6 +533,22 @@ class CampaignParticipationTable extends _is.Table<int?> {
       this,
       hasDefault: true,
     );
+    leftAt = _is.ColumnDateTime(
+      'leftAt',
+      this,
+    );
+    resolvedAt = _is.ColumnDateTime(
+      'resolvedAt',
+      this,
+    );
+    evidenceUploadPath = _is.ColumnString(
+      'evidenceUploadPath',
+      this,
+    );
+    aiAnalyzedAt = _is.ColumnDateTime(
+      'aiAnalyzedAt',
+      this,
+    );
   }
 
   late final CampaignParticipationUpdateTable updateTable;
@@ -479,6 +579,14 @@ class CampaignParticipationTable extends _is.Table<int?> {
 
   late final _is.ColumnBool locationIsDemo;
 
+  late final _is.ColumnDateTime leftAt;
+
+  late final _is.ColumnDateTime resolvedAt;
+
+  late final _is.ColumnString evidenceUploadPath;
+
+  late final _is.ColumnDateTime aiAnalyzedAt;
+
   @override
   List<_is.Column> get columns => [
     id,
@@ -495,6 +603,10 @@ class CampaignParticipationTable extends _is.Table<int?> {
     locationIntegrityStatus,
     locationIntegrityReasons,
     locationIsDemo,
+    leftAt,
+    resolvedAt,
+    evidenceUploadPath,
+    aiAnalyzedAt,
   ];
 }
 

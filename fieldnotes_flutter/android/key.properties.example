@@ -1,0 +1,29 @@
+# Copy to android/key.properties (git-ignored) and fill in real values.
+# Never commit key.properties or the keystore.
+#
+# Create an upload keystore, for example:
+#   keytool -genkey -v -keystore ~/fieldnote-upload.jks -keyalg RSA \
+#     -keysize 2048 -validity 10000 -alias upload
+#
+# Each value may instead come from a Gradle property (-P<name>=...) or an
+# environment variable (shown in brackets), e.g. for CI.
+
+# Required for release builds. Reverse-DNS ID you own; must not start with
+# com.example. Cannot be changed after the first Play Store upload.
+# [FIELDNOTE_APPLICATION_ID]
+fieldnote.applicationId=
+
+# Required for release builds. Bare host that serves shared campaign links
+# https://<host>/c/<id> and /.well-known/assetlinks.json (no scheme, no path).
+# [FIELDNOTE_LINK_HOST]
+fieldnote.linkHost=
+
+# Release (upload) signing. storeFile is relative to android/ or absolute.
+# [FIELDNOTE_KEYSTORE_PATH]
+storeFile=
+# [FIELDNOTE_KEYSTORE_PASSWORD]
+storePassword=
+# [FIELDNOTE_KEY_ALIAS]
+keyAlias=
+# [FIELDNOTE_KEY_PASSWORD]
+keyPassword=

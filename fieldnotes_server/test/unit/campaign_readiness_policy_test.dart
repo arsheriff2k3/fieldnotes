@@ -5,9 +5,9 @@ void main() {
   const policy = CampaignReadinessPolicy();
 
   test('classifies all four cutoff outcomes', () {
-    String result(double funded, int joined) => policy.evaluate(
-      fundingGoal: 1500,
-      sponsoredAmount: funded,
+    String result(int fundedRupees, int joined) => policy.evaluate(
+      fundingGoalPaise: 150000,
+      sponsoredPaise: fundedRupees * 100,
       minimumVolunteers: 4,
       joinedVolunteers: joined,
     );

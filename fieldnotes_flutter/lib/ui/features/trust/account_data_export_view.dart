@@ -8,6 +8,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/widgets.dart';
+import '../../../l10n/l10n.dart';
 import '../shell/fieldnote_view_model.dart';
 
 class AccountDataExportView extends StatefulWidget {
@@ -37,10 +38,18 @@ class _AccountDataExportViewState extends State<AccountDataExportView> {
     });
     try {
       final raw = await widget.viewModel.exportMyData();
-      if (mounted) setState(() => _export = _AccountExport.parse(raw));
+      if (mounted) {
+        setState(
+          () => _export = _AccountExport.parse(
+            raw,
+            context.l10n,
+            context.localeTag,
+          ),
+        );
+      }
     } catch (_) {
       if (mounted) {
-        setState(() => _error = 'Could not load your data. Try again.');
+        setState(() => _error = context.l10n.exportLoadFailed);
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -52,7 +61,11 @@ class _AccountDataExportViewState extends State<AccountDataExportView> {
     if (data == null || _busy) return;
     setState(() => _busy = true);
     try {
-      final bytes = await buildAccountDataPdf(data.raw);
+      final bytes = await buildAccountDataPdf(
+        data.raw,
+        l10n: context.l10n,
+        locale: context.localeTag,
+      );
       if (!mounted) return;
       await _shareFile(
         bytes,
@@ -61,7 +74,7 @@ class _AccountDataExportViewState extends State<AccountDataExportView> {
         'pdf',
       );
     } catch (_) {
-      if (mounted) _showError('Could not create the PDF. Try again.');
+      if (mounted) _showError(context.l10n.exportPdfFailed);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -79,7 +92,7 @@ class _AccountDataExportViewState extends State<AccountDataExportView> {
         'json',
       );
     } catch (_) {
-      if (mounted) _showError('Could not share the JSON file. Try again.');
+      if (mounted) _showError(context.l10n.exportJsonFailed);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -115,27 +128,27 @@ class _AccountDataExportViewState extends State<AccountDataExportView> {
   @override
   Widget build(BuildContext context) {
     final data = _export;
+    final l10n = context.l10n;
     return Scaffold(
-      appBar: AppBar(title: const Text('My data')),
+      appBar: AppBar(title: Text(l10n.exportAppBarTitle)),
       body: SafeArea(
         child: FieldnotePageList(
           children: [
-            const SectionHeading(
-              eyebrow: 'Your account records',
-              title: 'Your FieldNote data',
-              description:
-                  'Read your records here, or save a report to your phone.',
+            SectionHeading(
+              eyebrow: l10n.exportEyebrow,
+              title: l10n.exportTitle,
+              description: l10n.exportDescription,
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: FieldnoteSpacing.md),
             if (_busy && data == null)
               const Center(child: CircularProgressIndicator()),
             if (_error != null) ...[
               SurfaceCard(child: Text(_error!)),
-              const SizedBox(height: 12),
+              const SizedBox(height: FieldnoteSpacing.sm),
               OutlinedButton.icon(
                 onPressed: _load,
                 icon: const Icon(Icons.refresh),
-                label: const Text('Try again'),
+                label: Text(l10n.commonTryAgain),
               ),
             ],
             if (data != null) ...[
@@ -144,36 +157,36 @@ class _AccountDataExportViewState extends State<AccountDataExportView> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      'Save or share a readable report',
+                      l10n.exportReportTitle,
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: FieldnoteSpacing.xs),
                     Text(
-                      'Prepared ${data.generatedLabel}. The PDF contains the records shown below.',
+                      l10n.exportPreparedAt(data.generatedLabel),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: FieldnoteSpacing.md),
                     FilledButton.icon(
                       onPressed: _busy ? null : _sharePdf,
                       icon: const Icon(Icons.picture_as_pdf_outlined),
                       label: Text(
-                        _busy ? 'Preparing PDF…' : 'Save or share PDF',
+                        _busy ? l10n.exportPreparingPdf : l10n.exportSharePdf,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: FieldnoteSpacing.md),
               for (final section in data.sections.where(
                 (section) => section.records.isNotEmpty,
               )) ...[
                 SurfaceCard(
                   child: ExpansionTile(
-                    initiallyExpanded: section.title == 'Profile',
+                    initiallyExpanded: section.id == _SectionId.profile,
                     tilePadding: EdgeInsets.zero,
                     childrenPadding: EdgeInsets.zero,
                     title: Text(section.title),
                     subtitle: Text(
-                      '${section.records.length} ${section.records.length == 1 ? 'record' : 'records'}',
+                      l10n.exportRecordCount(section.records.length),
                     ),
                     children: [
                       for (final record in section.records)
@@ -185,26 +198,22 @@ class _AccountDataExportViewState extends State<AccountDataExportView> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: FieldnoteSpacing.sm),
               ],
-              const Text(
-                'Private photographs are not included in this report. Shared files may contain personal details, so choose where to save them carefully.',
-              ),
-              const SizedBox(height: 16),
+              Text(l10n.exportPhotosNotice),
+              const SizedBox(height: FieldnoteSpacing.md),
               SurfaceCard(
                 child: ExpansionTile(
                   tilePadding: EdgeInsets.zero,
-                  title: const Text('Advanced export'),
-                  subtitle: const Text('For moving data to another service'),
+                  title: Text(l10n.exportAdvancedTitle),
+                  subtitle: Text(l10n.exportAdvancedSubtitle),
                   children: [
-                    const Text(
-                      'JSON is a machine-readable copy of these account records.',
-                    ),
-                    const SizedBox(height: 10),
+                    Text(l10n.exportJsonDescription),
+                    const SizedBox(height: FieldnoteSpacing.sm),
                     OutlinedButton.icon(
                       onPressed: _busy ? null : _shareJson,
                       icon: const Icon(Icons.code),
-                      label: const Text('Save or share JSON'),
+                      label: Text(l10n.exportShareJson),
                     ),
                   ],
                 ),
@@ -217,6 +226,20 @@ class _AccountDataExportViewState extends State<AccountDataExportView> {
   }
 }
 
+enum _SectionId {
+  profile,
+  privacy,
+  availability,
+  createdCampaigns,
+  sponsorships,
+  participations,
+  evidence,
+  posts,
+  payouts,
+  refunds,
+  security,
+}
+
 class _ExportRecord {
   const _ExportRecord(this.title, this.details);
 
@@ -225,12 +248,15 @@ class _ExportRecord {
 }
 
 class _ExportSection {
-  const _ExportSection(this.title, this.records);
+  const _ExportSection(this.id, this.title, this.records);
 
+  final _SectionId id;
   final String title;
   final List<_ExportRecord> records;
 }
 
+/// The account export as readable sections. Labels and dates are worded in
+/// [l10n] / [locale]; stored values (roles, statuses, tags) stay as stored.
 class _AccountExport {
   const _AccountExport(this.raw, this.generatedLabel, this.sections);
 
@@ -238,151 +264,200 @@ class _AccountExport {
   final String generatedLabel;
   final List<_ExportSection> sections;
 
-  static _AccountExport parse(String raw) {
+  static _AccountExport parse(
+    String raw,
+    AppLocalizations l10n,
+    String locale,
+  ) {
     final root = jsonDecode(raw) as Map<String, dynamic>;
     final profile = _map(root['profile']);
     final consent = _map(root['consent']);
     final availability = _map(root['availability']);
+    // English uses intl's built-in default, which needs no initialisation.
+    final dateFormat = DateFormat.yMMMd(
+      locale == 'en' || locale.startsWith('en-') ? null : locale,
+    ).add_jm();
+    String date(dynamic value) {
+      final parsed = DateTime.tryParse(value?.toString() ?? '');
+      return parsed == null ? '—' : dateFormat.format(parsed.toLocal());
+    }
+
+    final number = NumberFormat.decimalPatternDigits(
+      locale: locale,
+      decimalDigits: 2,
+    );
+    String amount(dynamic value) => number.format(
+      (value is num ? value : num.tryParse(value?.toString() ?? '')) ?? 0,
+    );
+    String yesNo(dynamic value) =>
+        value == true ? l10n.commonYes : l10n.commonNo;
+
     final sections = <_ExportSection>[
-      _ExportSection('Profile', [
+      _ExportSection(_SectionId.profile, l10n.exportSectionProfile, [
         _ExportRecord(_value(profile, 'displayName'), [
-          'Role: ${_value(profile, 'role')}',
-          'City: ${_value(profile, 'city')}',
+          l10n.exportFieldRole(_value(profile, 'role')),
+          l10n.exportFieldCity(_value(profile, 'city')),
           if (_value(profile, 'contactPhone') != '—')
-            'Contact phone: ${_value(profile, 'contactPhone')}',
+            l10n.exportFieldContactPhone(_value(profile, 'contactPhone')),
           if (_value(profile, 'organizationName') != '—')
-            'Organization: ${_value(profile, 'organizationName')}',
+            l10n.exportFieldOrganization(_value(profile, 'organizationName')),
           if (_value(profile, 'interests') != '—')
-            'Interests: ${_value(profile, 'interests')}',
+            l10n.exportFieldInterests(_value(profile, 'interests')),
           if (_value(profile, 'skills') != '—')
-            'Skills: ${_value(profile, 'skills')}',
+            l10n.exportFieldSkills(_value(profile, 'skills')),
         ]),
       ]),
       _ExportSection(
-        'Privacy choices',
+        _SectionId.privacy,
+        l10n.exportSectionPrivacy,
         consent.isEmpty
             ? []
             : [
-                _ExportRecord('Consent accepted ${_date(consent['acceptedAt'])}', [
-                  'Location: ${_yesNo(consent['locationConsent'])}',
-                  'AI processing: ${_yesNo(consent['aiProcessingConsent'])}',
-                  'Evidence sharing: ${_yesNo(consent['evidenceSharingConsent'])}',
-                  'Privacy policy: ${_value(consent, 'privacyPolicyVersion')}',
-                  'Terms: ${_value(consent, 'termsVersion')}',
-                ]),
+                _ExportRecord(
+                  l10n.exportConsentAccepted(date(consent['acceptedAt'])),
+                  [
+                    l10n.exportFieldLocation(yesNo(consent['locationConsent'])),
+                    l10n.exportFieldAiProcessing(
+                      yesNo(consent['aiProcessingConsent']),
+                    ),
+                    l10n.exportFieldEvidenceSharing(
+                      yesNo(consent['evidenceSharingConsent']),
+                    ),
+                    l10n.exportFieldPrivacyPolicy(
+                      _value(consent, 'privacyPolicyVersion'),
+                    ),
+                    l10n.exportFieldTerms(_value(consent, 'termsVersion')),
+                  ],
+                ),
               ],
       ),
       _ExportSection(
-        'Volunteer availability',
+        _SectionId.availability,
+        l10n.exportSectionAvailability,
         availability.isEmpty
             ? []
             : [
                 _ExportRecord(_value(availability, 'locationLabel'), [
-                  'Available: ${_yesNo(availability['isAvailable'])}',
-                  'Available today: ${_yesNo(availability['availableToday'])}',
-                  'Travel radius: ${_value(availability, 'maximumTravelKm')} km',
-                  'Days: ${_value(availability, 'weekdays')}',
-                  'Updated: ${_date(availability['updatedAt'])}',
+                  l10n.exportFieldAvailable(yesNo(availability['isAvailable'])),
+                  l10n.exportFieldAvailableToday(
+                    yesNo(availability['availableToday']),
+                  ),
+                  l10n.exportFieldTravelRadius(
+                    _value(availability, 'maximumTravelKm'),
+                  ),
+                  l10n.exportFieldDays(_value(availability, 'weekdays')),
+                  l10n.exportFieldUpdated(date(availability['updatedAt'])),
                 ]),
               ],
       ),
       _ExportSection(
-        'Campaigns you created',
+        _SectionId.createdCampaigns,
+        l10n.exportSectionCreatedCampaigns,
         _rows(
           root,
           'createdCampaigns',
           (m) => _ExportRecord(_value(m, 'name'), [
-            'Location: ${_value(m, 'locationName')}',
-            'Starts: ${_date(m['startsAt'])}',
-            'Status: ${_value(m, 'readinessState')}',
-            'Funding goal: INR ${_amount(m['fundingGoal'])}',
-            'Description: ${_value(m, 'description')}',
+            l10n.exportFieldLocation(_value(m, 'locationName')),
+            l10n.exportFieldStarts(date(m['startsAt'])),
+            l10n.exportFieldStatus(_value(m, 'readinessState')),
+            l10n.exportFieldFundingGoal(amount(m['fundingGoal'])),
+            l10n.exportFieldDescription(_value(m, 'description')),
           ]),
         ),
       ),
       _ExportSection(
-        'Sponsorships',
+        _SectionId.sponsorships,
+        l10n.exportSectionSponsorships,
         _rows(
           root,
           'sponsorships',
           (m) => _ExportRecord(_value(m, 'campaignName'), [
-            'Amount: INR ${_amount(m['amount'])}',
-            'Payment status: ${_value(m, 'paymentStatus')}',
-            'Date: ${_date(m['createdAt'])}',
-            if (_value(m, 'message') != '—') 'Message: ${_value(m, 'message')}',
+            l10n.exportFieldAmount(amount(m['amount'])),
+            l10n.exportFieldPaymentStatus(_value(m, 'paymentStatus')),
+            l10n.exportFieldDate(date(m['createdAt'])),
+            if (_value(m, 'message') != '—')
+              l10n.exportFieldMessage(_value(m, 'message')),
           ]),
         ),
       ),
       _ExportSection(
-        'Volunteer work',
+        _SectionId.participations,
+        l10n.exportSectionVolunteerWork,
         _rows(
           root,
           'participations',
           (m) => _ExportRecord(_value(m, 'campaignName'), [
-            'Status: ${_value(m, 'status')}',
-            'Joined: ${_date(m['joinedAt'])}',
+            l10n.exportFieldStatus(_value(m, 'status')),
+            l10n.exportFieldJoined(date(m['joinedAt'])),
             if (m['checkedInAt'] != null)
-              'Checked in: ${_date(m['checkedInAt'])}',
+              l10n.exportFieldCheckedIn(date(m['checkedInAt'])),
             if (m['completedAt'] != null)
-              'Completed: ${_date(m['completedAt'])}',
+              l10n.exportFieldCompleted(date(m['completedAt'])),
           ]),
         ),
       ),
       _ExportSection(
-        'Evidence you submitted',
+        _SectionId.evidence,
+        l10n.exportSectionEvidence,
         _rows(
           root,
           'completionEvidence',
           (m) => _ExportRecord(_value(m, 'campaignName'), [
-            'Submitted: ${_date(m['submittedAt'])}',
-            'Your note: ${_value(m, 'originalNote')}',
-            'Confirmed summary: ${_value(m, 'confirmedSummary')}',
-            'Location check: ${_value(m, 'locationIntegrityStatus')}',
+            l10n.exportFieldSubmitted(date(m['submittedAt'])),
+            l10n.exportFieldYourNote(_value(m, 'originalNote')),
+            l10n.exportFieldConfirmedSummary(_value(m, 'confirmedSummary')),
+            l10n.exportFieldLocationCheck(
+              _value(m, 'locationIntegrityStatus'),
+            ),
           ]),
         ),
       ),
       _ExportSection(
-        'Campaign updates you posted',
+        _SectionId.posts,
+        l10n.exportSectionPosts,
         _rows(
           root,
           'campaignPosts',
           (m) => _ExportRecord(_value(m, 'title'), [
             _value(m, 'body'),
-            'Posted: ${_date(m['createdAt'])}',
+            l10n.exportFieldPosted(date(m['createdAt'])),
           ]),
         ),
       ),
       _ExportSection(
-        'Test payout simulations',
+        _SectionId.payouts,
+        l10n.exportSectionPayouts,
         _rows(
           root,
           'testPayouts',
-          (m) => _ExportRecord('INR ${_amount(m['amount'])}', [
-            'Status: ${_value(m, 'status')}',
-            'Simulated: ${_date(m['simulatedAt'])}',
-            'No bank transfer was made.',
+          (m) => _ExportRecord(l10n.exportInrAmount(amount(m['amount'])), [
+            l10n.exportFieldStatus(_value(m, 'status')),
+            l10n.exportFieldSimulated(date(m['simulatedAt'])),
+            l10n.exportNoBankTransfer,
           ]),
         ),
       ),
       _ExportSection(
-        'Test refunds',
+        _SectionId.refunds,
+        l10n.exportSectionRefunds,
         _rows(
           root,
           'testRefunds',
-          (m) => _ExportRecord('INR ${_amount(m['amount'])}', [
-            'Status: ${_value(m, 'status')}',
-            'Recorded: ${_date(m['createdAt'])}',
+          (m) => _ExportRecord(l10n.exportInrAmount(amount(m['amount'])), [
+            l10n.exportFieldStatus(_value(m, 'status')),
+            l10n.exportFieldRecorded(date(m['createdAt'])),
           ]),
         ),
       ),
       _ExportSection(
-        'Security activity',
+        _SectionId.security,
+        l10n.exportSectionSecurity,
         _rows(
           root,
           'securityActivity',
-          (m) => _ExportRecord(_friendlyEvent(_value(m, 'event')), [
-            'When: ${_date(m['occurredAt'])}',
-            'Result: ${_value(m, 'outcome')}',
+          (m) => _ExportRecord(_friendlyEvent(l10n, _value(m, 'event')), [
+            l10n.exportFieldWhen(date(m['occurredAt'])),
+            l10n.exportFieldResult(_value(m, 'outcome')),
             if (_value(m, 'detail') != '—' &&
                 _value(m, 'detail') != 'undefined')
               _value(m, 'detail'),
@@ -390,7 +465,7 @@ class _AccountExport {
         ),
       ),
     ];
-    return _AccountExport(raw, _date(root['generatedAt']), sections);
+    return _AccountExport(raw, date(root['generatedAt']), sections);
   }
 
   static List<_ExportRecord> _rows(
@@ -409,40 +484,58 @@ class _AccountExport {
     return value == null || value.isEmpty ? '—' : value;
   }
 
-  static String _date(dynamic value) {
-    final parsed = DateTime.tryParse(value?.toString() ?? '');
-    return parsed == null
-        ? '—'
-        : DateFormat('d MMM yyyy, h:mm a').format(parsed.toLocal());
-  }
-
-  static String _amount(dynamic value) =>
-      (value is num ? value : num.tryParse(value?.toString() ?? ''))
-          ?.toStringAsFixed(2) ??
-      '0.00';
-
-  static String _yesNo(dynamic value) => value == true ? 'Yes' : 'No';
-
-  static String _friendlyEvent(String value) => switch (value) {
-    'paymentOrderCreated' => 'Payment started',
-    'paymentSignatureVerified' => 'Payment verified',
-    'paymentCheckoutFailed' => 'Checkout did not complete',
-    'locationCheckIn' => 'Location check',
-    'evidenceSubmitted' => 'Evidence submitted',
-    'legalConsentAccepted' => 'Privacy choices accepted',
-    'privacyDataExported' => 'Data exported',
-    'accountDeletionRequested' => 'Account deletion requested',
-    _ => value,
-  };
+  static String _friendlyEvent(AppLocalizations l10n, String value) =>
+      switch (value) {
+        'paymentOrderCreated' => l10n.exportEventPaymentStarted,
+        'paymentSignatureVerified' => l10n.exportEventPaymentVerified,
+        'paymentCheckoutFailed' => l10n.trustCheckoutDidNotComplete,
+        'locationCheckIn' => l10n.exportEventLocationCheck,
+        'evidenceSubmitted' => l10n.exportEventEvidenceSubmitted,
+        'legalConsentAccepted' => l10n.exportEventConsentAccepted,
+        'privacyDataExported' => l10n.eventPrivacyDataExported,
+        'accountDeletionRequested' => l10n.exportEventDeletionRequested,
+        _ => value,
+      };
 }
 
-Future<Uint8List> buildAccountDataPdf(String raw) async {
-  final data = _AccountExport.parse(raw);
+final _englishStrings = lookupAppLocalizations(const Locale('en'));
+
+/// Locales whose labels the PDF may use. The `pdf` package shapes only
+/// Latin-like and Arabic text: Devanagari and Tamil labels would be drawn
+/// with misplaced vowel signs and no conjuncts, so those reports keep
+/// English labels. User-entered text in those scripts is still embedded with
+/// the Noto fallback fonts.
+bool _pdfCanRenderLabels(String localeName) => localeName.startsWith('en');
+
+/// Loads a bundled font, or null when the asset is not in this build.
+Future<pw.Font?> _optionalFont(String asset) async {
+  try {
+    return pw.Font.ttf(await rootBundle.load(asset));
+  } on Object {
+    return null;
+  }
+}
+
+/// Builds the readable account report. [l10n] and [locale] word the labels
+/// and dates when the PDF can render that script (see
+/// [_pdfCanRenderLabels]); otherwise the report is English.
+Future<Uint8List> buildAccountDataPdf(
+  String raw, {
+  AppLocalizations? l10n,
+  String? locale,
+}) async {
+  final usable = l10n != null && _pdfCanRenderLabels(l10n.localeName);
+  final strings = usable ? l10n : _englishStrings;
+  final tag = usable ? (locale ?? l10n.localeName) : 'en';
+  final data = _AccountExport.parse(raw, strings, tag);
   final base = pw.Font.ttf(
     await rootBundle.load('assets/fonts/Roboto-Regular.ttf'),
   );
   final tamil = pw.Font.ttf(
     await rootBundle.load('assets/fonts/NotoSansTamil.ttf'),
+  );
+  final devanagari = await _optionalFont(
+    'assets/fonts/NotoSansDevanagari.ttf',
   );
   final pdf = pw.Document();
   pdf.addPage(
@@ -452,23 +545,23 @@ Future<Uint8List> buildAccountDataPdf(String raw) async {
       theme: pw.ThemeData.withFont(
         base: base,
         bold: base,
-        fontFallback: [tamil],
+        fontFallback: [tamil, ?devanagari],
       ),
       footer: (context) => pw.Text(
-        'FieldNote account report  •  Page ${context.pageNumber} of ${context.pagesCount}',
+        strings.exportPdfFooter(context.pageNumber, context.pagesCount),
         style: const pw.TextStyle(fontSize: 8),
       ),
       build: (context) => [
         pw.Text(
-          'My FieldNote data',
+          strings.exportPdfTitle,
           style: pw.TextStyle(fontSize: 23, fontWeight: pw.FontWeight.bold),
         ),
-        pw.SizedBox(height: 6),
+        pw.SizedBox(height: FieldnoteSpacing.xs),
         pw.Text(
-          'Prepared ${data.generatedLabel}',
+          strings.exportPdfPrepared(data.generatedLabel),
           style: const pw.TextStyle(fontSize: 10),
         ),
-        pw.SizedBox(height: 12),
+        pw.SizedBox(height: FieldnoteSpacing.sm),
         for (final section in data.sections.where(
           (section) => section.records.isNotEmpty,
         )) ...[
@@ -483,11 +576,11 @@ Future<Uint8List> buildAccountDataPdf(String raw) async {
                 padding: const pw.EdgeInsets.only(left: 10, top: 2),
                 child: pw.Text(detail),
               ),
-            pw.SizedBox(height: 8),
+            pw.SizedBox(height: FieldnoteSpacing.xs),
           ],
         ],
-        pw.SizedBox(height: 12),
-        pw.Text('Private photographs are not embedded in this report.'),
+        pw.SizedBox(height: FieldnoteSpacing.sm),
+        pw.Text(strings.exportPdfPhotosNotice),
       ],
     ),
   );

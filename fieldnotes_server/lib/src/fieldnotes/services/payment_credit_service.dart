@@ -1,6 +1,8 @@
 import 'package:serverpod/serverpod.dart';
 
 import '../../generated/protocol.dart';
+import 'money.dart';
+import 'refund_service.dart';
 
 typedef PaymentCreditResult = ({
   Sponsorship sponsorship,
@@ -18,6 +20,7 @@ class PaymentCreditService {
     required int sponsorshipId,
     required UuidValue sponsorAuthUserId,
     required String status,
+    String? failureReason,
   }) => session.db.transaction((transaction) async {
     final sponsorship = await Sponsorship.db.findById(
       session,
@@ -37,6 +40,12 @@ class PaymentCreditService {
       return sponsorship;
     }
     sponsorship.paymentStatus = status;
+    if (failureReason != null) {
+      sponsorship.failureReason = failureReason.length > 240
+          ? failureReason.substring(0, 240)
+          : failureReason;
+    }
+    sponsorship.updatedAt = DateTime.now().toUtc();
     return Sponsorship.db.updateRow(
       session,
       sponsorship,
@@ -92,13 +101,22 @@ class PaymentCreditService {
 
     sponsorship.providerPaymentId = paymentId;
     sponsorship.verifiedAt = DateTime.now().toUtc();
-    if (const {'cancelled', 'expired'}.contains(campaign.readinessState) ||
-        campaign.sponsoredAmount + sponsorship.amount >
-            campaign.fundingGoal + 0.001) {
+    sponsorship.updatedAt = sponsorship.verifiedAt;
+    if (campaign.status != CampaignStatus.active ||
+        const {'cancelled', 'expired'}.contains(campaign.readinessState) ||
+        campaign.sponsoredAmountPaise + sponsorship.amountPaise >
+            campaign.fundingGoalPaise) {
       sponsorship.paymentStatus = 'verified_uncredited';
       final updated = await Sponsorship.db.updateRow(
         session,
         sponsorship,
+        transaction: transaction,
+      );
+      // The money was captured but cannot fund the campaign: refund it.
+      await const RefundService().queueForSponsorship(
+        session,
+        sponsorship: updated,
+        reason: RefundReason.uncredited,
         transaction: transaction,
       );
       return (
@@ -114,7 +132,9 @@ class PaymentCreditService {
       sponsorship,
       transaction: transaction,
     );
-    campaign.sponsoredAmount += sponsorship.amount;
+    campaign.setSponsoredPaise(
+      campaign.sponsoredAmountPaise + sponsorship.amountPaise,
+    );
     campaign.updatedAt = DateTime.now().toUtc();
     await Campaign.db.updateRow(session, campaign, transaction: transaction);
     return (

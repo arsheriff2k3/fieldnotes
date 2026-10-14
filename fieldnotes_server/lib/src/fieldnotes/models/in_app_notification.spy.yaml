@@ -1,0 +1,23 @@
+### Private inbox. Only NotificationItem DTOs cross the RPC boundary.
+class: InAppNotification
+serverOnly: true
+table: fieldnote_in_app_notification
+fields:
+  recipientAuthUserId: UuidValue
+  kind: String
+  dedupeKey: String
+  title: String
+  body: String
+  campaignId: int?
+  createdAt: DateTime, default=now
+  readAt: DateTime?
+  unreadCount: int, default=1
+  chatMessageId: int?
+indexes:
+  fieldnote_inbox_dedupe_idx:
+    fields: recipientAuthUserId, dedupeKey
+    unique: true
+  fieldnote_inbox_page_idx:
+    fields: recipientAuthUserId, id
+  fieldnote_inbox_unread_idx:
+    fields: recipientAuthUserId, readAt

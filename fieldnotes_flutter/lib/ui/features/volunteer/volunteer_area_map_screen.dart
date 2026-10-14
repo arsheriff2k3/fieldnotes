@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../core/fieldnote_map.dart';
 import '../../core/fieldnote_theme.dart';
 
@@ -33,12 +34,13 @@ class _VolunteerAreaMapScreenState extends State<VolunteerAreaMapScreen> {
     final point = _point;
     final center = point ?? const LatLng(20.5937, 78.9629);
     final radiusMeters = widget.radiusKm * 1000;
+    final l10n = context.l10n;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Choose travel area'),
+        title: Text(l10n.volunteerAreaMapTitle),
         actions: [
           IconButton(
-            tooltip: 'Minimize map',
+            tooltip: l10n.volunteerAreaMapMinimize,
             onPressed: () => Navigator.of(context).pop(),
             icon: const Icon(Icons.fullscreen_exit),
           ),
@@ -49,8 +51,7 @@ class _VolunteerAreaMapScreenState extends State<VolunteerAreaMapScreen> {
           target: center,
           zoom: point == null ? 5 : zoomForRadius(radiusMeters),
           height: constraints.maxHeight,
-          semanticLabel:
-              'Full screen map. Tap or drag to choose your travel area.',
+          semanticLabel: l10n.volunteerAreaMapSemantics,
           onTap: (value) => setState(() => _point = value),
           markers: point == null
               ? const {}
@@ -63,7 +64,7 @@ class _VolunteerAreaMapScreenState extends State<VolunteerAreaMapScreen> {
                     icon: BitmapDescriptor.defaultMarkerWithHue(
                       FieldnoteMapPalette.volunteer,
                     ),
-                    infoWindow: const InfoWindow(title: 'Your travel area'),
+                    infoWindow: InfoWindow(title: l10n.volunteerYourTravelArea),
                   ),
                 },
           circles: point == null
@@ -76,9 +77,8 @@ class _VolunteerAreaMapScreenState extends State<VolunteerAreaMapScreen> {
                     color: FieldnoteColors.forest,
                   ),
                 },
-          fallback: const MapUnavailableNotice(
-            message:
-                'The map is unavailable. Return to Availability and use your current GPS area.',
+          fallback: MapUnavailableNotice(
+            message: l10n.volunteerAreaMapUnavailable,
           ),
         ),
       ),
@@ -89,8 +89,8 @@ class _VolunteerAreaMapScreenState extends State<VolunteerAreaMapScreen> {
           children: [
             Text(
               point == null
-                  ? 'Tap the map to place your travel area pin.'
-                  : 'Pin selected · ${widget.radiusKm.round()} km travel radius',
+                  ? l10n.volunteerAreaMapTapPrompt
+                  : l10n.volunteerAreaMapPinSelected(widget.radiusKm.round()),
             ),
             const SizedBox(height: 10),
             SizedBox(
@@ -100,7 +100,7 @@ class _VolunteerAreaMapScreenState extends State<VolunteerAreaMapScreen> {
                     ? null
                     : () => Navigator.of(context).pop(point),
                 icon: const Icon(Icons.check),
-                label: const Text('Use this area'),
+                label: Text(l10n.volunteerAreaMapUseArea),
               ),
             ),
           ],

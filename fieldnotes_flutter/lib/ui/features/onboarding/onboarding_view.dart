@@ -2,13 +2,17 @@ import 'dart:async';
 
 import 'package:fieldnotes_client/fieldnotes_client.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../../data/services/device_location_service.dart';
 import '../../../data/services/pending_role_service.dart';
+import '../../core/error_messages.dart';
 import '../../core/fieldnote_map.dart';
+import '../../core/legal.dart';
 import '../../core/location_picker.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/widgets.dart';
+import '../../../l10n/l10n.dart';
 import '../shell/fieldnote_view_model.dart';
 
 class OnboardingView extends StatefulWidget {
@@ -50,14 +54,15 @@ class _OnboardingViewState extends State<OnboardingView> {
   bool _resolvingArea = false;
   LocationAccessException? _locationError;
   int _areaRequest = 0;
-  bool _locationConsent = false;
-  bool _aiConsent = false;
-  bool _evidenceConsent = false;
+  final Map<String, bool> _consents = {};
 
   @override
   void initState() {
     super.initState();
     _loadRole();
+    if (widget.viewModel.legalPolicies == null) {
+      unawaited(widget.viewModel.loadLegalPolicies());
+    }
   }
 
   Future<void> _loadRole() async {
@@ -149,7 +154,7 @@ class _OnboardingViewState extends State<OnboardingView> {
       MaterialPageRoute(
         builder: (_) => LocationPicker(
           repository: widget.viewModel.repository,
-          title: 'Choose sponsor location',
+          title: context.l10n.onboardingChooseSponsorLocation,
           initialQuery: _city.text,
         ),
       ),
@@ -169,7 +174,7 @@ class _OnboardingViewState extends State<OnboardingView> {
       MaterialPageRoute(
         builder: (_) => LocationPicker(
           repository: widget.viewModel.repository,
-          title: 'Choose travel area',
+          title: context.l10n.onboardingChooseTravelArea,
           initialQuery: _city.text,
           initialLatitude: _deviceLocation?.latitude,
           initialLongitude: _deviceLocation?.longitude,
@@ -200,7 +205,8 @@ class _OnboardingViewState extends State<OnboardingView> {
         setState(
           () => _locationError = const LocationAccessException(
             LocationAccessIssue.unavailable,
-            'The device location is unavailable. Check Location settings and try again.',
+            'The device location is unavailable. Check Location settings and '
+            'try again.',
           ),
         );
       }
@@ -258,42 +264,48 @@ class _OnboardingViewState extends State<OnboardingView> {
   }
 
   Future<void> _save() async {
+    final l10n = context.l10n;
     if (_role == null || _name.text.trim().length < 2) {
-      _message('Choose a role and enter your name.');
+      _message(l10n.onboardingNeedRoleAndName);
       return;
     }
     if (_role == AccountRole.volunteer && _deviceLocation == null) {
-      _message('Use current GPS or choose your travel area on the map.');
+      _message(l10n.onboardingNeedArea);
       return;
     }
     if (_role == AccountRole.volunteer && _resolvingArea) {
-      _message('Wait for the selected area to finish loading.');
+      _message(l10n.onboardingWaitForArea);
       return;
     }
     if (_role == AccountRole.sponsor && _city.text.trim().length < 2) {
-      _message(
-        'Choose your location.',
-      );
+      _message(l10n.onboardingNeedLocation);
       return;
     }
     if (_role == AccountRole.sponsor &&
         !RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(
           _contactPhone.text.replaceAll(RegExp(r'[\s()\-]'), ''),
         )) {
-      _message(
-        'Enter a phone number with country code, for example +919876543210.',
-      );
+      _message(l10n.onboardingNeedPhone);
       return;
     }
     if (_role == AccountRole.sponsor &&
         _citySearchAvailable &&
         _selectedCityPlaceId == null &&
         _sponsorLocation == null) {
-      _message('Select your location from the Google suggestions.');
+      _message(l10n.onboardingSelectSuggestion);
       return;
     }
-    if (!_locationConsent || !_aiConsent || !_evidenceConsent) {
-      _message('Review and accept all three privacy choices.');
+    if (widget.viewModel.legalPolicies == null) {
+      await widget.viewModel.loadLegalPolicies();
+      if (!mounted) return;
+    }
+    final policies = widget.viewModel.legalPolicies;
+    if (policies == null) {
+      _message(l10n.onboardingPoliciesUnavailable);
+      return;
+    }
+    if (!requiredConsentsGiven(_consents, policies)) {
+      _message(l10n.onboardingAcceptConsents);
       return;
     }
     setState(() => _saving = true);
@@ -336,14 +348,22 @@ class _OnboardingViewState extends State<OnboardingView> {
               : 'Location captured',
         );
       }
-      final consent = await widget.viewModel.repository.acceptLegalConsent();
+      final consent = await widget.viewModel.repository.acceptLegalConsent(
+        locationConsent: _consents[consentLocation] ?? false,
+        aiProcessingConsent: _consents[consentAiProcessing] ?? false,
+        evidenceSharingConsent: _consents[consentEvidenceSharing] ?? false,
+        acceptedPrivacyPolicyVersion: policies.privacyPolicyVersion,
+        acceptedTermsVersion: policies.termsVersion,
+      );
       await _roles.clear();
       await widget.viewModel.onboardingCompleted(profile, consent);
     } catch (error) {
+      if (error is FieldnoteException &&
+          error.code == 'consent_version_mismatch') {
+        unawaited(widget.viewModel.loadLegalPolicies());
+      }
       _message(
-        error is FieldnoteException
-            ? error.message
-            : 'Could not complete account setup.',
+        userMessageFor(error, fallback: l10n.onboardingSetupFailed),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -356,6 +376,7 @@ class _OnboardingViewState extends State<OnboardingView> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -366,30 +387,35 @@ class _OnboardingViewState extends State<OnboardingView> {
               bottom: FieldnoteSpacing.xxl,
               maxWidth: 760,
               children: [
-                const Row(
+                Row(
                   children: [
-                    Icon(Icons.eco, color: FieldnoteColors.forest),
-                    SizedBox(width: 8),
-                    Text(
-                      'FIELDNOTE · ACCOUNT SETUP',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1,
+                    Icon(Icons.eco, color: context.fieldnoteColors.forest),
+                    const SizedBox(width: FieldnoteSpacing.xs),
+                    Expanded(
+                      child: Text(
+                        l10n.onboardingBrandHeader,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1,
+                        ),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 26),
                 SectionHeading(
-                  eyebrow: _role?.name ?? 'Choose role',
+                  eyebrow: switch (_role) {
+                    null => l10n.onboardingChooseRole,
+                    final role => _roleLabel(role),
+                  },
                   title: _role == AccountRole.sponsor
-                      ? 'Set up your sponsor profile'
-                      : 'Tell AI when and where you can help',
+                      ? l10n.onboardingSponsorTitle
+                      : l10n.onboardingVolunteerTitle,
                   description: _role == AccountRole.sponsor
-                      ? 'Sponsors create, fund, and monitor campaigns.'
-                      : 'Availability and GPS are used to explain every campaign match.',
+                      ? l10n.onboardingSponsorDescription
+                      : l10n.onboardingVolunteerDescription,
                 ),
-                const SizedBox(height: 22),
+                const SizedBox(height: FieldnoteSpacing.lg),
                 if (_role == null) _rolePicker(),
                 if (_role != null)
                   SurfaceCard(
@@ -398,23 +424,23 @@ class _OnboardingViewState extends State<OnboardingView> {
                       children: [
                         FieldnoteTextField(
                           controller: _name,
-                          decoration: const InputDecoration(
-                            labelText: 'Display name',
-                            prefixIcon: Icon(Icons.person_outline),
+                          decoration: InputDecoration(
+                            labelText: l10n.onboardingDisplayName,
+                            prefixIcon: const Icon(Icons.person_outline),
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: FieldnoteSpacing.sm),
                         if (_role == AccountRole.sponsor) ...[
                           _sponsorCityField(),
-                          const SizedBox(height: 18),
+                          const SizedBox(height: FieldnoteSpacing.md),
                         ],
                         if (_role == AccountRole.sponsor)
                           _sponsorFields()
                         else
                           _volunteerFields(),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: FieldnoteSpacing.lg),
                         _consentFields(),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: FieldnoteSpacing.lg),
                         SizedBox(
                           width: double.infinity,
                           child: FilledButton.icon(
@@ -429,8 +455,8 @@ class _OnboardingViewState extends State<OnboardingView> {
                                 : const Icon(Icons.arrow_forward),
                             label: Text(
                               _saving
-                                  ? 'Preparing account…'
-                                  : 'Enter FieldNote',
+                                  ? l10n.onboardingPreparing
+                                  : l10n.onboardingEnter,
                             ),
                           ),
                         ),
@@ -444,6 +470,11 @@ class _OnboardingViewState extends State<OnboardingView> {
       ),
     );
   }
+
+  String _roleLabel(AccountRole role) => switch (role) {
+    AccountRole.sponsor => context.l10n.roleSponsor,
+    AccountRole.volunteer => context.l10n.roleVolunteer,
+  };
 
   Widget _rolePicker() {
     return ResponsiveCardGrid(
@@ -468,7 +499,7 @@ class _OnboardingViewState extends State<OnboardingView> {
                     ? Icons.volunteer_activism_outlined
                     : Icons.directions_walk_outlined,
               ),
-              label: Text(role.name),
+              label: Text(_roleLabel(role)),
             ),
           )
           .toList(),
@@ -476,6 +507,8 @@ class _OnboardingViewState extends State<OnboardingView> {
   }
 
   Widget _sponsorCityField() {
+    final c = context.fieldnoteColors;
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -484,8 +517,8 @@ class _OnboardingViewState extends State<OnboardingView> {
           onChanged: _onCityQueryChanged,
           textInputAction: TextInputAction.search,
           decoration: InputDecoration(
-            labelText: 'Location',
-            hintText: 'Search for an address or place…',
+            labelText: l10n.onboardingLocationLabel,
+            hintText: l10n.onboardingLocationHint,
             prefixIcon: const Icon(Icons.location_on_outlined),
             suffixIcon: _checkingCitySearch || _searchingCity
                 ? const Padding(
@@ -497,23 +530,23 @@ class _OnboardingViewState extends State<OnboardingView> {
                   )
                 : _selectedCityPlaceId == null
                 ? null
-                : const Icon(Icons.check_circle, color: FieldnoteColors.moss),
+                : Icon(Icons.check_circle, color: c.moss),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: FieldnoteSpacing.xs),
         OutlinedButton.icon(
           onPressed: _openLocationMap,
           icon: const Icon(Icons.map_outlined),
-          label: const Text('Choose on map'),
+          label: Text(l10n.onboardingChooseOnMap),
         ),
         if (_citySuggestions.isNotEmpty) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: FieldnoteSpacing.xs),
           Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: c.raised,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: FieldnoteColors.ink.withValues(alpha: .1),
+                color: c.ink.withValues(alpha: .1),
               ),
             ),
             child: Column(
@@ -532,11 +565,11 @@ class _OnboardingViewState extends State<OnboardingView> {
             ),
           ),
         ],
-        const SizedBox(height: 6),
+        const SizedBox(height: FieldnoteSpacing.xs),
         Text(
           _citySearchAvailable
-              ? 'Choose a complete location from Google Places · Powered by Google'
-              : 'Location search is unavailable; enter the complete address manually.',
+              ? l10n.onboardingPlacesHint
+              : l10n.onboardingPlacesUnavailable,
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ],
@@ -544,43 +577,53 @@ class _OnboardingViewState extends State<OnboardingView> {
   }
 
   Widget _sponsorFields() {
+    final l10n = context.l10n;
+    // The values are stored on the profile; only their labels are localized.
+    final sponsorTypes = {
+      'Individual': l10n.sponsorTypeIndividual,
+      'Company': l10n.sponsorTypeCompany,
+      'Foundation': l10n.sponsorTypeFoundation,
+      'Community group': l10n.sponsorTypeCommunityGroup,
+    };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         DropdownButtonFormField<String>(
+          isExpanded: true,
           initialValue: _sponsorType,
-          decoration: const InputDecoration(labelText: 'Sponsor type'),
-          items:
-              const ['Individual', 'Company', 'Foundation', 'Community group']
-                  .map(
-                    (value) =>
-                        DropdownMenuItem(value: value, child: Text(value)),
-                  )
-                  .toList(),
+          decoration: InputDecoration(labelText: l10n.onboardingSponsorType),
+          items: sponsorTypes.entries
+              .map(
+                (type) => DropdownMenuItem(
+                  value: type.key,
+                  child: Text(type.value),
+                ),
+              )
+              .toList(),
           onChanged: (value) =>
               setState(() => _sponsorType = value ?? 'Individual'),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: FieldnoteSpacing.sm),
         FieldnoteTextField(
           controller: _organization,
-          decoration: const InputDecoration(
-            labelText: 'Organization name (optional)',
+          decoration: InputDecoration(
+            labelText: l10n.onboardingOrganization,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: FieldnoteSpacing.sm),
         FieldnoteTextField(
           controller: _contactPhone,
           keyboardType: TextInputType.phone,
-          decoration: const InputDecoration(
-            labelText: 'Contact phone (required)',
+          decoration: InputDecoration(
+            labelText: l10n.onboardingContactPhone,
             hintText: '+919876543210',
-            prefixIcon: Icon(Icons.call_outlined),
-            helperText: 'Shared with volunteers after they join your campaign.',
+            prefixIcon: const Icon(Icons.call_outlined),
+            helperText: l10n.onboardingContactPhoneHelper,
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: FieldnoteSpacing.md),
         _choiceChips(
-          title: 'Preferred causes',
+          title: l10n.onboardingPreferredCauses,
           values: const ['environment', 'tree care', 'cleanup', 'community'],
           selected: _interests,
         ),
@@ -589,33 +632,36 @@ class _OnboardingViewState extends State<OnboardingView> {
   }
 
   Widget _volunteerFields() {
-    const days = {
-      1: 'Mon',
-      2: 'Tue',
-      3: 'Wed',
-      4: 'Thu',
-      5: 'Fri',
-      6: 'Sat',
-      7: 'Sun',
+    final l10n = context.l10n;
+    // Short weekday names in the current locale; 2024-01-01 was a Monday, so
+    // DateTime(2024, 1, n) has weekday n.
+    final weekdayFormat = DateFormat.E(context.localeTag);
+    final days = {
+      for (var day = DateTime.monday; day <= DateTime.sunday; day++)
+        day: weekdayFormat.format(DateTime(2024, 1, day)),
     };
+    final km = NumberFormat.decimalPattern(context.localeTag);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SwitchListTile.adaptive(
           contentPadding: EdgeInsets.zero,
           value: _available,
-          title: const Text('Available for campaign matches'),
+          title: Text(l10n.onboardingAvailableForMatches),
           onChanged: (value) => setState(() => _available = value),
         ),
         SwitchListTile.adaptive(
           contentPadding: EdgeInsets.zero,
           value: _availableToday,
-          title: const Text('Available today'),
+          title: Text(l10n.onboardingAvailableToday),
           onChanged: (value) => setState(() => _availableToday = value),
         ),
-        const SizedBox(height: 8),
-        Text('Available days', style: Theme.of(context).textTheme.labelLarge),
-        const SizedBox(height: 7),
+        const SizedBox(height: FieldnoteSpacing.xs),
+        Text(
+          l10n.onboardingAvailableDays,
+          style: Theme.of(context).textTheme.labelLarge,
+        ),
+        const SizedBox(height: FieldnoteSpacing.xs),
         Wrap(
           spacing: 7,
           children: days.entries
@@ -633,7 +679,7 @@ class _OnboardingViewState extends State<OnboardingView> {
               .toList(),
         ),
         const SizedBox(height: 15),
-        Text('Travel radius · ${_radius.round()} km'),
+        Text(l10n.onboardingTravelRadius(km.format(_radius.round()))),
         Slider(
           value: _radius,
           min: 2,
@@ -641,9 +687,9 @@ class _OnboardingViewState extends State<OnboardingView> {
           divisions: 24,
           onChanged: (value) => setState(() => _radius = value),
         ),
-        const SizedBox(height: 8),
-        const Text('Choose your travel area using GPS or the map pin.'),
-        const SizedBox(height: 10),
+        const SizedBox(height: FieldnoteSpacing.xs),
+        Text(l10n.onboardingTravelAreaHint),
+        const SizedBox(height: FieldnoteSpacing.sm),
         OutlinedButton.icon(
           onPressed: _locating ? null : _locate,
           icon: _locating
@@ -654,60 +700,60 @@ class _OnboardingViewState extends State<OnboardingView> {
               : const Icon(Icons.my_location),
           label: Text(
             _locating
-                ? 'Finding your location…'
+                ? l10n.onboardingFindingLocation
                 : _deviceLocation == null
-                ? 'Use current GPS location'
+                ? l10n.onboardingUseGps
                 : _pinnedByHand
-                ? 'Use current GPS instead'
+                ? l10n.onboardingUseGpsInstead
                 : _deviceLocation!.isLive
-                ? 'Refresh current GPS location'
-                : 'Use current GPS location',
+                ? l10n.onboardingRefreshGps
+                : l10n.onboardingUseGps,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: FieldnoteSpacing.xs),
         OutlinedButton.icon(
           onPressed: _openTravelMap,
           icon: const Icon(Icons.map_outlined),
-          label: const Text('Choose travel area on map'),
+          label: Text(l10n.onboardingChooseTravelAreaOnMap),
         ),
         if (_locationError != null) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: FieldnoteSpacing.xs),
           Text(_locationError!.message),
           if (_locationError!.issue == LocationAccessIssue.serviceDisabled)
             TextButton.icon(
               onPressed: _location.openLocationSettings,
               icon: const Icon(Icons.settings_outlined),
-              label: const Text('Enable Location in Settings'),
+              label: Text(l10n.locationEnableInSettings),
             )
           else if (_locationError!.issue ==
               LocationAccessIssue.permissionDeniedForever)
             TextButton.icon(
               onPressed: _location.openAppSettings,
               icon: const Icon(Icons.settings_outlined),
-              label: const Text('Open FieldNote permissions'),
+              label: Text(l10n.locationOpenPermissions),
             ),
         ],
-        const SizedBox(height: 10),
+        const SizedBox(height: FieldnoteSpacing.sm),
         // Drawn to scale, so the radius is an informed choice rather than a
         // number picked in the abstract.
         _areaMap(),
         if (_deviceLocation != null) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: FieldnoteSpacing.xs),
           Text(
             _resolvingArea
-                ? 'Finding the area name…'
-                : 'Selected area: ${_city.text}',
+                ? l10n.onboardingFindingAreaName
+                : l10n.onboardingSelectedArea(_city.text),
           ),
         ],
-        const SizedBox(height: 18),
+        const SizedBox(height: FieldnoteSpacing.md),
         _choiceChips(
-          title: 'Interests',
+          title: l10n.onboardingInterests,
           values: const ['environment', 'tree care', 'cleanup', 'community'],
           selected: _interests,
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: FieldnoteSpacing.md),
         _choiceChips(
-          title: 'Skills',
+          title: l10n.onboardingSkills,
           values: const ['outdoors', 'gardening', 'organizing', 'photography'],
           selected: _skills,
         ),
@@ -728,7 +774,7 @@ class _OnboardingViewState extends State<OnboardingView> {
       target: point,
       zoom: zoomForRadius(radiusMeters),
       height: 220,
-      semanticLabel: 'Draggable map pin for the area you can travel from',
+      semanticLabel: context.l10n.onboardingMapSemantics,
       onTap: _movePin,
       markers: {
         Marker(
@@ -748,57 +794,49 @@ class _OnboardingViewState extends State<OnboardingView> {
           radiusMeters: radiusMeters,
         ),
       },
-      fallback: const MapUnavailableNotice(
-        message:
-            'Map preview is off. Use the GPS button below to set the area you '
-            'travel from.',
+      fallback: MapUnavailableNotice(
+        message: context.l10n.onboardingMapFallback,
       ),
     );
   }
 
   Widget _consentFields() {
+    final policies = widget.viewModel.legalPolicies;
+    final l10n = context.l10n;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: FieldnoteColors.mist,
+        color: context.fieldnoteColors.mist,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Privacy choices',
+            l10n.onboardingPrivacyChoices,
             style: Theme.of(context).textTheme.titleMedium,
           ),
-          const SizedBox(height: 6),
-          const Text(
-            'You can review these records and request data export or deletion from Trust Center.',
+          const SizedBox(height: FieldnoteSpacing.xs),
+          Text(l10n.onboardingPrivacyChoicesBody),
+          ConsentChecklist(
+            values: _consents,
+            policies: policies,
+            enabled: !_saving,
+            showDescriptions: false,
+            onChanged: (key, value) => setState(() => _consents[key] = value),
           ),
-          CheckboxListTile(
-            contentPadding: EdgeInsets.zero,
-            value: _locationConsent,
-            title: const Text('Use GPS for matching and evidence integrity'),
-            onChanged: (value) =>
-                setState(() => _locationConsent = value ?? false),
+          Text(
+            policies == null
+                ? l10n.onboardingAcceptCurrent
+                : l10n.onboardingAcceptVersions(
+                    policies.termsVersion,
+                    policies.privacyPolicyVersion,
+                  ),
+            style: const TextStyle(fontSize: 12),
           ),
-          CheckboxListTile(
-            contentPadding: EdgeInsets.zero,
-            value: _aiConsent,
-            title: const Text('Use AI for campaign and evidence drafts'),
-            onChanged: (value) => setState(() => _aiConsent = value ?? false),
-          ),
-          CheckboxListTile(
-            contentPadding: EdgeInsets.zero,
-            value: _evidenceConsent,
-            title: const Text(
-              'Share submitted evidence privately with campaign sponsors',
-            ),
-            onChanged: (value) =>
-                setState(() => _evidenceConsent = value ?? false),
-          ),
-          const Text(
-            'By continuing you accept the FieldNote Terms and Privacy Policy v2026-09-22.',
-            style: TextStyle(fontSize: 12),
+          LegalLinks(
+            policies: policies,
+            onRetry: widget.viewModel.loadLegalPolicies,
           ),
         ],
       ),
@@ -814,7 +852,7 @@ class _OnboardingViewState extends State<OnboardingView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(title, style: Theme.of(context).textTheme.labelLarge),
-        const SizedBox(height: 7),
+        const SizedBox(height: FieldnoteSpacing.xs),
         Wrap(
           spacing: 7,
           children: values

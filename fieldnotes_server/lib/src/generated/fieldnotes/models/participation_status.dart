@@ -15,7 +15,11 @@ import 'package:serverpod/serverpod.dart' as _is;
 enum ParticipationStatus implements _is.SerializableModel {
   joined,
   checkedIn,
-  completed;
+  completed,
+  left,
+  cancelled,
+  noShow,
+  incomplete;
 
   static ParticipationStatus fromJson(String name) {
     switch (name) {
@@ -25,6 +29,14 @@ enum ParticipationStatus implements _is.SerializableModel {
         return ParticipationStatus.checkedIn;
       case 'completed':
         return ParticipationStatus.completed;
+      case 'left':
+        return ParticipationStatus.left;
+      case 'cancelled':
+        return ParticipationStatus.cancelled;
+      case 'noShow':
+        return ParticipationStatus.noShow;
+      case 'incomplete':
+        return ParticipationStatus.incomplete;
       default:
         throw ArgumentError(
           'Value "$name" cannot be converted to "ParticipationStatus"',

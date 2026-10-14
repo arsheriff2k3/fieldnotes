@@ -10,16 +10,23 @@ import '../../../data/audio/wav_encoder.dart';
 import '../../../data/repositories/fieldnote_repository.dart';
 import '../../../data/services/device_location_service.dart';
 import '../../../data/services/campaign_link_service.dart';
-import '../../../data/services/razorpay_checkout_service.dart';
+import '../../../l10n/l10n.dart';
+import '../../core/error_messages.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/location_picker.dart';
 import '../../core/widgets.dart';
 import '../shell/fieldnote_view_model.dart';
+import '../discussion/campaign_discussion_view.dart';
 import 'campaign_map_view.dart';
+import 'campaign_impact_report_view.dart';
 import 'campaign_pin_picker.dart';
 import 'payout_view.dart';
 import 'campaign_readiness_view.dart';
 import 'campaign_volunteer_reach_view.dart';
+import 'campaign_post_dialog.dart';
+import 'payment_history_view.dart';
+import 'sponsor_checkout.dart';
+import 'sponsor_formatting.dart';
 
 class SponsorDiscoverView extends StatelessWidget {
   const SponsorDiscoverView({super.key, required this.viewModel});
@@ -39,20 +46,29 @@ class SponsorDiscoverView extends StatelessWidget {
               FieldnoteSpacing.pageGutter(context),
               10,
             ),
-            child: const SectionHeading(
-              eyebrow: 'Sponsor',
-              title: 'Campaigns',
+            child: SectionHeading(
+              eyebrow: context.l10n.sponsorEyebrow,
+              title: context.l10n.sponsorDiscoverTitle,
             ),
           ),
-          const FieldnoteSectionTabs(
+          FieldnoteSectionTabs(
             compact: true,
             tabs: [
-              FieldnoteSectionTab('All', Icons.explore_outlined),
-              FieldnoteSectionTab('Yours', Icons.folder_open_outlined),
-              FieldnoteSectionTab('Create', Icons.add_circle_outline),
+              FieldnoteSectionTab(
+                context.l10n.sponsorDiscoverTabAll,
+                Icons.explore_outlined,
+              ),
+              FieldnoteSectionTab(
+                context.l10n.sponsorDiscoverTabYours,
+                Icons.folder_open_outlined,
+              ),
+              FieldnoteSectionTab(
+                context.l10n.sponsorDiscoverTabCreate,
+                Icons.add_circle_outline,
+              ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: FieldnoteSpacing.xxs),
           Expanded(
             child: TabBarView(
               children: [
@@ -74,17 +90,17 @@ class SponsorDiscoverView extends StatelessWidget {
       top: 12,
       children: [
         Text(
-          '${viewModel.campaigns.length} local campaign${viewModel.campaigns.length == 1 ? '' : 's'}',
+          context.l10n.sponsorDiscoverLocalCount(viewModel.campaigns.length),
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: FieldnoteColors.ink.withValues(alpha: .72),
+            color: context.fieldnoteColors.ink.withValues(alpha: .72),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: FieldnoteSpacing.sm),
         if (viewModel.campaigns.isEmpty)
-          const EmptyPanel(
+          EmptyPanel(
             icon: Icons.explore_outlined,
-            title: 'No campaigns yet',
-            message: 'Pull down to refresh or start the first campaign.',
+            title: context.l10n.sponsorDiscoverEmptyTitle,
+            message: context.l10n.sponsorDiscoverEmptyMessage,
           )
         else
           ResponsiveCardGrid(
@@ -92,18 +108,19 @@ class SponsorDiscoverView extends StatelessWidget {
               for (final campaign in viewModel.campaigns)
                 Builder(
                   builder: (context) {
-                    final remaining =
-                        (campaign.fundingGoal - campaign.sponsoredAmount)
-                            .clamp(0, double.infinity)
-                            .toDouble();
+                    final remaining = campaignRemainingPaise(campaign);
                     return CampaignCard(
                       campaign: campaign,
                       showFunding: true,
                       actionLabel: remaining > 0
-                          ? 'Sponsor campaign'
-                          : 'Fully funded',
+                          ? context.l10n.sponsorDiscoverSponsorAction
+                          : context.l10n.sponsorDiscoverFullyFunded,
                       onAction: remaining > 0
-                          ? () => _sponsor(context, campaign)
+                          ? () => openSponsorCheckout(
+                              context,
+                              viewModel,
+                              campaign,
+                            )
                           : null,
                     );
                   },
@@ -121,33 +138,32 @@ class SponsorDiscoverView extends StatelessWidget {
       top: 12,
       children: [
         Text(
-          '${viewModel.createdCampaigns.length} campaign${viewModel.createdCampaigns.length == 1 ? '' : 's'} created',
+          context.l10n.sponsorDiscoverCreatedCount(
+            viewModel.createdCampaigns.length,
+          ),
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: FieldnoteColors.ink.withValues(alpha: .72),
+            color: context.fieldnoteColors.ink.withValues(alpha: .72),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: FieldnoteSpacing.sm),
         if (viewModel.createdCampaigns.isEmpty)
           SurfaceCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Icon(Icons.campaign_outlined, size: 36),
-                const SizedBox(height: 14),
+                const SizedBox(height: FieldnoteSpacing.md),
                 Text(
-                  'No campaigns created yet',
+                  context.l10n.sponsorDiscoverNoCreatedTitle,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
-                const SizedBox(height: 6),
-                const Text('Create a campaign to see it here.'),
-                const SizedBox(height: 16),
-                Builder(
-                  builder: (tabContext) => FilledButton.icon(
-                    onPressed: () =>
-                        DefaultTabController.of(tabContext).animateTo(2),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Create a campaign'),
-                  ),
+                const SizedBox(height: FieldnoteSpacing.xs),
+                Text(context.l10n.sponsorDiscoverNoCreatedMessage),
+                const SizedBox(height: FieldnoteSpacing.md),
+                FilledButton.icon(
+                  onPressed: () => viewModel.selectSection(1),
+                  icon: const Icon(Icons.add),
+                  label: Text(context.l10n.sponsorDiscoverCreateAction),
                 ),
               ],
             ),
@@ -167,7 +183,7 @@ class SponsorDiscoverView extends StatelessWidget {
               ),
               onShare: () => shareCampaign(context, campaign),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: FieldnoteSpacing.sm),
           ],
       ],
     ),
@@ -185,306 +201,24 @@ class SponsorDiscoverView extends StatelessWidget {
               size: 38,
               color: Theme.of(context).colorScheme.primary,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: FieldnoteSpacing.sm),
             Text(
-              'Start a campaign',
+              context.l10n.sponsorDiscoverStartTitle,
               style: Theme.of(context).textTheme.headlineSmall,
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Describe your idea by voice or text, or enter the details yourself.',
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: FieldnoteSpacing.xs),
+            Text(context.l10n.sponsorDiscoverStartBody),
+            const SizedBox(height: FieldnoteSpacing.md),
             FilledButton.icon(
               onPressed: () => viewModel.selectSection(1),
               icon: const Icon(Icons.add_circle_outline),
-              label: const Text('Open campaign creator'),
+              label: Text(context.l10n.sponsorDiscoverOpenCreator),
             ),
           ],
         ),
       ),
     ],
   );
-
-  Future<void> _sponsor(BuildContext context, Campaign campaign) async {
-    final remainingAmount = (campaign.fundingGoal - campaign.sponsoredAmount)
-        .clamp(0, double.infinity)
-        .toDouble();
-    if (remainingAmount <= 0) {
-      showFieldnoteNotice(
-        context,
-        title: 'Campaign fully funded',
-        message: 'This campaign has already reached its funding goal.',
-      );
-      return;
-    }
-    const portions = [0.25, 0.5, 0.75, 1.0];
-    final amounts = portions
-        .map((portion) => (remainingAmount * portion * 100).round() / 100)
-        .toList(growable: false);
-    var selectedPortion = portions.first;
-    var amount = amounts.first;
-    final note = TextEditingController();
-    final checkout = RazorpayCheckoutService();
-    RazorpayCheckoutOrder? createdOrder;
-    var saving = false;
-    var paymentCompleted = false;
-    var checkoutReturned = false;
-    try {
-      final verified =
-          await showDialog<bool>(
-            context: context,
-            builder: (dialogContext) => StatefulBuilder(
-              builder: (context, setDialogState) => AlertDialog(
-                scrollable: true,
-                insetPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 24,
-                ),
-                titlePadding: const EdgeInsets.fromLTRB(20, 22, 20, 12),
-                contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                actionsPadding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                title: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Sponsor campaign',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      campaign.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
-                ),
-                content: SizedBox(
-                  width: 480,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: FieldnoteColors.acid.withValues(alpha: .24),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.verified_user_outlined),
-                            SizedBox(width: 9),
-                            Expanded(
-                              child: Text(
-                                'Razorpay test checkout. Payment is credited after verification.',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        '${_formatRupees(remainingAmount)} remaining',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Choose how much to contribute',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      const SizedBox(height: 12),
-                      Column(
-                        children: [
-                          for (var row = 0; row < 2; row++) ...[
-                            Row(
-                              children: [
-                                for (var column = 0; column < 2; column++) ...[
-                                  if (column > 0) const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Builder(
-                                      builder: (context) {
-                                        final index = row * 2 + column;
-                                        final portion = portions[index];
-                                        final value = amounts[index];
-                                        final selected =
-                                            selectedPortion == portion;
-                                        return OutlinedButton(
-                                          onPressed: saving
-                                              ? null
-                                              : () => setDialogState(() {
-                                                  selectedPortion = portion;
-                                                  amount = value;
-                                                }),
-                                          style: OutlinedButton.styleFrom(
-                                            minimumSize: const Size(0, 72),
-                                            padding: const EdgeInsets.all(10),
-                                            backgroundColor: selected
-                                                ? FieldnoteColors.moss
-                                                      .withValues(alpha: .18)
-                                                : null,
-                                            side: BorderSide(
-                                              color: selected
-                                                  ? FieldnoteColors.forest
-                                                  : FieldnoteColors.moss
-                                                        .withValues(alpha: .4),
-                                              width: selected ? 2 : 1,
-                                            ),
-                                          ),
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Text(
-                                                '${(portion * 100).round()}%',
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.w800,
-                                                ),
-                                              ),
-                                              Text(
-                                                _formatRupees(value),
-                                                style: Theme.of(
-                                                  context,
-                                                ).textTheme.labelSmall,
-                                              ),
-                                            ],
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                            if (row == 0) const SizedBox(height: 12),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      FieldnoteTextField(
-                        controller: note,
-                        maxLines: 2,
-                        decoration: const InputDecoration(
-                          labelText: 'Message (optional)',
-                          hintText: 'Why this campaign matters to you',
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                actions: [
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: saving
-                          ? null
-                          : () async {
-                              setDialogState(() => saving = true);
-                              try {
-                                final order = await viewModel
-                                    .createPaymentOrder(
-                                      campaign,
-                                      amount,
-                                      note.text,
-                                    );
-                                createdOrder = order;
-                                final result = await checkout.open(order);
-                                checkoutReturned = true;
-                                await viewModel.verifyPayment(
-                                  order,
-                                  returnedOrderId: result.orderId,
-                                  paymentId: result.paymentId,
-                                  signature: result.signature,
-                                );
-                                if (dialogContext.mounted) {
-                                  paymentCompleted = true;
-                                  Navigator.pop(dialogContext, true);
-                                }
-                              } catch (error) {
-                                final order = createdOrder;
-                                if (order != null && !checkoutReturned) {
-                                  try {
-                                    await viewModel.repository
-                                        .recordRazorpayFailure(
-                                          order.sponsorshipId,
-                                          _paymentError(error),
-                                        );
-                                  } catch (_) {}
-                                }
-                                if (dialogContext.mounted) {
-                                  showFieldnoteNotice(
-                                    dialogContext,
-                                    title: checkoutReturned
-                                        ? 'Payment needs review'
-                                        : 'Payment unsuccessful',
-                                    message: _paymentError(error),
-                                    kind: FieldnoteNoticeKind.error,
-                                  );
-                                }
-                              } finally {
-                                if (!paymentCompleted &&
-                                    dialogContext.mounted) {
-                                  setDialogState(() => saving = false);
-                                }
-                              }
-                            },
-                      icon: const Icon(Icons.lock_outline),
-                      label: Text(
-                        saving
-                            ? 'Opening Razorpay…'
-                            : 'Pay ${_formatRupees(amount)}',
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    width: double.infinity,
-                    child: TextButton(
-                      onPressed: saving
-                          ? null
-                          : () => Navigator.pop(dialogContext),
-                      child: const Text('Cancel'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ) ??
-          false;
-      if (verified) {
-        await viewModel.refresh();
-        if (context.mounted) {
-          showFieldnoteNotice(
-            context,
-            title: 'Payment successful',
-            message: '${_formatRupees(amount)} was added to ${campaign.name}.',
-            kind: FieldnoteNoticeKind.success,
-          );
-        }
-      }
-    } finally {
-      checkout.dispose();
-      note.dispose();
-    }
-  }
-
-  static String _paymentError(Object error) {
-    if (error is FieldnoteException) return error.message;
-    if (error is RazorpayCheckoutException &&
-        error.message.trim().isNotEmpty &&
-        error.message.trim().toLowerCase() != 'undefined') {
-      return error.message;
-    }
-    return 'The Razorpay test payment was not completed.';
-  }
-
-  static String _formatRupees(double amount) => NumberFormat.currency(
-    locale: 'en_IN',
-    symbol: '₹',
-    decimalDigits: amount == amount.roundToDouble() ? 0 : 2,
-  ).format(amount);
 }
 
 class SponsorVoiceActionController extends ChangeNotifier {
@@ -557,34 +291,21 @@ class _OwnedCampaignCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (status, statusColor) = switch (campaign.status) {
-      CampaignStatus.completed => ('Completed', FieldnoteColors.forest),
-      CampaignStatus.draft => ('Draft', FieldnoteColors.clay),
-      _ => switch (campaign.readinessState) {
-        'confirmed' => ('Confirmed', FieldnoteColors.forest),
-        'postponed' => ('Postponed', FieldnoteColors.clay),
-        'fundingShort' ||
-        'volunteersShort' ||
-        'bothShort' => ('Needs a decision', FieldnoteColors.clay),
-        _ => ('Planning', FieldnoteColors.moss),
-      },
-    };
-    final progress = campaign.fundingGoal <= 0
-        ? 0.0
-        : (campaign.sponsoredAmount / campaign.fundingGoal)
-              .clamp(0.0, 1.0)
-              .toDouble();
-    final money = NumberFormat.compactCurrency(symbol: '₹', decimalDigits: 1);
+    final l10n = context.l10n;
+    final style = campaignPhaseStyle(campaignPhase(campaign), l10n: l10n);
+    final progress = campaignFundingProgress(campaign);
+    final localeTag = context.localeTag;
+    final refunded = campaignRefundedPaise(campaign);
     return Container(
       decoration: BoxDecoration(
-        color: FieldnoteColors.paper,
+        color: context.fieldnoteColors.paper,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: FieldnoteColors.forest.withValues(alpha: .10),
+          color: context.fieldnoteColors.forest.withValues(alpha: .10),
         ),
         boxShadow: [
           BoxShadow(
-            color: FieldnoteColors.ink.withValues(alpha: .045),
+            color: context.fieldnoteColors.ink.withValues(alpha: .045),
             blurRadius: 18,
             offset: const Offset(0, 7),
           ),
@@ -594,12 +315,15 @@ class _OwnedCampaignCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(
+          SizedBox(
             height: 5,
             child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [FieldnoteColors.forest, FieldnoteColors.moss],
+                  colors: [
+                    context.fieldnoteColors.forest,
+                    context.fieldnoteColors.moss,
+                  ],
                 ),
               ),
             ),
@@ -612,47 +336,47 @@ class _OwnedCampaignCard extends StatelessWidget {
                 Row(
                   children: [
                     StatusPill(
-                      label: status,
-                      color: statusColor,
-                      icon: Icons.circle,
+                      label: style.label,
+                      color: style.color,
+                      icon: style.icon,
                     ),
                     const Spacer(),
                     Text(
-                      'CAMPAIGN ${campaign.id ?? ''}',
+                      l10n.sponsorOwnedCampaignId('${campaign.id ?? ''}'),
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: FieldnoteColors.moss,
+                        color: context.fieldnoteColors.moss,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: FieldnoteSpacing.sm),
                 Text(
                   campaign.name,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: FieldnoteColors.ink,
+                    color: context.fieldnoteColors.ink,
                     fontWeight: FontWeight.w800,
                     height: 1.2,
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: FieldnoteSpacing.sm),
                 _infoLine(
                   context,
                   Icons.event_outlined,
-                  DateFormat(
-                    'EEE, d MMM · h:mm a',
-                  ).format(campaign.startsAt.toLocal()),
+                  DateFormat.MMMEd(
+                    localeTag,
+                  ).add_jm().format(campaign.startsAt.toLocal()),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: FieldnoteSpacing.xs),
                 _infoLine(context, Icons.place_outlined, campaign.locationName),
-                const SizedBox(height: 14),
+                const SizedBox(height: FieldnoteSpacing.md),
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: FieldnoteColors.mist.withValues(alpha: .6),
+                    color: context.fieldnoteColors.mist.withValues(alpha: .6),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Column(
@@ -660,53 +384,82 @@ class _OwnedCampaignCard extends StatelessWidget {
                       Row(
                         children: [
                           const Icon(Icons.groups_outlined, size: 18),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: FieldnoteSpacing.xs),
                           Expanded(
                             child: Text(
                               impact == null
-                                  ? '${campaign.volunteerCapacity} places'
-                                  : '${impact!.joinedVolunteers}/${campaign.volunteerCapacity} joined',
+                                  ? l10n.sponsorCampaignPlaces(
+                                      campaign.volunteerCapacity,
+                                    )
+                                  : l10n.sponsorOwnedJoined(
+                                      impact!.joinedVolunteers,
+                                      campaign.volunteerCapacity,
+                                    ),
                               style: Theme.of(context).textTheme.labelMedium,
                             ),
                           ),
                           Text(
-                            '${money.format(campaign.sponsoredAmount)} / ${money.format(campaign.fundingGoal)}',
+                            l10n.sponsorOwnedFundingRatio(
+                              formatPaiseCompact(
+                                campaignSponsoredPaise(campaign),
+                                localeTag: localeTag,
+                              ),
+                              formatPaiseCompact(
+                                campaignGoalPaise(campaign),
+                                localeTag: localeTag,
+                              ),
+                            ),
                             style: Theme.of(context).textTheme.labelMedium,
                           ),
                         ],
                       ),
-                      const SizedBox(height: 10),
+                      if (refunded > 0) ...[
+                        const SizedBox(height: FieldnoteSpacing.xs),
+                        Align(
+                          alignment: AlignmentDirectional.centerEnd,
+                          child: Text(
+                            l10n.sponsorAmountRefunded(
+                              formatPaiseCompact(
+                                refunded,
+                                localeTag: localeTag,
+                              ),
+                            ),
+                            style: Theme.of(context).textTheme.labelSmall,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: FieldnoteSpacing.sm),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(4),
                         child: LinearProgressIndicator(
                           value: progress,
                           minHeight: 5,
-                          backgroundColor: FieldnoteColors.paper,
-                          color: FieldnoteColors.moss,
+                          backgroundColor: context.fieldnoteColors.paper,
+                          color: context.fieldnoteColors.moss,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: FieldnoteSpacing.sm),
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final mapButton = FilledButton.icon(
                       onPressed: onMap,
                       icon: const Icon(Icons.map_outlined),
-                      label: const Text('Volunteer map'),
+                      label: Text(l10n.sponsorOwnedVolunteerMap),
                     );
                     final shareButton = OutlinedButton.icon(
                       onPressed: onShare,
                       icon: const Icon(Icons.share_outlined),
-                      label: const Text('Share'),
+                      label: Text(l10n.sponsorActionShare),
                     );
                     if (constraints.maxWidth < 300) {
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           mapButton,
-                          const SizedBox(height: 8),
+                          const SizedBox(height: FieldnoteSpacing.xs),
                           shareButton,
                         ],
                       );
@@ -714,7 +467,7 @@ class _OwnedCampaignCard extends StatelessWidget {
                     return Row(
                       children: [
                         Expanded(child: mapButton),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: FieldnoteSpacing.sm),
                         shareButton,
                       ],
                     );
@@ -731,8 +484,8 @@ class _OwnedCampaignCard extends StatelessWidget {
   Widget _infoLine(BuildContext context, IconData icon, String text) => Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Icon(icon, size: 18, color: FieldnoteColors.moss),
-      const SizedBox(width: 9),
+      Icon(icon, size: 18, color: context.fieldnoteColors.moss),
+      const SizedBox(width: FieldnoteSpacing.xs),
       Expanded(
         child: Text(
           text,
@@ -760,10 +513,6 @@ class SponsorCreateView extends StatefulWidget {
 }
 
 class _SponsorCreateViewState extends State<SponsorCreateView> {
-  static const _examplePrompt =
-      'I want to sponsor tree care near the university this Saturday. '
-      'Budget is ₹25,000 and I need about 10 volunteers.';
-
   final _prompt = TextEditingController();
   final _promptFocus = FocusNode();
   final _location = DeviceLocationService();
@@ -839,6 +588,7 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
   /// Pointer down on the microphone: start streaming PCM into a buffer.
   Future<void> _startRecording() async {
     if (_working || _recording || _startingRecording || _transcribing) return;
+    final l10n = context.l10n;
     _promptFocus.unfocus();
     _setVoiceState(() {
       _startingRecording = true;
@@ -847,9 +597,7 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
     });
     try {
       if (!await _recorder.hasPermission()) {
-        throw const _DictationFailure(
-          'Microphone permission is required. Allow access and try again.',
-        );
+        throw _DictationFailure(l10n.sponsorDictationMicPermission);
       }
       if (_stopAfterStart) {
         if (mounted) _setVoiceState(() => _startingRecording = false);
@@ -916,6 +664,7 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
   Future<void> _stopAndTranscribe() async {
     if (!_recording) return;
     final duration = _recordingDuration;
+    final l10n = context.l10n;
     _recordingTimer?.cancel();
     _setVoiceState(() {
       _recording = false;
@@ -927,15 +676,10 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
       _audioSubscription = null;
       final pcmBytes = _audioBuffer.takeBytes();
       if (pcmBytes.isEmpty && _recorderStreamError != null) {
-        throw const _DictationFailure(
-          'The microphone stopped before any audio was captured. Check '
-          'microphone access and try again.',
-        );
+        throw _DictationFailure(l10n.sponsorDictationNoAudio);
       }
       if (duration < const Duration(seconds: 1) || pcmBytes.length < 1600) {
-        throw const _DictationFailure(
-          'Hold the microphone button while speaking for at least one second.',
-        );
+        throw _DictationFailure(l10n.sponsorDictationTooShort);
       }
       final wavBytes = encodePcm16Wav(
         pcmBytes,
@@ -951,10 +695,7 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
       _appendToPrompt(transcript);
       _setVoiceState(() => _transcribing = false);
       if (_prompt.text.trim().length < 20) {
-        _notify(
-          'Only a few words were heard. Hold the microphone again, or type the '
-          'rest of the brief.',
-        );
+        _notify(context.l10n.sponsorDictationFewWords);
         return;
       }
       await _generate();
@@ -987,11 +728,10 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
     );
   }
 
-  static String _dictationError(Object error) {
+  String _dictationError(Object error) {
     if (error is _DictationFailure) return error.message;
     if (error is FieldnoteException) return error.message;
-    return 'The recording could not be transcribed. Try again, or type the '
-        'brief.';
+    return context.l10n.sponsorDictationFailed;
   }
 
   void _notify(String text) {
@@ -1003,8 +743,8 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
   Future<void> _createManually() async {
     final entered = await showProposalFormDialog(
       context,
-      heading: 'Create a campaign manually',
-      confirmLabel: 'Use these details',
+      heading: context.l10n.sponsorCreateManualHeading,
+      confirmLabel: context.l10n.sponsorProposalFormUseDetails,
       initial: null,
       seedPrompt: _prompt.text.trim(),
       repository: widget.viewModel.repository,
@@ -1045,10 +785,7 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
   Future<void> _generate() async {
     _promptFocus.unfocus();
     if (_prompt.text.trim().length < 20) {
-      _notify(
-        'Describe the cause, place, timing, and intended impact first, or '
-        'create the campaign manually.',
-      );
+      _notify(context.l10n.sponsorCreateBriefTooShort);
       return;
     }
     _setVoiceState(() => _working = true);
@@ -1102,9 +839,7 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
       }
     } on Object {
       if (mounted && request == _locationRequest) {
-        _notify(
-          'Could not read this device location. Check Settings and try again.',
-        );
+        _notify(context.l10n.sponsorCreateLocationUnreadable);
       }
     }
   }
@@ -1117,19 +852,19 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
     final canOpenSettings = opensLocationSettings || opensAppSettings;
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => fieldnoteDialog(
         title: Text(
           opensLocationSettings
-              ? 'Turn on device location'
+              ? dialogContext.l10n.sponsorLocationTurnOnTitle
               : opensAppSettings
-              ? 'Allow location access'
-              : 'Location unavailable',
+              ? dialogContext.l10n.sponsorLocationAllowTitle
+              : dialogContext.l10n.sponsorLocationUnavailableTitle,
         ),
         content: Text(error.message),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Not now'),
+            child: Text(dialogContext.l10n.sponsorLocationNotNow),
           ),
           if (canOpenSettings)
             FilledButton(
@@ -1143,8 +878,8 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
               },
               child: Text(
                 opensLocationSettings
-                    ? 'Open location settings'
-                    : 'Open app settings',
+                    ? dialogContext.l10n.sponsorLocationOpenLocationSettings
+                    : dialogContext.l10n.sponsorLocationOpenAppSettings,
               ),
             ),
         ],
@@ -1157,8 +892,8 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
     if (proposal == null) return;
     final edited = await showProposalFormDialog(
       context,
-      heading: 'Confirm campaign details',
-      confirmLabel: 'Use these details',
+      heading: context.l10n.sponsorCreateConfirmHeading,
+      confirmLabel: context.l10n.sponsorProposalFormUseDetails,
       initial: proposal,
       repository: widget.viewModel.repository,
       onLocationPicked: _acceptFormLocation,
@@ -1167,19 +902,23 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
   }
 
   Future<void> _publish() async {
-    if (_proposal == null) return;
+    // Guards a double tap or a retry while the first request is in flight.
+    if (_proposal == null || _working) return;
     if (_locationQueryPending) {
-      _notify('Select a place result or restore the selected campaign pin.');
+      _notify(context.l10n.sponsorCreateSelectPlaceResult);
       return;
     }
     if (!_locationSelected) {
-      _notify('Choose the campaign location on the map before publishing.');
+      _notify(context.l10n.sponsorCreateChooseLocationFirst);
       return;
     }
     _setVoiceState(() => _working = true);
     try {
+      // The goal is sent as exact paise; the draft may come from an older
+      // server that only filled the rupee field.
+      final proposal = _proposal!;
       final campaign = await widget.viewModel.publishCampaign(
-        _proposal!,
+        proposal.copyWith(fundingGoalPaise: proposalGoalPaise(proposal)),
         _pin.latitude,
         _pin.longitude,
         locationName: _pin.locationName,
@@ -1189,19 +928,27 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
       _proposal = null;
       widget.viewModel.selectSection(2);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${campaign.name} is live.')),
+        SnackBar(
+          content: Text(context.l10n.sponsorCreateIsLive(campaign.name)),
+        ),
       );
     } catch (error) {
-      _message(error);
+      if (mounted) {
+        _message(error, fallback: context.l10n.sponsorCreatePublishFailed);
+      }
     } finally {
       if (mounted) _setVoiceState(() => _working = false);
     }
   }
 
-  void _message(Object error) {
-    final text = error is FieldnoteException
-        ? error.message
-        : 'Could not generate the campaign.';
+  void _message(Object error, {String? fallback}) {
+    if (!mounted) return;
+    final l10n = context.l10n;
+    final text = sponsorErrorMessage(
+      error,
+      l10n: l10n,
+      fallback: fallback ?? l10n.sponsorCreateGenerateFailed,
+    );
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
@@ -1210,36 +957,35 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
     return FieldnotePageList(
       bottom: FieldnoteSpacing.xl,
       children: [
-        const SectionHeading(
-          eyebrow: 'Sponsor studio',
-          title: 'Create a campaign',
-          description:
-              'Describe the work, then review the draft before publishing.',
+        SectionHeading(
+          eyebrow: context.l10n.sponsorCreateEyebrow,
+          title: context.l10n.sponsorCreateTitle,
+          description: context.l10n.sponsorCreateDescription,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: FieldnoteSpacing.md),
         LayoutBuilder(
           builder: (context, constraints) {
             final wide = constraints.maxWidth >= 900;
+            final c = context.fieldnoteColors;
             final prompt = SurfaceCard(
-              color: FieldnoteColors.ink,
+              color: c.inkFill,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'What needs to happen?',
+                    context.l10n.sponsorCreatePromptTitle,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: Colors.white,
+                      color: c.onFill,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: FieldnoteSpacing.xs),
                   Text(
-                    'Type a brief, or hold the round microphone while you '
-                    'speak and release when finished.',
+                    context.l10n.sponsorCreatePromptHelp,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.white70,
+                      color: c.onFill.withValues(alpha: .7),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: FieldnoteSpacing.md),
                   FieldnoteTextField(
                     controller: _prompt,
                     focusNode: _promptFocus,
@@ -1250,101 +996,103 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
                     textInputAction: TextInputAction.newline,
                     textCapitalization: TextCapitalization.sentences,
                     onChanged: (_) => setState(() {}),
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: c.onFill),
                     decoration: InputDecoration(
                       hintText: _recording
-                          ? 'Listening…'
-                          : 'Cause, place, date, budget, and volunteers…',
-                      hintStyle: const TextStyle(color: Colors.white54),
-                      fillColor: Colors.white.withValues(alpha: .09),
+                          ? context.l10n.sponsorCreateListening
+                          : context.l10n.sponsorCreatePromptHint,
+                      hintStyle: TextStyle(
+                        color: c.onFill.withValues(alpha: .54),
+                      ),
+                      fillColor: c.onFill.withValues(alpha: .09),
                       suffixIcon: _prompt.text.isEmpty || _recording
                           ? null
                           : IconButton(
-                              tooltip: 'Clear',
-                              icon: const Icon(
+                              tooltip: context.l10n.sponsorCreateClear,
+                              icon: Icon(
                                 Icons.close,
-                                color: Colors.white54,
+                                color: c.onFill.withValues(alpha: .54),
                               ),
                               onPressed: () => setState(_prompt.clear),
                             ),
                     ),
                   ),
                   if (_prompt.text.isEmpty && !_recording) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: FieldnoteSpacing.xs),
                     Align(
                       alignment: Alignment.centerLeft,
                       child: TextButton(
                         onPressed: () => setState(() {
-                          _prompt.text = _examplePrompt;
+                          _prompt.text =
+                              context.l10n.sponsorCreateExamplePrompt;
                           _prompt.selection = TextSelection.collapsed(
                             offset: _prompt.text.length,
                           );
                         }),
                         style: TextButton.styleFrom(
-                          foregroundColor: FieldnoteColors.acid,
+                          foregroundColor: c.acid,
                           padding: EdgeInsets.zero,
                           minimumSize: const Size(0, 32),
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        child: const Text('Start from an example brief'),
+                        child: Text(context.l10n.sponsorCreateExampleButton),
                       ),
                     ),
                   ],
-                  const SizedBox(height: 12),
+                  const SizedBox(height: FieldnoteSpacing.sm),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
                       onPressed: _busyWithAudio ? null : _generate,
                       style: FilledButton.styleFrom(
-                        backgroundColor: FieldnoteColors.acid,
-                        foregroundColor: FieldnoteColors.ink,
-                        disabledBackgroundColor: FieldnoteColors.acid
-                            .withValues(alpha: .52),
-                        disabledForegroundColor: FieldnoteColors.ink.withValues(
+                        backgroundColor: c.acid,
+                        foregroundColor: c.onAcid,
+                        disabledBackgroundColor: c.acid.withValues(alpha: .52),
+                        disabledForegroundColor: c.onAcid.withValues(
                           alpha: .82,
                         ),
                       ),
                       icon: _working || _transcribing
-                          ? const SizedBox.square(
+                          ? SizedBox.square(
                               dimension: 18,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.2,
-                                color: FieldnoteColors.ink,
+                                color: c.onAcid,
                               ),
                             )
                           : const Icon(Icons.auto_awesome),
                       label: Text(
                         _transcribing
-                            ? 'Processing recording…'
+                            ? context.l10n.sponsorCreateProcessingRecording
                             : _working
-                            ? 'Generating campaign…'
-                            : 'Generate campaign',
+                            ? context.l10n.sponsorCreateGenerating
+                            : context.l10n.sponsorCreateGenerate,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: FieldnoteSpacing.xs),
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       onPressed: _busyWithAudio ? null : _createManually,
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        disabledForegroundColor: Colors.white70,
+                        foregroundColor: c.onFill,
+                        disabledForegroundColor: c.onFill.withValues(alpha: .7),
                         side: BorderSide(
-                          color: Colors.white.withValues(
+                          color: c.onFill.withValues(
                             alpha: _busyWithAudio ? .2 : .35,
                           ),
                         ),
                       ),
                       icon: const Icon(Icons.edit_note),
-                      label: const Text('Enter campaign details manually'),
+                      label: Text(context.l10n.sponsorCreateManualButton),
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: FieldnoteSpacing.xs),
                   Text(
-                    'Manual entry works when AI is busy.',
+                    context.l10n.sponsorCreateManualNote,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.white54,
+                      color: c.onFill.withValues(alpha: .54),
                     ),
                   ),
                 ],
@@ -1354,15 +1102,15 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
                 ? SurfaceCard(
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.auto_awesome_outlined,
-                          color: FieldnoteColors.moss,
+                          color: context.fieldnoteColors.moss,
                           size: 26,
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: FieldnoteSpacing.sm),
                         Expanded(
                           child: Text(
-                            'Your editable proposal will appear here.',
+                            context.l10n.sponsorCreateProposalPlaceholder,
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                         ),
@@ -1402,7 +1150,11 @@ class _SponsorCreateViewState extends State<SponsorCreateView> {
               );
             }
             return Column(
-              children: [prompt, const SizedBox(height: 16), result],
+              children: [
+                prompt,
+                const SizedBox(height: FieldnoteSpacing.md),
+                result,
+              ],
             );
           },
         ),
@@ -1436,42 +1188,56 @@ class _ProposalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return SurfaceCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const StatusPill(
-                label: 'Assisted draft',
-                color: FieldnoteColors.clay,
+              StatusPill(
+                label: l10n.sponsorProposalAssistedDraft,
+                color: context.fieldnoteColors.clay,
                 icon: Icons.auto_awesome,
               ),
               const Spacer(),
               Text(
-                '₹${NumberFormat.compact().format(proposal.fundingGoal)} goal',
+                l10n.sponsorProposalGoal(
+                  formatPaiseCompact(
+                    proposalGoalPaise(proposal),
+                    localeTag: context.localeTag,
+                  ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: FieldnoteSpacing.md),
           Text(
             proposal.title,
             style: Theme.of(context).textTheme.headlineMedium,
           ),
-          const SizedBox(height: 7),
+          const SizedBox(height: FieldnoteSpacing.xs),
           Text(proposal.description),
-          const SizedBox(height: 16),
+          const SizedBox(height: FieldnoteSpacing.md),
           _detail(
+            context,
             Icons.schedule,
-            DateFormat(
-              'EEE, d MMM · h:mm a',
-            ).format(proposal.startsAt.toLocal()),
+            DateFormat.MMMEd(
+              context.localeTag,
+            ).add_jm().format(proposal.startsAt.toLocal()),
           ),
           _detail(
+            context,
             Icons.group_outlined,
-            '${proposal.volunteerCapacity} places · ${proposal.minimumVolunteers ?? (proposal.volunteerCapacity / 2).ceil()} minimum safe team · ${proposal.durationMinutes ~/ 60} hours',
+            l10n.sponsorProposalTeamSummary(
+              l10n.sponsorCampaignPlaces(proposal.volunteerCapacity),
+              proposal.minimumVolunteers ??
+                  (proposal.volunteerCapacity / 2).ceil(),
+              l10n.sponsorProposalHours(proposal.durationMinutes ~/ 60),
+            ),
           ),
           _detail(
+            context,
             Icons.location_on_outlined,
             pin.locationName.isEmpty ? proposal.locationName : pin.locationName,
           ),
@@ -1486,47 +1252,47 @@ class _ProposalCard extends StatelessWidget {
           ),
           const Divider(height: 28),
           Text(
-            'Work checklist',
+            l10n.sponsorWorkChecklist,
             style: Theme.of(context).textTheme.titleMedium,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: FieldnoteSpacing.xs),
           ...proposal.checklist.map(
             (item) => Padding(
               padding: const EdgeInsets.only(bottom: 7),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.check_circle,
                     size: 18,
-                    color: FieldnoteColors.forest,
+                    color: context.fieldnoteColors.forest,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: FieldnoteSpacing.xs),
                   Expanded(child: Text(item)),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: FieldnoteSpacing.xs),
           Text(
             proposal.rationale,
             style: Theme.of(context).textTheme.bodySmall,
           ),
-          const SizedBox(height: 18),
-          Row(
+          const SizedBox(height: FieldnoteSpacing.md),
+          FieldnoteActionRow(
             children: [
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: onEdit,
                   icon: const Icon(Icons.edit_outlined),
-                  label: const Text('Edit'),
+                  label: Text(l10n.sponsorProposalEdit),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: FieldnoteSpacing.sm),
               Expanded(
                 child: FilledButton.icon(
                   onPressed: onPublish,
                   icon: const Icon(Icons.rocket_launch_outlined),
-                  label: const Text('Publish'),
+                  label: Text(l10n.sponsorProposalPublish),
                 ),
               ),
             ],
@@ -1536,12 +1302,12 @@ class _ProposalCard extends StatelessWidget {
     );
   }
 
-  Widget _detail(IconData icon, String text) => Padding(
+  Widget _detail(BuildContext context, IconData icon, String text) => Padding(
     padding: const EdgeInsets.only(bottom: 8),
     child: Row(
       children: [
-        Icon(icon, size: 18, color: FieldnoteColors.moss),
-        const SizedBox(width: 8),
+        Icon(icon, size: 18, color: context.fieldnoteColors.moss),
+        const SizedBox(width: FieldnoteSpacing.xs),
         Expanded(child: Text(text)),
       ],
     ),
@@ -1553,46 +1319,101 @@ class SponsorImpactView extends StatelessWidget {
 
   final FieldnoteViewModel viewModel;
 
+  void _openPaymentHistory(BuildContext context) =>
+      Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => PaymentHistoryView(viewModel: viewModel),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
-    final campaigns = <Campaign>[
-      ...viewModel.createdCampaigns,
-      ...viewModel.campaigns.where(
-        (campaign) =>
-            viewModel.sponsorships.any(
-              (item) =>
-                  item.campaignId == campaign.id &&
-                  item.paymentStatus == 'verified',
-            ) &&
-            !viewModel.createdCampaigns.any((item) => item.id == campaign.id),
-      ),
-    ];
-    return FieldnotePageList(
-      children: [
-        SectionHeading(
-          eyebrow: 'Sponsor',
-          title: 'Campaign impact',
-          description: 'Follow funding, volunteers, and completed work.',
-        ),
-        const SizedBox(height: 16),
-        if (campaigns.isEmpty)
-          const EmptyPanel(
-            icon: Icons.insights_outlined,
-            title: 'No sponsored impact yet',
-            message: 'Create or sponsor a campaign to begin the evidence loop.',
-          )
-        else
-          ...campaigns.map(
-            (campaign) => Padding(
-              padding: const EdgeInsets.only(bottom: 18),
-              child: _ImpactCard(
-                campaign: campaign,
-                impact: viewModel.impacts[campaign.id],
-                viewModel: viewModel,
+    final campaigns = viewModel.impactCampaigns;
+    final needsAttention = viewModel.paymentHistory
+        .where(
+          (entry) =>
+              entry.sponsorship.paymentStatus == 'verified_uncredited' ||
+              entry.refund?.status == 'failed',
+        )
+        .length;
+    final l10n = context.l10n;
+    return RefreshIndicator(
+      onRefresh: viewModel.refresh,
+      child: FieldnotePageList(
+        children: [
+          SectionHeading(
+            eyebrow: l10n.sponsorEyebrow,
+            title: l10n.sponsorImpactTitle,
+            description: l10n.sponsorImpactDescription,
+            trailing: OutlinedButton.icon(
+              onPressed: () => _openPaymentHistory(context),
+              icon: const Icon(Icons.receipt_long_outlined),
+              label: Text(
+                needsAttention == 0
+                    ? l10n.sponsorImpactPaymentHistory
+                    : l10n.sponsorImpactPaymentHistoryReview(needsAttention),
               ),
             ),
           ),
-      ],
+          const SizedBox(height: FieldnoteSpacing.md),
+          if (campaigns.isEmpty)
+            EmptyPanel(
+              icon: Icons.insights_outlined,
+              title: l10n.sponsorImpactEmptyTitle,
+              message: l10n.sponsorImpactEmptyMessage,
+            )
+          else
+            ...campaigns.map(
+              (campaign) => Padding(
+                padding: const EdgeInsets.only(bottom: 18),
+                child: _ImpactCard(
+                  campaign: campaign,
+                  impact: viewModel.impacts[campaign.id],
+                  impactError: viewModel.impactErrors[campaign.id],
+                  viewModel: viewModel,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Live stream state for one campaign (S-8). Null means not listening.
+class CampaignLiveIndicator extends StatelessWidget {
+  const CampaignLiveIndicator({super.key, required this.state});
+
+  final LiveConnectionState? state;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final (label, color, icon) = switch (state) {
+      LiveConnectionState.connected => (
+        l10n.sponsorLiveConnected,
+        context.fieldnoteColors.forest,
+        Icons.sensors,
+      ),
+      LiveConnectionState.reconnecting => (
+        l10n.sponsorLiveReconnecting,
+        context.fieldnoteColors.clay,
+        Icons.sync_problem,
+      ),
+      LiveConnectionState.connecting => (
+        l10n.sponsorLiveConnecting,
+        context.fieldnoteColors.moss,
+        Icons.sync,
+      ),
+      null => (
+        l10n.sponsorLiveNotListening,
+        context.fieldnoteColors.moss,
+        Icons.sensors_off,
+      ),
+    };
+    return Semantics(
+      liveRegion: true,
+      child: StatusPill(label: label, color: color, icon: icon),
     );
   }
 }
@@ -1601,21 +1422,27 @@ class _ImpactCard extends StatelessWidget {
   const _ImpactCard({
     required this.campaign,
     required this.impact,
+    required this.impactError,
     required this.viewModel,
   });
 
   final Campaign campaign;
   final ImpactSummary? impact;
+  final String? impactError;
   final FieldnoteViewModel viewModel;
 
   @override
   Widget build(BuildContext context) {
     final value = impact;
+    final id = campaign.id!;
     // The campaign map endpoint is restricted to the creator, so only offer it
     // for campaigns this sponsor published.
-    final isCreator = viewModel.createdCampaigns.any(
-      (item) => item.id == campaign.id,
-    );
+    final isCreator = viewModel.createdCampaigns.any((item) => item.id == id);
+    final l10n = context.l10n;
+    final phase = campaignPhase(campaign);
+    final style = campaignPhaseStyle(phase, l10n: l10n);
+    final closed = campaignIsClosed(phase);
+    final listening = viewModel.isSubscribedTo(id);
     return SurfaceCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1628,39 +1455,134 @@ class _ImpactCard extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
               ),
-              IconButton(
-                tooltip: 'Listen for this campaign',
-                onPressed: () => viewModel.subscribeToCampaign(campaign.id!),
-                icon: const Icon(Icons.sensors),
-              ),
+              if (!closed || listening)
+                IconButton(
+                  tooltip: listening
+                      ? l10n.sponsorImpactStopLive
+                      : l10n.sponsorImpactListenLive,
+                  isSelected: listening,
+                  onPressed: () => listening
+                      ? viewModel.unsubscribeFromCampaign(id)
+                      : viewModel.subscribeToCampaign(id),
+                  icon: const Icon(Icons.sensors_off),
+                  selectedIcon: const Icon(Icons.sensors),
+                ),
             ],
           ),
-          const SizedBox(height: 6),
-          Text(value?.summary ?? 'Loading campaign impact…'),
-          const SizedBox(height: 14),
+          const SizedBox(height: FieldnoteSpacing.xs),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              StatusPill(
+                label: style.label,
+                color: style.color,
+                icon: style.icon,
+              ),
+              if (!closed || listening)
+                CampaignLiveIndicator(state: viewModel.liveStateFor(id)),
+            ],
+          ),
+          const SizedBox(height: FieldnoteSpacing.sm),
+          if (value != null)
+            Text(value.summary)
+          else if (impactError != null)
+            Row(
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 18,
+                  color: context.fieldnoteColors.danger,
+                ),
+                const SizedBox(width: FieldnoteSpacing.xs),
+                Expanded(
+                  child: Text(localizeStoredMessage(context, impactError!)),
+                ),
+                TextButton(
+                  onPressed: () => viewModel.refreshImpact(id),
+                  child: Text(l10n.commonRetry),
+                ),
+              ],
+            )
+          else
+            Text(l10n.sponsorImpactLoading),
+          if (phase == CampaignPhase.cancelled ||
+              phase == CampaignPhase.expired) ...[
+            const SizedBox(height: FieldnoteSpacing.xs),
+            Text(
+              phase == CampaignPhase.cancelled
+                  ? l10n.sponsorImpactCancelledNote
+                  : l10n.sponsorImpactExpiredNote,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+          const SizedBox(height: FieldnoteSpacing.md),
           Wrap(
             spacing: 10,
             runSpacing: 10,
             children: [
               _ImpactMetric(
-                label: 'Sponsored',
-                value:
-                    '₹${NumberFormat.compact().format(value?.sponsorshipTotal ?? campaign.sponsoredAmount)}',
+                label: l10n.sponsorImpactMetricSponsored,
+                value: formatPaiseCompact(
+                  value == null
+                      ? campaignSponsoredPaise(campaign)
+                      : impactSponsoredPaise(value),
+                  localeTag: context.localeTag,
+                ),
+              ),
+              if ((value?.refundedPaise ?? campaign.refundedAmountPaise) > 0)
+                _ImpactMetric(
+                  label: l10n.sponsorImpactMetricRefunded,
+                  value: formatPaiseCompact(
+                    value?.refundedPaise ?? campaign.refundedAmountPaise,
+                    localeTag: context.localeTag,
+                  ),
+                ),
+              _ImpactMetric(
+                label: l10n.sponsorImpactMetricJoined,
+                value: value == null ? '–' : '${value.joinedVolunteers}',
               ),
               _ImpactMetric(
-                label: 'Joined',
-                value: '${value?.joinedVolunteers ?? 0}',
+                label: l10n.sponsorImpactMetricCompleted,
+                value: value == null ? '–' : '${value.completedVolunteers}',
               ),
               _ImpactMetric(
-                label: 'Completed',
-                value: '${value?.completedVolunteers ?? 0}',
-              ),
-              _ImpactMetric(
-                label: 'Evidence',
-                value: '${value?.evidenceCount ?? 0}',
+                label: l10n.sponsorImpactMetricEvidence,
+                value: value == null ? '–' : '${value.evidenceCount}',
               ),
             ],
           ),
+          if (value != null) ...[
+            const SizedBox(height: FieldnoteSpacing.md),
+            FieldnoteCardAction(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => CampaignImpactReportView(
+                    campaignId: id,
+                    repository: viewModel.repository,
+                  ),
+                ),
+              ),
+              icon: Icons.description_outlined,
+              label: l10n.impactReportTitle,
+            ),
+          ],
+          if (isCreator) ...[
+            const SizedBox(height: 12),
+            FieldnoteCardAction(
+              onPressed: () => Navigator.of(context).push<void>(
+                MaterialPageRoute(
+                  builder: (_) => CampaignDiscussionView(
+                    campaign: campaign,
+                    repository: viewModel.repository,
+                    currentUserId: viewModel.profile?.authUserId,
+                  ),
+                ),
+              ),
+              icon: Icons.forum_outlined,
+              label: context.l10n.campaignDiscussionTitle,
+            ),
+          ],
           if (isCreator) ...[
             const Divider(height: 24),
             LayoutBuilder(
@@ -1673,9 +1595,13 @@ class _ImpactCard extends StatelessWidget {
                     SizedBox(
                       width: width,
                       child: OutlinedButton.icon(
-                        onPressed: () => shareCampaign(context, campaign),
+                        onPressed: () => shareCampaign(
+                          context,
+                          campaign,
+                          repository: viewModel.repository,
+                        ),
                         icon: const Icon(Icons.share_outlined, size: 18),
-                        label: const Text('Share'),
+                        label: Text(l10n.sponsorActionShare),
                       ),
                     ),
                     SizedBox(
@@ -1690,7 +1616,7 @@ class _ImpactCard extends StatelessWidget {
                           ),
                         ),
                         icon: const Icon(Icons.groups_outlined, size: 18),
-                        label: const Text('Volunteers'),
+                        label: Text(l10n.sponsorImpactVolunteers),
                       ),
                     ),
                     SizedBox(
@@ -1708,7 +1634,7 @@ class _ImpactCard extends StatelessWidget {
                           Icons.event_available_outlined,
                           size: 18,
                         ),
-                        label: const Text('Readiness'),
+                        label: Text(l10n.sponsorImpactReadiness),
                       ),
                     ),
                     SizedBox(
@@ -1718,7 +1644,7 @@ class _ImpactCard extends StatelessWidget {
                           MaterialPageRoute(
                             builder: (_) => CampaignPayoutView(
                               campaign: campaign,
-                              repository: viewModel.repository,
+                              viewModel: viewModel,
                             ),
                           ),
                         ),
@@ -1726,20 +1652,44 @@ class _ImpactCard extends StatelessWidget {
                           Icons.account_balance_outlined,
                           size: 18,
                         ),
-                        label: const Text('Payout'),
+                        label: Text(l10n.sponsorImpactPayout),
+                      ),
+                    ),
+                    SizedBox(
+                      width: constraints.maxWidth,
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          final post = await showCampaignPostDialog(
+                            context,
+                            viewModel: viewModel,
+                            campaign: campaign,
+                          );
+                          if (post != null && context.mounted) {
+                            showFieldnoteNotice(
+                              context,
+                              title: l10n.sponsorImpactUpdatePublishedTitle,
+                              message: l10n.sponsorImpactUpdatePublishedMessage(
+                                post.title,
+                              ),
+                              kind: FieldnoteNoticeKind.success,
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.campaign_outlined, size: 18),
+                        label: Text(l10n.sponsorImpactPostUpdate),
                       ),
                     ),
                   ],
                 );
               },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: FieldnoteSpacing.md),
             CampaignProofMap(
               repository: viewModel.repository,
               campaign: campaign,
               // Reloads whenever the live stream reports new activity.
               refreshToken:
-                  '${viewModel.lastLiveUpdate?.occurredAt.toIso8601String()}'
+                  '${viewModel.lastLiveUpdates[id]?.occurredAt.toIso8601String()}'
                   '·${value?.evidenceCount ?? 0}'
                   '·${value?.joinedVolunteers ?? 0}',
             ),
@@ -1747,29 +1697,36 @@ class _ImpactCard extends StatelessWidget {
           if (value != null && value.recentEvidence.isNotEmpty) ...[
             const Divider(height: 30),
             Text(
-              'Verified field evidence',
+              l10n.sponsorEvidenceTitle,
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: FieldnoteSpacing.xxs),
             Text(
-              'Tap a photograph to see exactly where it was captured.',
+              isCreator
+                  ? l10n.sponsorEvidenceTapToReview
+                  : l10n.sponsorEvidenceTapToSee,
               style: Theme.of(context).textTheme.bodySmall,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: FieldnoteSpacing.sm),
             SizedBox(
-              height: 210,
+              height:
+                  320 +
+                  (MediaQuery.textScalerOf(context).scale(16) / 16 - 1) * 140,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
-                itemCount: value.recentEvidence.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 10),
+                itemCount: value.recentEvidence.length.clamp(0, 6),
+                separatorBuilder: (_, _) =>
+                    const SizedBox(width: FieldnoteSpacing.sm),
                 itemBuilder: (context, index) {
                   final evidence = value.recentEvidence[index];
                   return SizedBox(
                     width: 280,
                     child: _EvidenceTile(
+                      key: ValueKey('evidence-${evidence.id}'),
                       evidence: evidence,
                       campaign: campaign,
                       viewModel: viewModel,
+                      canReview: isCreator,
                     ),
                   );
                 },
@@ -1784,45 +1741,83 @@ class _ImpactCard extends StatelessWidget {
 
 class _EvidenceTile extends StatefulWidget {
   const _EvidenceTile({
+    super.key,
     required this.evidence,
     required this.campaign,
     required this.viewModel,
+    required this.canReview,
   });
 
   final CompletionEvidence evidence;
   final Campaign campaign;
   final FieldnoteViewModel viewModel;
+  final bool canReview;
 
   @override
   State<_EvidenceTile> createState() => _EvidenceTileState();
 }
 
 class _EvidenceTileState extends State<_EvidenceTile> {
-  late final Future<String>? _photoUrl = widget.evidence.id == null
+  Future<String>? _photoUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _photoUrl = _fetchUrl();
+  }
+
+  /// Download URLs are short-lived, so a failed load fetches a fresh one.
+  Future<String>? _fetchUrl() => widget.evidence.id == null
       ? null
       : widget.viewModel.repository.evidenceUrl(widget.evidence.id!);
 
+  void _retryPhoto() => setState(() => _photoUrl = _fetchUrl());
+
   void _openProvenance() {
-    showModalBottomSheet<void>(
+    showFieldnoteBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       builder: (_) => EvidenceProvenanceSheet(
         evidence: widget.evidence,
         campaign: widget.campaign,
+        reviewPanel: widget.canReview && widget.evidence.id != null
+            ? EvidenceReviewPanel(
+                evidence: widget.evidence,
+                campaign: widget.campaign,
+                viewModel: widget.viewModel,
+              )
+            : null,
       ),
     );
   }
 
+  Widget _photoProblem(String label) => ColoredBox(
+    color: context.fieldnoteColors.inkFill,
+    child: Center(
+      child: TextButton.icon(
+        onPressed: _retryPhoto,
+        style: TextButton.styleFrom(
+          foregroundColor: context.fieldnoteColors.onFill.withValues(alpha: .7),
+        ),
+        icon: const Icon(Icons.refresh, size: 18),
+        label: Text(label),
+      ),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final review = reviewStateStyle(widget.evidence.reviewState, l10n: l10n);
+    final c = context.fieldnoteColors;
     return InkWell(
       onTap: _openProvenance,
       borderRadius: BorderRadius.circular(16),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: DecoratedBox(
-          decoration: const BoxDecoration(color: FieldnoteColors.mist),
+          decoration: BoxDecoration(color: c.mist),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1830,22 +1825,27 @@ class _EvidenceTileState extends State<_EvidenceTile> {
                 height: 92,
                 width: double.infinity,
                 child: _photoUrl == null
-                    ? const ColoredBox(
-                        color: FieldnoteColors.ink,
+                    ? ColoredBox(
+                        color: c.inkFill,
                         child: Icon(
                           Icons.photo_outlined,
-                          color: Colors.white54,
+                          color: c.onFill.withValues(alpha: .54),
                         ),
                       )
                     : FutureBuilder<String>(
                         future: _photoUrl,
                         builder: (context, snapshot) {
+                          if (snapshot.hasError) {
+                            return _photoProblem(
+                              l10n.sponsorEvidencePhotoUnavailable,
+                            );
+                          }
                           if (!snapshot.hasData) {
-                            return const ColoredBox(
-                              color: FieldnoteColors.ink,
+                            return ColoredBox(
+                              color: c.inkFill,
                               child: Center(
                                 child: CircularProgressIndicator(
-                                  color: FieldnoteColors.acid,
+                                  color: c.acid,
                                   strokeWidth: 2,
                                 ),
                               ),
@@ -1854,13 +1854,8 @@ class _EvidenceTileState extends State<_EvidenceTile> {
                           return Image.network(
                             snapshot.data!,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => const ColoredBox(
-                              color: FieldnoteColors.ink,
-                              child: Icon(
-                                Icons.hide_image_outlined,
-                                color: Colors.white54,
-                              ),
-                            ),
+                            errorBuilder: (_, _, _) =>
+                                _photoProblem(l10n.sponsorEvidenceReloadPhoto),
                           );
                         },
                       ),
@@ -1871,18 +1866,29 @@ class _EvidenceTileState extends State<_EvidenceTile> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      StatusPill(
-                        label: widget.evidence.locationIsDemo
-                            ? 'Unverified legacy location'
-                            : 'Location integrity passed',
-                        color: widget.evidence.locationIsDemo
-                            ? FieldnoteColors.clay
-                            : FieldnoteColors.forest,
-                        icon: widget.evidence.locationIsDemo
-                            ? Icons.science_outlined
-                            : Icons.gps_fixed,
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          StatusPill(
+                            label: review.label,
+                            color: review.color,
+                            icon: review.icon,
+                          ),
+                          StatusPill(
+                            label: widget.evidence.locationIsDemo
+                                ? l10n.sponsorEvidenceLocationUnverified
+                                : l10n.sponsorEvidenceLocationVerified,
+                            color: widget.evidence.locationIsDemo
+                                ? context.fieldnoteColors.clay
+                                : context.fieldnoteColors.forest,
+                            icon: widget.evidence.locationIsDemo
+                                ? Icons.science_outlined
+                                : Icons.gps_fixed,
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: FieldnoteSpacing.xs),
                       Text(
                         widget.evidence.confirmedSummary,
                         maxLines: 2,
@@ -1892,15 +1898,23 @@ class _EvidenceTileState extends State<_EvidenceTile> {
                       const Spacer(),
                       Row(
                         children: [
-                          const Icon(
-                            Icons.place_outlined,
+                          Icon(
+                            widget.canReview
+                                ? Icons.rate_review_outlined
+                                : Icons.place_outlined,
                             size: 15,
-                            color: FieldnoteColors.moss,
+                            color: context.fieldnoteColors.moss,
                           ),
-                          const SizedBox(width: 5),
-                          Text(
-                            'See where this was captured',
-                            style: Theme.of(context).textTheme.labelSmall,
+                          const SizedBox(width: FieldnoteSpacing.xs),
+                          Expanded(
+                            child: Text(
+                              widget.canReview
+                                  ? l10n.sponsorEvidenceReviewAndSee
+                                  : l10n.sponsorEvidenceSeeWhere,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.labelSmall,
+                            ),
                           ),
                         ],
                       ),
@@ -1912,6 +1926,184 @@ class _EvidenceTileState extends State<_EvidenceTile> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Approve or reject one evidence item (S-6). Rejecting needs a note that
+/// the volunteer is shown.
+class EvidenceReviewPanel extends StatefulWidget {
+  const EvidenceReviewPanel({
+    super.key,
+    required this.evidence,
+    required this.campaign,
+    required this.viewModel,
+  });
+
+  final CompletionEvidence evidence;
+  final Campaign campaign;
+  final FieldnoteViewModel viewModel;
+
+  @override
+  State<EvidenceReviewPanel> createState() => _EvidenceReviewPanelState();
+}
+
+class _EvidenceReviewPanelState extends State<EvidenceReviewPanel> {
+  late final _note = TextEditingController(
+    text: widget.evidence.reviewNote ?? '',
+  );
+  late ReviewState _state = widget.evidence.reviewState;
+  late String? _savedNote = widget.evidence.reviewNote;
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _note.dispose();
+    super.dispose();
+  }
+
+  Future<void> _review(bool approve) async {
+    final l10n = context.l10n;
+    final note = _note.text.trim();
+    if (!approve && note.length < CampaignLimits.reviewNoteMin) {
+      setState(
+        () => _error = l10n.sponsorEvidenceRejectNoteTooShort(
+          CampaignLimits.reviewNoteMin,
+        ),
+      );
+      return;
+    }
+    if (note.length > CampaignLimits.reviewNoteMax) {
+      setState(
+        () => _error = l10n.sponsorEvidenceNoteTooLong(
+          CampaignLimits.reviewNoteMax,
+        ),
+      );
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      final updated = await widget.viewModel.reviewEvidence(
+        widget.campaign.id!,
+        widget.evidence.id!,
+        approve: approve,
+        note: note.isEmpty ? null : note,
+      );
+      if (!mounted) return;
+      setState(() {
+        _state = updated.reviewState;
+        _savedNote = updated.reviewNote;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            approve
+                ? context.l10n.sponsorEvidenceApproved
+                : context.l10n.sponsorEvidenceRejected,
+          ),
+        ),
+      );
+    } catch (error) {
+      if (mounted) {
+        setState(
+          () => _error = userMessageFor(
+            error,
+            fallback: context.l10n.sponsorEvidenceReviewFailed,
+            context: context,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final style = reviewStateStyle(_state, l10n: l10n);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                l10n.sponsorEvidenceYourReview,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+            StatusPill(
+              label: style.label,
+              color: style.color,
+              icon: style.icon,
+            ),
+          ],
+        ),
+        if (widget.evidence.aiGenerated) ...[
+          const SizedBox(height: FieldnoteSpacing.xs),
+          Text(
+            l10n.sponsorEvidenceAiDrafted,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+        if (_savedNote != null && _savedNote!.isNotEmpty) ...[
+          const SizedBox(height: FieldnoteSpacing.xs),
+          Text(l10n.sponsorEvidenceSavedNote(_savedNote!)),
+        ],
+        const SizedBox(height: FieldnoteSpacing.sm),
+        FieldnoteTextField(
+          controller: _note,
+          enabled: !_saving,
+          minLines: 2,
+          maxLines: 4,
+          maxLength: CampaignLimits.reviewNoteMax,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(
+            labelText: l10n.sponsorEvidenceNoteLabel,
+            helperText: l10n.sponsorEvidenceNoteHelper,
+          ),
+        ),
+        if (_error != null) ...[
+          const SizedBox(height: FieldnoteSpacing.xs),
+          Text(
+            _error!,
+            style: TextStyle(color: context.fieldnoteColors.danger),
+          ),
+        ],
+        const SizedBox(height: FieldnoteSpacing.sm),
+        FieldnoteActionRow(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _saving ? null : () => _review(false),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: context.fieldnoteColors.danger,
+                ),
+                icon: const Icon(Icons.thumb_down_alt_outlined),
+                label: Text(l10n.sponsorEvidenceReject),
+              ),
+            ),
+            const SizedBox(width: FieldnoteSpacing.sm),
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: _saving ? null : () => _review(true),
+                icon: _saving
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.thumb_up_alt_outlined),
+                label: Text(l10n.sponsorEvidenceApprove),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -1928,7 +2120,9 @@ class _ImpactMetric extends StatelessWidget {
       width: 132,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: FieldnoteColors.acid.withValues(alpha: .35),
+        color: context.fieldnoteColors.acid.withValues(
+          alpha: context.fieldnoteColors.isDark ? .12 : .35,
+        ),
         borderRadius: BorderRadius.circular(15),
       ),
       child: Column(
@@ -1962,62 +2156,74 @@ class CampaignCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return SurfaceCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Wrap(
+            spacing: FieldnoteSpacing.sm,
+            runSpacing: FieldnoteSpacing.xs,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               if (score != null)
                 StatusPill(
-                  label: '${score!.round()}% match',
+                  label: l10n.sponsorCardMatch(score!.round()),
                   color: score! >= 75
-                      ? FieldnoteColors.forest
-                      : FieldnoteColors.clay,
+                      ? context.fieldnoteColors.forest
+                      : context.fieldnoteColors.clay,
                   icon: Icons.auto_awesome,
                 )
               else
-                StatusPill(
-                  label: switch (campaign.readinessState) {
-                    'confirmed' => 'Confirmed',
-                    'postponed' => 'Postponed',
-                    'fundingShort' ||
-                    'volunteersShort' ||
-                    'bothShort' => 'Awaiting decision',
-                    _ => 'Date tentative',
+                Builder(
+                  builder: (context) {
+                    final phase = campaignPhase(campaign);
+                    final style = campaignPhaseStyle(phase, l10n: l10n);
+                    return StatusPill(
+                      label: switch (phase) {
+                        CampaignPhase.planning => l10n.sponsorCardDateTentative,
+                        CampaignPhase.needsDecision =>
+                          l10n.sponsorCardAwaitingDecision,
+                        _ => style.label,
+                      },
+                      color: phase == CampaignPhase.planning
+                          ? context.fieldnoteColors.clay
+                          : style.color,
+                      icon: Icons.event_outlined,
+                    );
                   },
-                  color: campaign.readinessState == 'confirmed'
-                      ? FieldnoteColors.forest
-                      : FieldnoteColors.clay,
-                  icon: Icons.event_outlined,
                 ),
-              const Spacer(),
-              Text('${campaign.volunteerCapacity} places'),
+              Text(l10n.sponsorCampaignPlaces(campaign.volunteerCapacity)),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: FieldnoteSpacing.sm),
           Text(
             campaign.name,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.titleMedium,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: FieldnoteSpacing.xs),
           Text(
             campaign.description,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.bodyMedium,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: FieldnoteSpacing.sm),
           Text(
-            '${campaign.locationName} · ${DateFormat('EEE, d MMM').format(campaign.startsAt.toLocal())}',
+            l10n.sponsorCardPlaceAndDate(
+              campaign.locationName,
+              DateFormat.MMMEd(
+                context.localeTag,
+              ).format(campaign.startsAt.toLocal()),
+            ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.bodySmall,
           ),
           if (reasons.isNotEmpty) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: FieldnoteSpacing.sm),
             ...reasons
                 .take(2)
                 .map(
@@ -2025,12 +2231,12 @@ class CampaignCard extends StatelessWidget {
                     padding: const EdgeInsets.only(bottom: 3),
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.check,
                           size: 15,
-                          color: FieldnoteColors.moss,
+                          color: context.fieldnoteColors.moss,
                         ),
-                        const SizedBox(width: 5),
+                        const SizedBox(width: FieldnoteSpacing.xs),
                         Expanded(
                           child: Text(
                             reason,
@@ -2044,14 +2250,15 @@ class CampaignCard extends StatelessWidget {
                 ),
           ],
           if (showFunding) ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: FieldnoteSpacing.md),
             _AnimatedFundingProgress(
-              sponsoredAmount: campaign.sponsoredAmount,
-              fundingGoal: campaign.fundingGoal,
+              sponsoredPaise: campaignSponsoredPaise(campaign),
+              goalPaise: campaignGoalPaise(campaign),
+              refundedPaise: campaignRefundedPaise(campaign),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: FieldnoteSpacing.sm),
           ] else
-            const SizedBox(height: 14),
+            const SizedBox(height: FieldnoteSpacing.md),
           SizedBox(
             width: double.infinity,
             child: FilledButton(onPressed: onAction, child: Text(actionLabel)),
@@ -2064,12 +2271,15 @@ class CampaignCard extends StatelessWidget {
 
 class _AnimatedFundingProgress extends StatefulWidget {
   const _AnimatedFundingProgress({
-    required this.sponsoredAmount,
-    required this.fundingGoal,
+    required this.sponsoredPaise,
+    required this.goalPaise,
+    required this.refundedPaise,
   });
 
-  final double sponsoredAmount;
-  final double fundingGoal;
+  /// Funded amount net of refunds.
+  final int sponsoredPaise;
+  final int goalPaise;
+  final int refundedPaise;
 
   @override
   State<_AnimatedFundingProgress> createState() =>
@@ -2077,41 +2287,56 @@ class _AnimatedFundingProgress extends StatefulWidget {
 }
 
 class _AnimatedFundingProgressState extends State<_AnimatedFundingProgress> {
-  late double _previousAmount = widget.sponsoredAmount;
+  late int _previousPaise = widget.sponsoredPaise;
 
   @override
   void didUpdateWidget(_AnimatedFundingProgress oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.sponsoredAmount != widget.sponsoredAmount) {
-      _previousAmount = oldWidget.sponsoredAmount;
+    if (oldWidget.sponsoredPaise != widget.sponsoredPaise) {
+      _previousPaise = oldWidget.sponsoredPaise;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final localeTag = context.localeTag;
     return TweenAnimationBuilder<double>(
-      tween: Tween(begin: _previousAmount, end: widget.sponsoredAmount),
+      tween: Tween(
+        begin: _previousPaise.toDouble(),
+        end: widget.sponsoredPaise.toDouble(),
+      ),
       duration: const Duration(milliseconds: 900),
       curve: Curves.easeOutCubic,
-      onEnd: () => _previousAmount = widget.sponsoredAmount,
-      builder: (context, amount, _) {
-        final progress = widget.fundingGoal <= 0
-            ? 0.0
-            : (amount / widget.fundingGoal).clamp(0, 1).toDouble();
+      onEnd: () => _previousPaise = widget.sponsoredPaise,
+      builder: (context, animated, _) {
+        // Display only: the animated value is rounded back to whole paise.
+        final paise = animated.round();
+        final funded = formatPaiseCompact(paise, localeTag: localeTag);
+        final goal = formatPaiseCompact(widget.goalPaise, localeTag: localeTag);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             LinearProgressIndicator(
               minHeight: 8,
-              value: progress,
+              value: fundingProgress(paise, widget.goalPaise),
               borderRadius: BorderRadius.circular(99),
-              color: FieldnoteColors.clay,
-              backgroundColor: FieldnoteColors.clay.withValues(alpha: .12),
+              color: context.fieldnoteColors.clay,
+              backgroundColor: context.fieldnoteColors.clay.withValues(
+                alpha: .12,
+              ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: FieldnoteSpacing.xs),
             Text(
-              '₹${NumberFormat.compact().format(amount)} of '
-              '₹${NumberFormat.compact().format(widget.fundingGoal)}',
+              widget.refundedPaise > 0
+                  ? context.l10n.sponsorFundingOfGoalRefunded(
+                      funded,
+                      goal,
+                      formatPaiseCompact(
+                        widget.refundedPaise,
+                        localeTag: localeTag,
+                      ),
+                    )
+                  : context.l10n.sponsorFundingOfGoal(funded, goal),
             ),
           ],
         );
@@ -2143,6 +2368,8 @@ Future<CampaignProposal?> showProposalFormDialog(
 }) {
   return showDialog<CampaignProposal>(
     context: context,
+    // A stray tap outside must not throw away a long form (P2).
+    barrierDismissible: false,
     builder: (dialogContext) => _ProposalFormDialog(
       heading: heading,
       confirmLabel: confirmLabel,
@@ -2150,6 +2377,8 @@ Future<CampaignProposal?> showProposalFormDialog(
       seedPrompt: seedPrompt,
       repository: repository,
       onLocationPicked: onLocationPicked,
+      defaultSkill: dialogContext.l10n.sponsorProposalFormDefaultSkill,
+      defaultEvidence: dialogContext.l10n.sponsorProposalFormDefaultEvidence,
     ),
   );
 }
@@ -2162,6 +2391,8 @@ class _ProposalFormDialog extends StatefulWidget {
     required this.seedPrompt,
     required this.repository,
     required this.onLocationPicked,
+    required this.defaultSkill,
+    required this.defaultEvidence,
   });
 
   final String heading;
@@ -2170,6 +2401,10 @@ class _ProposalFormDialog extends StatefulWidget {
   final String seedPrompt;
   final FieldnoteRepository? repository;
   final ValueChanged<SelectedLocation>? onLocationPicked;
+
+  /// Editable seed text in the sponsor's language for a new campaign.
+  final String defaultSkill;
+  final String defaultEvidence;
 
   @override
   State<_ProposalFormDialog> createState() => _ProposalFormDialogState();
@@ -2188,8 +2423,25 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
   late final TextEditingController _evidence;
   late final TextEditingController _tags;
   late DateTime _startsAt;
+  late DateTime _initialStartsAt;
+  late final List<TextEditingController> _all;
+  late final List<String> _initialTexts;
   String? _error;
+  Map<String, String> _errors = const {};
   SelectedLocation? _selectedLocation;
+
+  bool get _dirty =>
+      _startsAt != _initialStartsAt ||
+      _selectedLocation != null ||
+      [
+        for (var i = 0; i < _all.length; i++) _all[i].text != _initialTexts[i],
+      ].any((changed) => changed);
+
+  Future<void> _cancel() async {
+    if (!_dirty || await confirmDiscard(context)) {
+      if (mounted) Navigator.pop(context);
+    }
+  }
 
   Future<void> _chooseLocation() async {
     final repository = widget.repository;
@@ -2199,7 +2451,7 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
       MaterialPageRoute(
         builder: (_) => LocationPicker(
           repository: repository,
-          title: 'Choose campaign location',
+          title: context.l10n.sponsorProposalFormChooseLocation,
           initialQuery: _locationName.text,
         ),
       ),
@@ -2221,7 +2473,9 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
     );
     _locationName = TextEditingController(text: initial?.locationName ?? '');
     _funding = TextEditingController(
-      text: (initial?.fundingGoal ?? 25000).toStringAsFixed(0),
+      text: paiseInputText(
+        initial == null ? 2500000 : proposalGoalPaise(initial),
+      ),
     );
     _capacity = TextEditingController(
       text: (initial?.volunteerCapacity ?? 10).toString(),
@@ -2236,22 +2490,33 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
       text: (initial?.durationMinutes ?? 180).toString(),
     );
     _skills = TextEditingController(
-      text: (initial?.requiredSkills ?? const ['No specialist skills']).join(
-        '\n',
-      ),
+      text: (initial?.requiredSkills ?? [widget.defaultSkill]).join('\n'),
     );
     _checklist = TextEditingController(
       text: (initial?.checklist ?? const <String>[]).join('\n'),
     );
     _evidence = TextEditingController(
-      text:
-          initial?.evidenceInstructions ??
-          'Submit a location-verified photograph and describe the completed work.',
+      text: initial?.evidenceInstructions ?? widget.defaultEvidence,
     );
     _tags = TextEditingController(
       text: (initial?.tags ?? const ['community']).join('\n'),
     );
     _startsAt = initial?.startsAt.toLocal() ?? _nextSaturdayMorning();
+    _initialStartsAt = _startsAt;
+    _all = [
+      _title,
+      _description,
+      _locationName,
+      _funding,
+      _capacity,
+      _minimum,
+      _duration,
+      _skills,
+      _checklist,
+      _evidence,
+      _tags,
+    ];
+    _initialTexts = [for (final controller in _all) controller.text];
   }
 
   @override
@@ -2313,34 +2578,38 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
     final title = _title.text.trim();
     final description = _description.text.trim();
     final locationName = _locationName.text.trim();
-    final funding = double.tryParse(_funding.text.trim());
-    final capacity = int.tryParse(_capacity.text.trim());
-    final minimum = int.tryParse(_minimum.text.trim());
-    final duration = int.tryParse(_duration.text.trim());
+    final fundingPaise = parseRupeesToPaise(_funding.text);
+    final capacity = parseWholeNumber(_capacity.text);
+    final minimum = parseWholeNumber(_minimum.text);
+    final duration = parseWholeNumber(_duration.text);
     final checklist = _lines(_checklist.text);
+    final skills = _lines(_skills.text);
+    final tags = _lines(_tags.text);
     final evidence = _evidence.text.trim();
 
-    final problem = switch (null) {
-      _ when title.length < 4 => 'Give the campaign a title.',
-      _ when description.length < 20 =>
-        'Describe the work in at least 20 characters.',
-      _ when locationName.isEmpty => 'Name the location.',
-      _ when _startsAt.isBefore(DateTime.now()) =>
-        'Choose a start date and time in the future.',
-      _ when duration == null || duration < 30 || duration > 720 =>
-        'Duration must be between 30 and 720 minutes.',
-      _ when capacity == null || capacity < 1 || capacity > 1000 =>
-        'Volunteer places must be between 1 and 1000.',
-      _ when minimum == null || minimum < 1 || minimum > capacity =>
-        'Choose a minimum team between 1 and the volunteer places.',
-      _ when funding == null || funding < 100 =>
-        'Funding goal must be at least ₹100.',
-      _ when checklist.isEmpty => 'Add at least one checklist task.',
-      _ when evidence.length < 10 => 'Describe the evidence volunteers submit.',
-      _ => null,
-    };
-    if (problem != null) {
-      setState(() => _error = problem);
+    final errors = validateCampaignForm(
+      title: title,
+      description: description,
+      locationName: locationName,
+      startsAt: _startsAt,
+      duration: _duration.text,
+      capacity: _capacity.text,
+      minimum: _minimum.text,
+      funding: _funding.text,
+      checklist: checklist,
+      skills: skills,
+      tags: tags,
+      evidence: evidence,
+      l10n: context.l10n,
+      localeTag: context.localeTag,
+    );
+    if (errors.isNotEmpty) {
+      setState(() {
+        _errors = errors;
+        _error = errors.length == 1
+            ? errors.values.first
+            : context.l10n.sponsorProposalFormFixFields(errors.length);
+      });
       return;
     }
 
@@ -2358,11 +2627,13 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
         durationMinutes: duration!,
         volunteerCapacity: capacity!,
         minimumVolunteers: minimum!,
-        fundingGoal: funding!,
-        requiredSkills: _lines(_skills.text),
+        // Rupees only for old servers; the paise value is authoritative.
+        fundingGoal: fundingPaise! / 100,
+        fundingGoalPaise: fundingPaise,
+        requiredSkills: skills,
         checklist: checklist,
         evidenceInstructions: evidence,
-        tags: _lines(_tags.text),
+        tags: tags,
         rationale:
             initial?.rationale ??
             'Entered manually by the sponsor. No AI model produced these details.',
@@ -2372,11 +2643,33 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-      titlePadding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
-      contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-      actionsPadding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+    final startInPast = !_startsAt.isAfter(DateTime.now());
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _cancel();
+      },
+      child: _buildDialog(context, startInPast),
+    );
+  }
+
+  InputDecoration _field(String key, String label, {String? helper}) =>
+      InputDecoration(
+        labelText: label,
+        helperText: helper,
+        errorText: _errors[key],
+        errorMaxLines: 2,
+      );
+
+  Widget _buildDialog(BuildContext context, bool startInPast) {
+    final l10n = context.l10n;
+    final localeTag = context.localeTag;
+    final numbers = NumberFormat.decimalPattern(localeTag);
+    String range(int minimum, int maximum) => l10n.sponsorProposalFormRange(
+      numbers.format(minimum),
+      numbers.format(maximum),
+    );
+    return fieldnoteDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       title: Text(
         widget.heading,
@@ -2385,64 +2678,94 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
       content: SizedBox(
         width: 560,
         height:
-            (MediaQuery.sizeOf(context).height -
-                    MediaQuery.viewInsetsOf(context).bottom -
-                    240)
-                .clamp(180.0, 620.0),
+            ((MediaQuery.sizeOf(context).height -
+                        MediaQuery.viewInsetsOf(context).bottom -
+                        MediaQuery.paddingOf(context).vertical -
+                        48) *
+                    .65)
+                .clamp(0.0, 620.0),
         child: SingleChildScrollView(
           padding: const EdgeInsets.only(bottom: 12),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Basics', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 12),
+              Text(
+                l10n.sponsorProposalFormBasics,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: FieldnoteSpacing.sm),
               FieldnoteTextField(
                 controller: _title,
                 textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(labelText: 'Campaign title'),
+                maxLength: CampaignLimits.titleMax,
+                decoration: _field(
+                  CampaignField.title,
+                  l10n.sponsorProposalFormTitle,
+                ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: FieldnoteSpacing.sm),
               FieldnoteTextField(
                 controller: _description,
                 minLines: 3,
                 maxLines: 5,
                 textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(labelText: 'Description'),
+                maxLength: CampaignLimits.descriptionMax,
+                decoration: _field(
+                  CampaignField.description,
+                  l10n.sponsorProposalFormDescription,
+                ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: FieldnoteSpacing.sm),
               FieldnoteTextField(
                 controller: _locationName,
                 onChanged: (_) => _selectedLocation = null,
-                decoration: const InputDecoration(labelText: 'Location name'),
+                decoration: _field(
+                  CampaignField.location,
+                  l10n.sponsorProposalFormLocation,
+                ),
               ),
               if (widget.repository != null) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: FieldnoteSpacing.xs),
                 OutlinedButton.icon(
                   onPressed: _chooseLocation,
                   icon: const Icon(Icons.map_outlined),
-                  label: const Text('Choose on map'),
+                  label: Text(l10n.sponsorProposalFormChooseOnMap),
                 ),
               ],
-              const SizedBox(height: 18),
+              const SizedBox(height: FieldnoteSpacing.md),
               Text(
-                'Schedule and capacity',
+                l10n.sponsorProposalFormSchedule,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              const SizedBox(height: 12),
-              Text('Starts at', style: Theme.of(context).textTheme.labelLarge),
-              const SizedBox(height: 8),
+              const SizedBox(height: FieldnoteSpacing.sm),
+              Text(
+                l10n.sponsorProposalFormStartsAt,
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+              const SizedBox(height: FieldnoteSpacing.xs),
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: _pickStart,
                   icon: const Icon(Icons.event_outlined),
                   label: Text(
-                    DateFormat('EEE, d MMM yyyy · h:mm a').format(_startsAt),
+                    DateFormat.yMMMEd(localeTag).add_jm().format(_startsAt),
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              if (startInPast || _errors[CampaignField.startsAt] != null) ...[
+                const SizedBox(height: FieldnoteSpacing.xs),
+                Text(
+                  _errors[CampaignField.startsAt] ??
+                      l10n.sponsorProposalFormStartPassed,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+              const SizedBox(height: FieldnoteSpacing.sm),
               ResponsiveCardGrid(
                 minimumItemWidth: 150,
                 spacing: 16,
@@ -2450,77 +2773,103 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
                   FieldnoteTextField(
                     controller: _funding,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Funding goal (₹)',
+                    decoration: _field(
+                      CampaignField.funding,
+                      l10n.sponsorProposalFormFunding,
+                      helper: l10n.sponsorProposalFormRange(
+                        formatPaise(
+                          CampaignLimits.minimumGoalPaise,
+                          localeTag: localeTag,
+                        ),
+                        formatPaise(
+                          CampaignLimits.maximumGoalPaise,
+                          localeTag: localeTag,
+                        ),
+                      ),
                     ),
                   ),
                   FieldnoteTextField(
                     controller: _capacity,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Volunteer places',
+                    decoration: _field(
+                      CampaignField.capacity,
+                      l10n.sponsorProposalFormPlaces,
+                      helper: range(
+                        CampaignLimits.minimumCapacity,
+                        CampaignLimits.maximumCapacity,
+                      ),
                     ),
                   ),
                   FieldnoteTextField(
                     controller: _minimum,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Minimum safe team',
+                    decoration: _field(
+                      CampaignField.minimum,
+                      l10n.sponsorProposalFormMinimumTeam,
                     ),
                   ),
                   FieldnoteTextField(
                     controller: _duration,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Minutes'),
+                    decoration: _field(
+                      CampaignField.duration,
+                      l10n.sponsorProposalFormMinutes,
+                      helper: range(
+                        CampaignLimits.minimumDurationMinutes,
+                        CampaignLimits.maximumDurationMinutes,
+                      ),
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: FieldnoteSpacing.md),
               Text(
-                'Work and evidence',
+                l10n.sponsorProposalFormWork,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: FieldnoteSpacing.sm),
               FieldnoteTextField(
                 controller: _checklist,
                 minLines: 3,
                 maxLines: 6,
-                decoration: const InputDecoration(
-                  labelText: 'Work checklist',
-                  helperText: 'One task per line',
+                decoration: _field(
+                  CampaignField.checklist,
+                  l10n.sponsorWorkChecklist,
+                  helper: l10n.sponsorProposalFormOneTaskPerLine,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: FieldnoteSpacing.sm),
               FieldnoteTextField(
                 controller: _skills,
                 minLines: 1,
                 maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Required skills',
-                  helperText: 'One per line',
+                decoration: InputDecoration(
+                  labelText: l10n.sponsorProposalFormSkills,
+                  helperText: l10n.sponsorProposalFormOnePerLine,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: FieldnoteSpacing.sm),
               FieldnoteTextField(
                 controller: _evidence,
                 minLines: 2,
                 maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Evidence instructions',
+                decoration: _field(
+                  CampaignField.evidence,
+                  l10n.sponsorProposalFormEvidence,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: FieldnoteSpacing.sm),
               FieldnoteTextField(
                 controller: _tags,
                 minLines: 1,
                 maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Tags',
-                  helperText: 'One per line',
+                decoration: InputDecoration(
+                  labelText: l10n.sponsorProposalFormTags,
+                  helperText: l10n.sponsorProposalFormOnePerLine,
                 ),
               ),
               if (_error != null) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: FieldnoteSpacing.sm),
                 Text(
                   _error!,
                   style: TextStyle(
@@ -2544,8 +2893,8 @@ class _ProposalFormDialogState extends State<_ProposalFormDialog> {
         SizedBox(
           width: double.infinity,
           child: TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            onPressed: _cancel,
+            child: Text(l10n.sponsorProposalFormCancel),
           ),
         ),
       ],

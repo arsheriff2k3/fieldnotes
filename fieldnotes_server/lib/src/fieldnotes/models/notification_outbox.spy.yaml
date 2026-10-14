@@ -1,0 +1,31 @@
+### One transactional email (A-9). Rows are written by the business action and
+### delivered by the outbox future call, so SMTP never blocks or fails the
+### action. (recipientAuthUserId, dedupeKey) is unique: one email per event per
+### user. The address is looked up at send time; [toEmail] is only set for the
+### account-deletion notice, whose auth user no longer exists, and is cleared
+### once the row is final.
+###
+### status: pending | sent | skipped | failed
+class: NotificationOutbox
+serverOnly: true
+table: fieldnote_notification_outbox
+fields:
+  recipientAuthUserId: UuidValue
+  kind: String
+  dedupeKey: String
+  subject: String
+  bodyText: String
+  bodyHtml: String
+  toEmail: String?
+  status: String, default='pending'
+  attempts: int, default=0
+  lastError: String?
+  nextAttemptAt: DateTime?
+  createdAt: DateTime, default=now
+  sentAt: DateTime?
+indexes:
+  fieldnote_notification_dedupe_idx:
+    fields: recipientAuthUserId, dedupeKey
+    unique: true
+  fieldnote_notification_status_idx:
+    fields: status, nextAttemptAt

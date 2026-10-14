@@ -91,20 +91,21 @@ class _FieldnoteNoticeState extends State<_FieldnoteNotice>
 
   @override
   Widget build(BuildContext context) {
+    final c = context.fieldnoteColors;
     final (color, background, icon) = switch (widget.kind) {
       FieldnoteNoticeKind.success => (
-        FieldnoteColors.forest,
-        const Color(0xFFF1F8F3),
+        c.forest,
+        c.successSurface,
         Icons.check_circle_rounded,
       ),
       FieldnoteNoticeKind.error => (
-        const Color(0xFF9D352F),
-        const Color(0xFFFFF1EF),
+        c.errorAccent,
+        c.errorSurface,
         Icons.error_rounded,
       ),
       FieldnoteNoticeKind.info => (
-        FieldnoteColors.ink,
-        const Color(0xFFF4F1E8),
+        c.ink,
+        c.infoSurface,
         Icons.info_rounded,
       ),
     };
@@ -143,7 +144,7 @@ class _FieldnoteNoticeState extends State<_FieldnoteNotice>
                         border: Border.all(color: color.withValues(alpha: .2)),
                         boxShadow: [
                           BoxShadow(
-                            color: FieldnoteColors.ink.withValues(alpha: .18),
+                            color: c.shadow.withValues(alpha: .18),
                             blurRadius: 28,
                             offset: const Offset(0, 12),
                           ),
@@ -163,7 +164,7 @@ class _FieldnoteNoticeState extends State<_FieldnoteNotice>
                               ),
                               child: Icon(icon, color: color, size: 22),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: FieldnoteSpacing.sm),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -179,12 +180,12 @@ class _FieldnoteNoticeState extends State<_FieldnoteNotice>
                                           fontWeight: FontWeight.w900,
                                         ),
                                   ),
-                                  const SizedBox(height: 2),
+                                  const SizedBox(height: FieldnoteSpacing.xxs),
                                   Text(
                                     widget.message,
                                     style: Theme.of(context).textTheme.bodySmall
                                         ?.copyWith(
-                                          color: FieldnoteColors.ink,
+                                          color: c.ink,
                                           height: 1.35,
                                         ),
                                   ),
@@ -192,7 +193,9 @@ class _FieldnoteNoticeState extends State<_FieldnoteNotice>
                               ),
                             ),
                             IconButton(
-                              tooltip: 'Dismiss',
+                              tooltip: MaterialLocalizations.of(
+                                context,
+                              ).closeButtonTooltip,
                               onPressed: _dismiss,
                               visualDensity: VisualDensity.compact,
                               icon: Icon(Icons.close, color: color, size: 20),
@@ -220,6 +223,20 @@ abstract final class FieldnoteSpacing {
   static const double lg = 24;
   static const double xl = 32;
   static const double xxl = 48;
+  static const double fieldGap = md;
+  static const double sectionGap = lg;
+  static const double cardPadding = md;
+
+  static EdgeInsets sheetPadding(
+    BuildContext context, {
+    double top = xs,
+    double bottom = lg,
+  }) => EdgeInsets.fromLTRB(
+    pageGutter(context),
+    top,
+    pageGutter(context),
+    bottom,
+  );
 
   static double pageGutter(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
@@ -227,6 +244,119 @@ abstract final class FieldnoteSpacing {
     if (width < 1000) return 28;
     return 36;
   }
+}
+
+/// Consistent dialog gutters, scrolling content and separated actions.
+AlertDialog fieldnoteDialog({
+  required Widget title,
+  Widget? content,
+  List<Widget>? actions,
+  ShapeBorder? shape,
+}) => AlertDialog(
+  title: title,
+  content: content,
+  actions: actions,
+  shape: shape,
+  scrollable: true,
+  insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+  titlePadding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+  contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+  actionsPadding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+  actionsOverflowButtonSpacing: FieldnoteSpacing.sm,
+  buttonPadding: const EdgeInsets.symmetric(horizontal: FieldnoteSpacing.xxs),
+);
+
+/// Every sheet uses the same safe area and keyboard policy. The keyboard
+/// reduces the sheet's constraints, so draggable and scrolling children stay
+/// usable without adding a second keyboard inset inside individual forms.
+Future<T?> showFieldnoteBottomSheet<T>({
+  required BuildContext context,
+  required WidgetBuilder builder,
+  bool isScrollControlled = true,
+  bool useSafeArea = true,
+  bool showDragHandle = true,
+}) => showModalBottomSheet<T>(
+  context: context,
+  isScrollControlled: isScrollControlled,
+  useSafeArea: useSafeArea,
+  showDragHandle: showDragHandle,
+  builder: (sheetContext) => AnimatedPadding(
+    duration: const Duration(milliseconds: 180),
+    curve: Curves.easeOut,
+    padding: EdgeInsets.only(
+      bottom: MediaQuery.viewInsetsOf(sheetContext).bottom,
+    ),
+    child: SafeArea(
+      top: false,
+      child: Builder(
+        builder: (safeContext) => MediaQuery.removeViewInsets(
+          context: safeContext,
+          removeBottom: true,
+          child: Builder(builder: builder),
+        ),
+      ),
+    ),
+  ),
+);
+
+/// Paired actions stack when labels need more room. Expanded children remain
+/// expanded in a row; in a column they become naturally sized full-width buttons.
+class FieldnoteActionRow extends StatelessWidget {
+  const FieldnoteActionRow({super.key, required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final scale = MediaQuery.textScalerOf(context).scale(16) / 16;
+      if (constraints.maxWidth >= 360 && scale <= 1.3) {
+        return Row(children: children);
+      }
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final child in children)
+            if (child is SizedBox && child.child == null)
+              const SizedBox(height: FieldnoteSpacing.sm)
+            else if (child is Flexible)
+              child.child
+            else
+              child,
+        ],
+      );
+    },
+  );
+}
+
+/// A full-width card action with consistent icon, label and touch spacing.
+class FieldnoteCardAction extends StatelessWidget {
+  const FieldnoteCardAction({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: double.infinity,
+    child: OutlinedButton.icon(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        alignment: AlignmentDirectional.centerStart,
+        minimumSize: const Size.fromHeight(48),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
+      icon: Icon(icon, size: 20),
+      label: Text(label, textAlign: TextAlign.start),
+    ),
+  );
 }
 
 class FieldnoteSectionTab {
@@ -249,25 +379,29 @@ class FieldnoteSectionTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.fieldnoteColors;
     return Padding(
       padding: EdgeInsets.symmetric(
         horizontal: FieldnoteSpacing.pageGutter(context),
       ),
       child: Material(
-        color: FieldnoteColors.mist,
+        color: c.mist,
         borderRadius: BorderRadius.circular(compact ? 14 : 18),
         clipBehavior: Clip.antiAlias,
         child: TabBar(
           isScrollable: false,
+          labelPadding: compact
+              ? const EdgeInsets.symmetric(horizontal: 8)
+              : null,
           indicatorSize: TabBarIndicatorSize.tab,
           indicatorPadding: const EdgeInsets.all(3),
           indicator: BoxDecoration(
-            color: FieldnoteColors.forest,
+            color: c.forestFill,
             borderRadius: BorderRadius.circular(compact ? 11 : 15),
           ),
           dividerColor: Colors.transparent,
-          labelColor: Colors.white,
-          unselectedLabelColor: FieldnoteColors.ink,
+          labelColor: c.onFill,
+          unselectedLabelColor: c.ink,
           labelStyle: const TextStyle(
             fontSize: 12,
             height: 1,
@@ -286,8 +420,10 @@ class FieldnoteSectionTabs extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(tab.icon, size: 17),
-                      const SizedBox(width: 5),
+                      if (MediaQuery.textScalerOf(context).scale(1) <= 1.3) ...[
+                        Icon(tab.icon, size: 17),
+                        const SizedBox(width: FieldnoteSpacing.xs),
+                      ],
                       Flexible(
                         child: Text(
                           tab.label,
@@ -338,6 +474,8 @@ class FieldnotePageList extends StatelessWidget {
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth),
         child: ListView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          physics: const AlwaysScrollableScrollPhysics(),
           controller: controller,
           shrinkWrap: shrinkWrap,
           padding: EdgeInsets.fromLTRB(gutter, top, gutter, bottom),
@@ -422,24 +560,33 @@ class SurfaceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.fieldnoteColors;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: color ?? FieldnoteColors.paper,
+        color: color ?? c.paper,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: FieldnoteColors.ink.withValues(alpha: .08)),
+        border: Border.all(color: c.ink.withValues(alpha: .08)),
         boxShadow: [
           BoxShadow(
-            color: FieldnoteColors.ink.withValues(alpha: .05),
+            color: c.shadow.withValues(alpha: .05),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: Padding(
-        padding:
-            padding ??
-            EdgeInsets.all(MediaQuery.sizeOf(context).width < 600 ? 18 : 22),
-        child: child,
+      child: Material(
+        type: MaterialType.transparency,
+        borderRadius: BorderRadius.circular(22),
+        child: Padding(
+          padding:
+              padding ??
+              EdgeInsets.all(
+                MediaQuery.sizeOf(context).width < 600
+                    ? FieldnoteSpacing.cardPadding
+                    : FieldnoteSpacing.lg,
+              ),
+          child: child,
+        ),
       ),
     );
   }
@@ -467,12 +614,12 @@ class SectionHeading extends StatelessWidget {
         Text(
           eyebrow.toUpperCase(),
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: FieldnoteColors.clay,
+            color: context.fieldnoteColors.clay,
             fontWeight: FontWeight.w900,
             letterSpacing: 1.4,
           ),
         ),
-        const SizedBox(height: 5),
+        const SizedBox(height: FieldnoteSpacing.xxs),
         Text(
           title,
           style: MediaQuery.sizeOf(context).width < 600
@@ -480,7 +627,7 @@ class SectionHeading extends StatelessWidget {
               : Theme.of(context).textTheme.headlineLarge,
         ),
         if (description != null) ...[
-          const SizedBox(height: 7),
+          const SizedBox(height: FieldnoteSpacing.xs),
           Text(description!, style: Theme.of(context).textTheme.bodyMedium),
         ],
       ],
@@ -490,14 +637,21 @@ class SectionHeading extends StatelessWidget {
         if (trailing != null && constraints.maxWidth < 650) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [heading, const SizedBox(height: 16), trailing!],
+            children: [
+              heading,
+              const SizedBox(height: FieldnoteSpacing.md),
+              trailing!,
+            ],
           );
         }
         return Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Expanded(child: heading),
-            if (trailing != null) ...[const SizedBox(width: 16), trailing!],
+            if (trailing != null) ...[
+              const SizedBox(width: FieldnoteSpacing.md),
+              trailing!,
+            ],
           ],
         );
       },
@@ -519,6 +673,9 @@ class StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Callers pass light brand constants (often from pure helpers); map them
+    // to the active brightness here.
+    final color = context.fieldnoteColors.adapt(this.color);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -530,13 +687,15 @@ class StatusPill extends StatelessWidget {
         children: [
           if (icon != null) ...[
             Icon(icon, size: 14, color: color),
-            const SizedBox(width: 5),
+            const SizedBox(width: FieldnoteSpacing.xs),
           ],
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w900,
+          Flexible(
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
         ],
@@ -562,14 +721,18 @@ class EmptyPanel extends StatelessWidget {
     return SurfaceCard(
       child: Center(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 42),
+          padding: const EdgeInsets.symmetric(vertical: FieldnoteSpacing.xl),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 34, color: FieldnoteColors.moss),
-              const SizedBox(height: 14),
-              Text(title, style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 6),
+              Icon(icon, size: 34, color: context.fieldnoteColors.moss),
+              const SizedBox(height: FieldnoteSpacing.md),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: FieldnoteSpacing.xs),
               Text(message, textAlign: TextAlign.center),
             ],
           ),

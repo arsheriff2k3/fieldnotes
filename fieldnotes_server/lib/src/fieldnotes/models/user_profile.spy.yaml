@@ -14,5 +14,8 @@ fields:
   locationLongitude: double?
   interests: String
   skills: String
+  # A-9: transactional email preference. The account-deletion notice is
+  # always sent.
+  emailNotifications: bool, default=true
   createdAt: DateTime, default=now
   updatedAt: DateTime, default=now

@@ -5,9 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 
+import '../../../data/services/campaign_link_service.dart';
+import '../../../l10n/l10n.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/widgets.dart';
 import '../shell/fieldnote_view_model.dart';
+import 'sponsor_checkout.dart';
+import 'sponsor_formatting.dart';
 
 class CampaignReadinessView extends StatefulWidget {
   const CampaignReadinessView({
@@ -40,9 +44,11 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
     } catch (error) {
       if (mounted) {
         setState(
-          () => _error = error is FieldnoteException
-              ? error.message
-              : 'Could not update campaign readiness.',
+          () => _error = sponsorErrorMessage(
+            error,
+            context: context,
+            fallback: context.l10n.sponsorReadinessUpdateFailed,
+          ),
         );
       }
     } finally {
@@ -50,79 +56,120 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
     }
   }
 
+  String _when(DateTime value) =>
+      DateFormat.MMMEd(context.localeTag).add_jm().format(value.toLocal());
+
   Future<void> _revise() async {
+    final l10n = context.l10n;
+    final localeTag = context.localeTag;
     final goal = TextEditingController(
-      text: _campaign.fundingGoal.toStringAsFixed(0),
+      text: paiseInputText(campaignGoalPaise(_campaign)),
     );
     final minimum = TextEditingController(
       text: '${_campaign.minimumVolunteers}',
     );
     final scope = TextEditingController(text: _campaign.description);
+    String? problem;
+    // The dialog validates before it closes, so nothing typed is lost (P2).
     final saved = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Revise the work scope'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'A revised scope asks joined volunteers to reconfirm before they count toward the minimum team.',
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: goal,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Revised funding goal (₹)',
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => fieldnoteDialog(
+          title: Text(l10n.sponsorReadinessReviseTitle),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(l10n.sponsorReadinessReviseIntro),
+                const SizedBox(height: FieldnoteSpacing.md),
+                TextField(
+                  controller: goal,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: l10n.sponsorReadinessReviseGoalLabel,
+                    helperText: l10n.sponsorReadinessRange(
+                      formatPaise(
+                        CampaignLimits.minimumGoalPaise,
+                        localeTag: localeTag,
+                      ),
+                      formatPaise(
+                        CampaignLimits.maximumGoalPaise,
+                        localeTag: localeTag,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: minimum,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Minimum safe team',
+                const SizedBox(height: FieldnoteSpacing.sm),
+                TextField(
+                  controller: minimum,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: l10n.sponsorReadinessReviseMinimumLabel,
+                    helperText: l10n.sponsorReadinessRange(
+                      '1',
+                      '${_campaign.volunteerCapacity}',
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: scope,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  labelText: 'Revised work description',
+                const SizedBox(height: FieldnoteSpacing.sm),
+                TextField(
+                  controller: scope,
+                  maxLines: 4,
+                  maxLength: CampaignLimits.scopeNoteMax,
+                  decoration: InputDecoration(
+                    labelText: l10n.sponsorReadinessReviseDescriptionLabel,
+                  ),
                 ),
-              ),
-            ],
+                if (problem != null) ...[
+                  const SizedBox(height: FieldnoteSpacing.xs),
+                  Text(
+                    problem!,
+                    style: TextStyle(
+                      color: context.fieldnoteColors.danger,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l10n.sponsorCheckoutCancel),
+            ),
+            FilledButton(
+              onPressed: () {
+                final error = validateScopeRevision(
+                  goal: goal.text,
+                  minimum: minimum.text,
+                  description: scope.text,
+                  volunteerCapacity: _campaign.volunteerCapacity,
+                  l10n: l10n,
+                  localeTag: localeTag,
+                );
+                if (error != null) {
+                  setDialogState(() => problem = error);
+                  return;
+                }
+                Navigator.pop(context, true);
+              },
+              child: Text(l10n.sponsorReadinessSaveRevision),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Save revision'),
-          ),
-        ],
       ),
     );
     if (saved == true && mounted) {
-      final amount = double.tryParse(goal.text.trim());
-      final count = int.tryParse(minimum.text.trim());
-      if (amount == null || count == null) {
-        setState(() => _error = 'Enter a valid goal and minimum team.');
-      } else {
-        await _run(
-          () => widget.viewModel.repository.reviseCampaignScope(
-            _campaign.id!,
-            amount,
-            count,
-            scope.text,
-          ),
-        );
-      }
+      await _run(
+        () => widget.viewModel.repository.reviseCampaignScope(
+          _campaign.id!,
+          parseRupeesToPaise(goal.text)!,
+          parseWholeNumber(minimum.text)!,
+          scope.text.trim(),
+        ),
+      );
     }
     goal.dispose();
     minimum.dispose();
@@ -152,6 +199,10 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
       time.hour,
       time.minute,
     );
+    if (!start.isAfter(DateTime.now())) {
+      setState(() => _error = context.l10n.sponsorReadinessPostponePast);
+      return;
+    }
     await _run(
       () => widget.viewModel.repository.postponeCampaign(
         _campaign.id!,
@@ -161,24 +212,33 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
   }
 
   Future<void> _cancel() async {
+    final campaign = _campaign;
+    final joined =
+        widget.viewModel.impacts[campaign.id]?.joinedVolunteers ??
+        campaign.eligibleVolunteers;
+    final l10n = context.l10n;
+    final recorded = formatPaise(
+      campaignSponsoredPaise(campaign),
+      localeTag: context.localeTag,
+    );
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cancel this campaign?'),
-        content: const Text(
-          'Joined volunteers will see that the event is cancelled. Existing test sponsorships remain in the ledger for refund review.',
-        ),
+      builder: (context) => fieldnoteDialog(
+        title: Text(l10n.sponsorReadinessCancelTitle),
+        content: Text(l10n.sponsorReadinessCancelBody(joined, recorded)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Keep campaign'),
+            child: Text(l10n.sponsorReadinessKeepCampaign),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(
+              // A solid fill with white text in both brightnesses.
               backgroundColor: FieldnoteColors.danger,
+              foregroundColor: Colors.white,
             ),
-            child: const Text('Cancel campaign'),
+            child: Text(l10n.sponsorReadinessCancelCampaign),
           ),
         ],
       ),
@@ -192,18 +252,42 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
 
   Future<void> _invite() async {
     final campaign = _campaign;
+    String link;
+    try {
+      link = await widget.viewModel.campaignShareLink(campaign.id!);
+    } catch (_) {
+      link = campaignShareUri(campaign).toString();
+    }
+    if (!mounted) return;
+    final l10n = context.l10n;
     final message =
         '${campaign.name}\n'
-        '${DateFormat('EEE, d MMM · h:mm a').format(campaign.startsAt.toLocal())}\n'
+        '${_when(campaign.startsAt)}\n'
         '${campaign.locationName}\n'
-        'Volunteer places are open in FieldNote. Ask the organizer for campaign details.';
+        '${l10n.sponsorReadinessInviteMessage(link)}';
     await Clipboard.setData(ClipboardData(text: message));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Invite details copied. Share them with your volunteers.',
-          ),
+        SnackBar(content: Text(l10n.sponsorReadinessInviteCopied)),
+      );
+    }
+  }
+
+  Future<void> _checkout() async {
+    setState(() => _error = null);
+    final paid = await openSponsorCheckout(
+      context,
+      widget.viewModel,
+      _campaign,
+    );
+    if (!mounted) return;
+    // The checkout refreshes the view model; pick up the new funding figures.
+    final fresh = widget.viewModel.campaignById(_campaign.id!);
+    if (fresh != null) setState(() => _campaign = fresh);
+    if (paid) {
+      await _run(
+        () => widget.viewModel.repository.refreshCampaignReadiness(
+          _campaign.id!,
         ),
       );
     }
@@ -211,37 +295,39 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final localeTag = context.localeTag;
+    String money(int paise) => formatPaise(paise, localeTag: localeTag);
     final campaign = _campaign;
     final joined = campaign.eligibleVolunteers;
-    final fundingGap = (campaign.fundingGoal - campaign.sponsoredAmount).clamp(
-      0,
-      double.infinity,
-    );
+    final fundingGap = campaignRemainingPaise(campaign);
+    final refunded = campaignRefundedPaise(campaign);
     final teamGap = (campaign.minimumVolunteers - joined).clamp(
       0,
       campaign.minimumVolunteers,
     );
     final cutoff = campaign.startsAt.subtract(const Duration(hours: 24));
     final beforeCutoff = DateTime.now().toUtc().isBefore(cutoff);
+    final phase = campaignPhase(campaign);
+    final editable = campaignIsEditable(campaign);
     final status = switch (campaign.readinessState) {
-      'confirmed' => 'Confirmed',
-      'fundingShort' => 'Funding short',
-      'volunteersShort' => 'Volunteers short',
-      'bothShort' => 'Funding and volunteers short',
+      _ when phase == CampaignPhase.completed => l10n.sponsorPhaseCompleted,
+      _ when phase == CampaignPhase.inProgress => l10n.sponsorPhaseInProgress,
+      'confirmed' => l10n.sponsorPhaseConfirmed,
+      'fundingShort' => l10n.sponsorReadinessFundingShort,
+      'volunteersShort' => l10n.sponsorReadinessVolunteersShort,
+      'bothShort' => l10n.sponsorReadinessBothShort,
       'postponed' =>
         beforeCutoff && teamGap == 0
-            ? 'Postponed · awaiting cutoff'
-            : 'Postponed · awaiting reconfirmation',
-      'cancelled' => 'Cancelled',
-      'expired' => 'Date expired',
-      _ => 'Open · date tentative',
+            ? l10n.sponsorReadinessPostponedCutoff
+            : l10n.sponsorReadinessPostponedReconfirm,
+      'cancelled' => l10n.sponsorPhaseCancelled,
+      'expired' => l10n.sponsorReadinessDateExpired,
+      _ => l10n.sponsorReadinessOpenTentative,
     };
-    final closed = const {
-      'cancelled',
-      'expired',
-    }.contains(campaign.readinessState);
+    final closed = campaignIsClosed(phase);
     return Scaffold(
-      appBar: AppBar(title: const Text('Campaign readiness')),
+      appBar: AppBar(title: Text(l10n.sponsorReadinessTitle)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -255,74 +341,95 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
                     campaign.name,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: FieldnoteSpacing.xs),
                   StatusPill(
                     label: status,
                     color: campaign.readinessState == 'confirmed'
-                        ? FieldnoteColors.forest
-                        : FieldnoteColors.clay,
+                        ? context.fieldnoteColors.forest
+                        : context.fieldnoteColors.clay,
                     icon: campaign.readinessState == 'confirmed'
                         ? Icons.verified_outlined
                         : Icons.schedule,
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: FieldnoteSpacing.md),
                   SurfaceCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'At the cutoff',
+                          l10n.sponsorReadinessCutoffTitle,
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: FieldnoteSpacing.xs),
                         Text(
-                          'Readiness is checked 24 hours before ${DateFormat('EEE, d MMM · h:mm a').format(campaign.startsAt.toLocal())}.',
+                          l10n.sponsorReadinessCheckedBefore(
+                            _when(campaign.startsAt),
+                          ),
                         ),
                         if (beforeCutoff) ...[
-                          const SizedBox(height: 10),
+                          const SizedBox(height: FieldnoteSpacing.sm),
                           Text(
                             fundingGap == 0 && teamGap == 0
-                                ? 'Funding and the minimum team are ready. The event will be checked for confirmation on ${DateFormat('EEE, d MMM · h:mm a').format(cutoff.toLocal())}.'
-                                : 'The event stays tentative until ${DateFormat('EEE, d MMM · h:mm a').format(cutoff.toLocal())}. Refreshing now updates the counts.',
+                                ? l10n.sponsorReadinessReadyBeforeCutoff(
+                                    _when(cutoff),
+                                  )
+                                : l10n.sponsorReadinessTentativeUntil(
+                                    _when(cutoff),
+                                  ),
                           ),
                         ],
-                        const SizedBox(height: 10),
+                        const SizedBox(height: FieldnoteSpacing.sm),
                         Text(
-                          'Funding: ₹${campaign.sponsoredAmount.toStringAsFixed(0)} of ₹${campaign.fundingGoal.toStringAsFixed(0)} · ₹${fundingGap.toStringAsFixed(0)} short',
+                          l10n.sponsorReadinessFundingLine(
+                            money(campaignSponsoredPaise(campaign)),
+                            money(campaignGoalPaise(campaign)),
+                            money(fundingGap),
+                          ),
                         ),
-                        const SizedBox(height: 8),
+                        if (refunded > 0) ...[
+                          const SizedBox(height: FieldnoteSpacing.xxs),
+                          Text(
+                            l10n.sponsorReadinessRefundedLine(money(refunded)),
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                        const SizedBox(height: FieldnoteSpacing.xs),
                         Text(
-                          'Team: $joined joined · ${campaign.minimumVolunteers} minimum · $teamGap short',
+                          l10n.sponsorReadinessTeamLine(
+                            joined,
+                            campaign.minimumVolunteers,
+                            teamGap,
+                          ),
                         ),
                         if (campaign.revision > 0) ...[
-                          const SizedBox(height: 10),
-                          const Text(
-                            'After a scope or date change, joined volunteers must reconfirm before counting toward readiness.',
-                          ),
+                          const SizedBox(height: FieldnoteSpacing.sm),
+                          Text(l10n.sponsorReadinessReconfirmNote),
                         ],
                       ],
                     ),
                   ),
-                  if (!closed) ...[
-                    const SizedBox(height: 12),
+                  if (!closed && !editable) ...[
+                    const SizedBox(height: FieldnoteSpacing.sm),
+                    SurfaceCard(
+                      child: Text(l10n.sponsorReadinessStartedLocked),
+                    ),
+                  ],
+                  if (editable) ...[
+                    const SizedBox(height: FieldnoteSpacing.sm),
                     SurfaceCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Sponsor decisions',
+                            l10n.sponsorReadinessDecisionsTitle,
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: FieldnoteSpacing.xs),
                           if (fundingGap > 0)
-                            const Text(
-                              'Top up through the sponsor checkout. A verified payment updates the funding result.',
-                            ),
+                            Text(l10n.sponsorReadinessTopUpHint),
                           if (teamGap > 0)
-                            const Text(
-                              'Keep recruiting volunteers. New joins and reconfirmations update the team result.',
-                            ),
-                          const SizedBox(height: 14),
+                            Text(l10n.sponsorReadinessRecruitHint),
+                          const SizedBox(height: FieldnoteSpacing.md),
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
@@ -333,30 +440,27 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
                                   icon: const Icon(
                                     Icons.person_add_alt_outlined,
                                   ),
-                                  label: const Text('Copy volunteer invite'),
+                                  label: Text(l10n.sponsorReadinessCopyInvite),
                                 ),
                               if (fundingGap > 0)
                                 OutlinedButton.icon(
-                                  onPressed: _working
-                                      ? null
-                                      : () {
-                                          Navigator.pop(context);
-                                          widget.viewModel.selectSection(0);
-                                        },
+                                  onPressed: _working ? null : _checkout,
                                   icon: const Icon(
                                     Icons.volunteer_activism_outlined,
                                   ),
-                                  label: const Text('Open sponsor checkout'),
+                                  label: Text(
+                                    l10n.sponsorReadinessOpenCheckout,
+                                  ),
                                 ),
                               OutlinedButton.icon(
                                 onPressed: _working ? null : _revise,
                                 icon: const Icon(Icons.edit_outlined),
-                                label: const Text('Revise scope'),
+                                label: Text(l10n.sponsorReadinessReviseScope),
                               ),
                               OutlinedButton.icon(
                                 onPressed: _working ? null : _postpone,
                                 icon: const Icon(Icons.event_repeat_outlined),
-                                label: const Text('Postpone'),
+                                label: Text(l10n.sponsorReadinessPostpone),
                               ),
                               OutlinedButton.icon(
                                 onPressed: _working
@@ -368,12 +472,12 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
                                             ),
                                       ),
                                 icon: const Icon(Icons.refresh),
-                                label: const Text('Refresh status'),
+                                label: Text(l10n.sponsorReadinessRefreshStatus),
                               ),
                               OutlinedButton.icon(
                                 onPressed: _working ? null : _cancel,
                                 icon: const Icon(Icons.cancel_outlined),
-                                label: const Text('Cancel'),
+                                label: Text(l10n.sponsorCheckoutCancel),
                               ),
                             ],
                           ),
@@ -391,7 +495,7 @@ class _CampaignReadinessViewState extends State<CampaignReadinessView> {
                       padding: const EdgeInsets.only(top: 12),
                       child: Text(
                         _error!,
-                        style: const TextStyle(color: FieldnoteColors.danger),
+                        style: TextStyle(color: context.fieldnoteColors.danger),
                       ),
                     ),
                 ],

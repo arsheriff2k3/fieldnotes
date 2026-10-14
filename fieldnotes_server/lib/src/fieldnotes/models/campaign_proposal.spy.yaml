@@ -8,6 +8,8 @@ fields:
   volunteerCapacity: int
   minimumVolunteers: int?
   fundingGoal: double
+  # A-4: preferred over fundingGoal when a client sends it.
+  fundingGoalPaise: int?
   requiredSkills: List<String>
   checklist: List<String>
   evidenceInstructions: String

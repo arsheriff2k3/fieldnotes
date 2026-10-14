@@ -14,6 +14,14 @@ fields:
   locationIntegrityStatus: String?
   locationIntegrityReasons: String?
   locationIsDemo: bool, default=false
+  leftAt: DateTime?
+  resolvedAt: DateTime?
+  # Unique private-storage path issued by getEvidenceUploadDescription. Only
+  # this path can be pinned into CompletionEvidence.
+  evidenceUploadPath: String?
+  # Set when a hosted AI provider produced a completion proposal for this
+  # participation; evidence is only marked AI generated when this is set.
+  aiAnalyzedAt: DateTime?
 indexes:
   fieldnote_participation_campaign_volunteer_idx:
     fields: campaignId, volunteerAuthUserId

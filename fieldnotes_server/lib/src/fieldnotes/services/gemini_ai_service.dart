@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import '../../generated/protocol.dart';
+import 'fieldnote_time.dart';
 
 /// Gemini REST adapter for the two structured AI operations used by FieldNote.
 ///
@@ -12,6 +13,10 @@ import '../../generated/protocol.dart';
 /// into generated protocol models.
 class GeminiAiService {
   const GeminiAiService({this.endpoint = _defaultEndpoint});
+
+  /// Used when neither the `geminiModel` password nor the
+  /// `FIELDNOTE_GEMINI_MODEL` env var is set.
+  static const defaultModel = 'gemini-3.8-flash';
 
   static const _defaultEndpoint =
       'https://generativelanguage.googleapis.com/v1beta/models';
@@ -23,6 +28,7 @@ class GeminiAiService {
     required String model,
     required String prompt,
     required DateTime now,
+    int utcOffsetMinutes = FieldnoteTime.defaultUtcOffsetMinutes,
   }) async {
     final json = await _generate(
       apiKey: apiKey,
@@ -32,8 +38,10 @@ class GeminiAiService {
           'text':
               '''
 You are FieldNote's campaign planner. Convert the sponsor request into one
-safe, achievable local volunteer campaign. Today is ${now.toUtc().toIso8601String()}.
-Return a future ISO-8601 date-time. Preserve an explicit budget and volunteer
+safe, achievable local volunteer campaign. The sponsor's local time is
+${FieldnoteTime.isoWithOffset(now, utcOffsetMinutes)}. Resolve relative dates and
+times ("tomorrow", "this Saturday 8am") in that UTC offset and return a future
+ISO-8601 date-time that includes the offset. Preserve an explicit budget and volunteer
 count when present. Do not invent legal, medical, or environmental certainty.
 Keep the sponsor's named city or place in locationName exactly as given. Do not
 replace it with a nearby or more familiar place. The sponsor will verify the

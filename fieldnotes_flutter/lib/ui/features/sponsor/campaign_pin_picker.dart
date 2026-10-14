@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:fieldnotes_client/fieldnotes_client.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../../data/repositories/fieldnote_repository.dart';
+import '../../../l10n/l10n.dart';
 import '../../core/fieldnote_map.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/widgets.dart';
@@ -184,7 +186,7 @@ class _CampaignPinPickerState extends State<CampaignPinPicker> {
         setState(() {
           _suggestions = results;
           _searchMessage = results.isEmpty
-              ? 'No matching places. Try a city, street, or landmark.'
+              ? context.l10n.sponsorPinPickerNoMatches
               : null;
         });
       }
@@ -192,7 +194,7 @@ class _CampaignPinPickerState extends State<CampaignPinPicker> {
       if (mounted && request == _searchRequest) {
         setState(() {
           _suggestions = const [];
-          _searchMessage = 'Place search is unavailable. Use the map or GPS.';
+          _searchMessage = context.l10n.sponsorPinPickerSearchUnavailable;
         });
       }
     } finally {
@@ -238,7 +240,7 @@ class _CampaignPinPickerState extends State<CampaignPinPicker> {
           content: Text(
             error is FieldnoteException
                 ? error.message
-                : 'That place could not be resolved. Drag the pin instead.',
+                : context.l10n.sponsorPinPickerResolveFailed,
           ),
         ),
       );
@@ -349,43 +351,43 @@ class _CampaignPinPickerState extends State<CampaignPinPicker> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final point = LatLng(widget.pin.latitude, widget.pin.longitude);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Where will this happen?',
+          l10n.sponsorPinPickerTitle,
           style: Theme.of(context).textTheme.titleMedium,
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: FieldnoteSpacing.xxs),
         Text(
-          'Search for a place or move the pin to the exact work site. The ring is the check-in '
-          'geofence volunteers must stand inside.',
+          l10n.sponsorPinPickerIntro,
           style: Theme.of(context).textTheme.bodySmall,
         ),
         if (!widget.locationSelected &&
             widget.pin.locationName.trim().isNotEmpty) ...[
-          const SizedBox(height: 10),
+          const SizedBox(height: FieldnoteSpacing.sm),
           Text(
-            'From your brief: ${widget.pin.locationName}. Choose a search result or set a pin to confirm it.',
+            l10n.sponsorPinPickerFromBrief(widget.pin.locationName),
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
-        const SizedBox(height: 12),
+        const SizedBox(height: FieldnoteSpacing.sm),
         OutlinedButton.icon(
           onPressed: _openFullScreenMap,
           icon: const Icon(Icons.map_outlined),
-          label: const Text('Choose on map'),
+          label: Text(l10n.sponsorPinPickerChooseOnMap),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: FieldnoteSpacing.sm),
         if (_placeSearchAvailable) ...[
           FieldnoteTextField(
             controller: _search,
             onChanged: _onQueryChanged,
             textInputAction: TextInputAction.search,
             decoration: InputDecoration(
-              labelText: 'Search for a place',
-              hintText: 'City, street, or landmark…',
+              labelText: l10n.sponsorPinPickerSearchLabel,
+              hintText: l10n.sponsorPinPickerSearchHint,
               prefixIcon: const Icon(Icons.search),
               suffixIcon: _searching
                   ? const Padding(
@@ -398,7 +400,7 @@ class _CampaignPinPickerState extends State<CampaignPinPicker> {
                   : _search.text.isEmpty
                   ? null
                   : IconButton(
-                      tooltip: 'Clear',
+                      tooltip: l10n.sponsorPinPickerClear,
                       icon: const Icon(Icons.close),
                       onPressed: () => setState(() {
                         _search.clear();
@@ -409,14 +411,14 @@ class _CampaignPinPickerState extends State<CampaignPinPicker> {
             ),
           ),
           if (_suggestions.isNotEmpty) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: FieldnoteSpacing.xs),
             Material(
-              color: Colors.white,
+              color: context.fieldnoteColors.raised,
               clipBehavior: Clip.antiAlias,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
                 side: BorderSide(
-                  color: FieldnoteColors.ink.withValues(alpha: .1),
+                  color: context.fieldnoteColors.ink.withValues(alpha: .1),
                 ),
               ),
               child: Column(
@@ -436,10 +438,10 @@ class _CampaignPinPickerState extends State<CampaignPinPicker> {
             ),
           ],
           if (_searchMessage != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: FieldnoteSpacing.xs),
             Text(_searchMessage!),
           ],
-          const SizedBox(height: 14),
+          const SizedBox(height: FieldnoteSpacing.md),
         ],
         if (widget.locationSelected)
           FieldnoteMap(
@@ -450,7 +452,7 @@ class _CampaignPinPickerState extends State<CampaignPinPicker> {
               widget.pin.geofenceMeters,
             ),
             height: 280,
-            semanticLabel: 'Draggable campaign pin with its check-in geofence',
+            semanticLabel: l10n.sponsorPinPickerMapSemantics,
             onTap: _movePin,
             markers: {
               Marker(
@@ -493,46 +495,45 @@ class _CampaignPinPickerState extends State<CampaignPinPicker> {
                 ),
             },
             fallback: MapUnavailableNotice(
-              message:
-                  'Map preview is off. Campaign pin: '
-                  '${widget.pin.latitude.toStringAsFixed(5)}, '
-                  '${widget.pin.longitude.toStringAsFixed(5)} with a '
-                  '${widget.pin.geofenceMeters.round()} m geofence.',
+              message: l10n.sponsorPinPickerMapFallback(
+                widget.pin.latitude.toStringAsFixed(5),
+                widget.pin.longitude.toStringAsFixed(5),
+                widget.pin.geofenceMeters.round(),
+              ),
             ),
           )
         else
-          const EmptyPanel(
+          EmptyPanel(
             icon: Icons.map_outlined,
-            title: 'Choose the campaign site',
-            message:
-                'Select a place result, choose on the map, or use your device location.',
+            title: l10n.sponsorPinPickerEmptyTitle,
+            message: l10n.sponsorPinPickerEmptyMessage,
           ),
-        const SizedBox(height: 10),
+        const SizedBox(height: FieldnoteSpacing.sm),
         Row(
           children: [
             const Icon(Icons.place_outlined, size: 17),
-            const SizedBox(width: 7),
+            const SizedBox(width: FieldnoteSpacing.xs),
             Expanded(
               child: Text(
                 !widget.locationSelected
-                    ? 'Location not selected'
+                    ? l10n.sponsorPinPickerLocationNotSelected
                     : widget.pin.locationName.isEmpty
-                    ? 'Unnamed pin'
+                    ? l10n.sponsorPinPickerUnnamedPin
                     : widget.pin.locationName,
                 style: const TextStyle(fontWeight: FontWeight.w800),
               ),
             ),
             if (widget.pin.isDeviceLocation)
-              const StatusPill(
-                label: 'Your device location',
-                color: FieldnoteColors.clay,
+              StatusPill(
+                label: l10n.sponsorPinPickerDeviceLocation,
+                color: context.fieldnoteColors.clay,
                 icon: Icons.my_location,
               ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: FieldnoteSpacing.md),
         Text(
-          'Check-in geofence · ${widget.pin.geofenceMeters.round()} m',
+          l10n.sponsorPinPickerGeofenceTitle(widget.pin.geofenceMeters.round()),
           style: Theme.of(context).textTheme.titleMedium,
         ),
         Slider(
@@ -540,16 +541,17 @@ class _CampaignPinPickerState extends State<CampaignPinPicker> {
           min: 50,
           max: 1000,
           divisions: 19,
-          label: '${widget.pin.geofenceMeters.round()} m',
+          label: l10n.sponsorPinPickerGeofenceValue(
+            widget.pin.geofenceMeters.round(),
+          ),
           onChanged: (value) =>
               widget.onChanged(widget.pin.copyWith(geofenceMeters: value)),
         ),
         Text(
-          'Volunteers must be inside this ring, allowing for their GPS '
-          'accuracy, before they can check in.',
+          l10n.sponsorPinPickerGeofenceHelp,
           style: Theme.of(context).textTheme.bodySmall,
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: FieldnoteSpacing.md),
         OutlinedButton.icon(
           onPressed: _usingDeviceLocation ? null : _pinToDeviceLocation,
           icon: _usingDeviceLocation
@@ -560,23 +562,24 @@ class _CampaignPinPickerState extends State<CampaignPinPicker> {
               : const Icon(Icons.my_location),
           label: Text(
             _usingDeviceLocation
-                ? 'Finding my location…'
-                : 'Pin to my location',
+                ? l10n.sponsorPinPickerFindingLocation
+                : l10n.sponsorPinPickerPinToMyLocation,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: FieldnoteSpacing.md),
         if (widget.locationSelected) _reachCard(context),
       ],
     );
   }
 
   Widget _reachCard(BuildContext context) {
+    final l10n = context.l10n;
     final reach = _reach;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: FieldnoteColors.acid.withValues(alpha: .3),
+        color: context.fieldnoteColors.acid.withValues(alpha: .3),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -585,10 +588,10 @@ class _CampaignPinPickerState extends State<CampaignPinPicker> {
           Row(
             children: [
               const Icon(Icons.groups_outlined, size: 20),
-              const SizedBox(width: 8),
+              const SizedBox(width: FieldnoteSpacing.xs),
               Expanded(
                 child: Text(
-                  'Volunteer reach at this pin',
+                  l10n.sponsorPinPickerReachTitle,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
@@ -599,29 +602,31 @@ class _CampaignPinPickerState extends State<CampaignPinPicker> {
                 ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: FieldnoteSpacing.xs),
           if (reach == null)
             Text(
               _loadingReach
-                  ? 'Checking who could reach this pin…'
-                  : 'Reach could not be estimated for this pin.',
+                  ? l10n.sponsorPinPickerReachChecking
+                  : l10n.sponsorPinPickerReachUnavailable,
               style: Theme.of(context).textTheme.bodySmall,
             )
           else ...[
             Text(reach.summary),
             if (reach.medianDistanceKm != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: FieldnoteSpacing.xs),
               Text(
-                'Median distance '
-                '${reach.medianDistanceKm!.toStringAsFixed(1)} km.',
+                l10n.sponsorPinPickerMedianDistance(
+                  NumberFormat(
+                    '0.0',
+                    context.localeTag,
+                  ).format(reach.medianDistanceKm!),
+                ),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
-            const SizedBox(height: 8),
+            const SizedBox(height: FieldnoteSpacing.xs),
             Text(
-              'Counts come from volunteers who published availability and a '
-              'travel radius. Individual volunteer locations are never shown '
-              'to sponsors.',
+              l10n.sponsorPinPickerReachPrivacy,
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
@@ -711,7 +716,7 @@ class _FullScreenCampaignMapState extends State<_FullScreenCampaignMap> {
       if (mounted) {
         setState(
           () => _searchError =
-              'Place search is unavailable. Tap the map to set a pin.',
+              context.l10n.sponsorPinPickerFullMapSearchUnavailable,
         );
       }
     } finally {
@@ -744,8 +749,7 @@ class _FullScreenCampaignMapState extends State<_FullScreenCampaignMap> {
     } on Object {
       if (mounted) {
         setState(
-          () => _searchError =
-              'That place could not be opened. Choose another result.',
+          () => _searchError = context.l10n.sponsorPinPickerFullMapOpenFailed,
         );
       }
     }
@@ -789,10 +793,11 @@ class _FullScreenCampaignMapState extends State<_FullScreenCampaignMap> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final point = LatLng(_pin.latitude, _pin.longitude);
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      appBar: AppBar(title: const Text('Choose campaign location')),
+      appBar: AppBar(title: Text(l10n.sponsorPinPickerFullMapTitle)),
       body: SafeArea(
         child: Column(
           children: [
@@ -804,7 +809,7 @@ class _FullScreenCampaignMapState extends State<_FullScreenCampaignMap> {
                   onChanged: _onQueryChanged,
                   textInputAction: TextInputAction.search,
                   decoration: InputDecoration(
-                    labelText: 'Search for a place',
+                    labelText: l10n.sponsorPinPickerSearchLabel,
                     prefixIcon: const Icon(Icons.search),
                     suffixIcon: _searching
                         ? const Padding(
@@ -849,8 +854,7 @@ class _FullScreenCampaignMapState extends State<_FullScreenCampaignMap> {
                   target: point,
                   zoom: 15,
                   height: constraints.maxHeight,
-                  semanticLabel:
-                      'Full-screen campaign map. Tap to set the pin.',
+                  semanticLabel: l10n.sponsorPinPickerFullMapSemantics,
                   onTap: _movePin,
                   markers: {
                     Marker(
@@ -872,8 +876,8 @@ class _FullScreenCampaignMapState extends State<_FullScreenCampaignMap> {
                   },
                   fallback: MapUnavailableNotice(
                     message: widget.placeSearchAvailable
-                        ? 'Map tiles are unavailable. Search for a place here, or go back to use device GPS.'
-                        : 'Map tiles are unavailable. Go back to use device GPS.',
+                        ? l10n.sponsorPinPickerFullMapFallbackSearch
+                        : l10n.sponsorPinPickerFullMapFallbackGps,
                   ),
                 ),
               ),
@@ -886,11 +890,11 @@ class _FullScreenCampaignMapState extends State<_FullScreenCampaignMap> {
                   Text(
                     _selected
                         ? _pin.locationName
-                        : 'Search for a place or tap the map to choose a site.',
+                        : l10n.sponsorPinPickerFullMapPrompt,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: FieldnoteSpacing.sm),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
@@ -898,7 +902,7 @@ class _FullScreenCampaignMapState extends State<_FullScreenCampaignMap> {
                           ? () => Navigator.pop(context, _pin)
                           : null,
                       icon: const Icon(Icons.check),
-                      label: const Text('Use this pin'),
+                      label: Text(l10n.sponsorPinPickerUseThisPin),
                     ),
                   ),
                 ],

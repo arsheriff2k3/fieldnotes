@@ -14,6 +14,11 @@ fields:
   locationIsDemo: bool, default=false
   moderationStatus: String, default='passed'
   submittedAt: DateTime, default=now
+  aiGenerated: bool, default=true
+  reviewState: ReviewState, default=awaitingReview
+  reviewNote: String?
+  reviewedByAuthUserId: UuidValue?
+  reviewedAt: DateTime?
 indexes:
   fieldnote_evidence_participation_idx:
     fields: participationId

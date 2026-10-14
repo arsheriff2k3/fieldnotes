@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:serverpod/serverpod.dart';
 
+import '../../fieldnotes/services/fieldnote_config.dart';
 import '../../generated/protocol.dart';
 
 const fieldnoteApkFilePath =
@@ -11,30 +12,78 @@ const fieldnoteApkFilePath =
 /// Public, read-only page for links posted in social apps. A visitor sees the
 /// campaign before choosing to open FieldNote. Joining still requires an
 /// authenticated volunteer and an explicit tap inside the app.
+///
+/// R-3: `/c/<shareSlug>` is the canonical link. `/c/<id>` keeps working for
+/// links shared before slugs existed. Either way, only open campaigns are
+/// rendered; drafts, cancelled, expired, started and completed campaigns get
+/// a 404 so the page never leaks non-public campaigns.
 class CampaignShareRoute extends WidgetRoute {
-  CampaignShareRoute();
+  CampaignShareRoute({this.allowApkDownload = false});
+
+  /// R-4: the locally built APK is offered only in development.
+  final bool allowApkDownload;
 
   @override
   Future<WebWidget?> build(Session session, Request request) async {
     final segments = request.url.pathSegments;
     if (segments.length != 2 || segments.first != 'c') return null;
-    final id = int.tryParse(segments.last);
-    if (id == null || id < 1) return null;
-    final campaign = await Campaign.db.findById(session, id);
+    final campaign = await resolve(session, segments.last);
     if (campaign == null) return null;
-    final apkFile = File(fieldnoteApkFilePath);
-    final apkRevision = apkFile.existsSync()
-        ? apkFile.lastModifiedSync().millisecondsSinceEpoch
-        : null;
-    return _CampaignSharePage(campaign, apkRevision);
+    int? apkRevision;
+    if (allowApkDownload) {
+      final apkFile = File(fieldnoteApkFilePath);
+      apkRevision = apkFile.existsSync()
+          ? apkFile.lastModifiedSync().millisecondsSinceEpoch
+          : null;
+    }
+    return _CampaignSharePage(
+      campaign,
+      apkRevision,
+      androidPackage: FieldnoteConfig.androidPackage,
+      playStoreUrl: FieldnoteConfig.playStoreUrl,
+      appStoreUrl: FieldnoteConfig.appStoreUrl,
+    );
   }
+
+  /// The open campaign for a share-link key (slug or legacy numeric id), or
+  /// null for anything that must 404.
+  static Future<Campaign?> resolve(Session session, String key) async {
+    final value = key.trim();
+    Campaign? campaign;
+    final id = int.tryParse(value);
+    if (id != null) {
+      if (id < 1) return null;
+      campaign = await Campaign.db.findById(session, id);
+    } else if (RegExp(r'^[A-Za-z0-9]{16,64}$').hasMatch(value)) {
+      campaign = await Campaign.db.findFirstRow(
+        session,
+        where: (t) => t.shareSlug.equals(value),
+      );
+    }
+    if (campaign == null || !isOpen(campaign)) return null;
+    return campaign;
+  }
+
+  static bool isOpen(Campaign campaign) =>
+      campaign.status == CampaignStatus.active &&
+      !const {'cancelled', 'expired'}.contains(campaign.readinessState) &&
+      DateTime.now().toUtc().isBefore(campaign.startsAt);
 }
 
 class _CampaignSharePage extends WebWidget {
-  _CampaignSharePage(this.campaign, this.apkRevision);
+  _CampaignSharePage(
+    this.campaign,
+    this.apkRevision, {
+    this.androidPackage,
+    this.playStoreUrl,
+    this.appStoreUrl,
+  });
 
   final Campaign campaign;
   final int? apkRevision;
+  final String? androidPackage;
+  final String? playStoreUrl;
+  final String? appStoreUrl;
 
   @override
   String render({String? Function(String)? onMissingVariable}) {
@@ -47,11 +96,19 @@ class _CampaignSharePage extends WebWidget {
     final downloadUrl = apkRevision == null
         ? null
         : '/download/fieldnote.apk?v=$apkRevision';
-    final open =
-        campaign.status == CampaignStatus.active &&
-        campaign.readinessState != 'cancelled' &&
-        campaign.readinessState != 'expired' &&
-        DateTime.now().toUtc().isBefore(campaign.startsAt);
+    final open = CampaignShareRoute.isOpen(campaign);
+    final stores = [
+      if (playStoreUrl != null)
+        '<a class="button secondary" href="${escape.convert(playStoreUrl!)}">Get FieldNote on Google Play</a>',
+      if (appStoreUrl != null)
+        '<a class="button secondary" href="${escape.convert(appStoreUrl!)}">Get FieldNote on the App Store</a>',
+    ].join('\n    ');
+    final install = downloadUrl != null
+        ? '<a class="button secondary" href="$downloadUrl" download="FieldNote.apk">Download Android app</a>'
+        : stores.isNotEmpty
+        ? stores
+        : '<p>Ask the campaign creator how to install FieldNote.</p>';
+    final package = androidPackage;
     return '''<!doctype html>
 <html lang="en">
 <head>
@@ -93,29 +150,28 @@ class _CampaignSharePage extends WebWidget {
   <p class="place">$location</p>
   ${open ? '''<div class="actions">
     <a id="open-app" class="button" href="$openUrl">Open campaign in FieldNote</a>
-    ${downloadUrl == null ? '' : '<a class="button secondary" href="$downloadUrl" download="FieldNote.apk">Download Android app</a>'}
-    <p class="hint">If installed, Open goes to this campaign. New volunteers can download the app and follow the steps below.</p>
+    <p class="hint">If installed, Open goes to this campaign. New volunteers can install the app and follow the steps below.</p>
   </div>''' : '<p>This campaign is no longer open for joining.</p>'}
   <section class="install" id="install">
     <h2>New to FieldNote?</h2>
-    ${downloadUrl == null ? '<p>The Android download is temporarily unavailable. Ask the campaign creator for the current APK.</p>' : '<a class="button secondary" href="$downloadUrl" download="FieldNote.apk">Download Android app</a>'}
+    $install
     <ol>
-      <li>Download and install FieldNote. If Android asks, allow your browser to install this app.</li>
+      <li>Install FieldNote.</li>
       <li>Open FieldNote and sign up as a <strong>Volunteer</strong>. Complete your profile and consent.</li>
       <li>Return to this page or reopen the shared campaign link, then tap <strong>Open campaign in FieldNote</strong>.</li>
       <li>Review the campaign and tap <strong>Join</strong> in the app.</li>
     </ol>
   </section>
 </article></main>
-<script>
+${package == null ? '' : """<script>
   (function() {
     var openButton = document.getElementById('open-app');
     if (!openButton || !/Android/i.test(navigator.userAgent) ||
         !/Chrome\\//i.test(navigator.userAgent)) return;
     var fallback = encodeURIComponent(location.origin + location.pathname + '#install');
-    openButton.href = 'intent://campaign/$id#Intent;scheme=fieldnote;package=com.example.fieldnotes_flutter;S.browser_fallback_url=' + fallback + ';end';
+    openButton.href = 'intent://campaign/$id#Intent;scheme=fieldnote;package=$package;S.browser_fallback_url=' + fallback + ';end';
   })();
-</script>
+</script>"""}
 </body>
 </html>''';
   }

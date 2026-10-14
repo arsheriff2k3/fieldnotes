@@ -40,8 +40,12 @@ app.*.map.json
 **/.cxx/
 **/local.properties
 **/key.properties
+!**/key.properties.example
 **/*.keystore
 **/*.jks
+# iOS real app identity (bundle ID, link host); the committed
+# AppIdentity.xcconfig only holds placeholders.
+**/ios/Flutter/AppIdentity.local.xcconfig
 **/Pods/
 **/.symlinks/
 **/DerivedData/
@@ -72,6 +76,7 @@ fieldnotes_server/web/app/
 .env
 .env.*
 !.env.example
+!**/.env.maps.example
 fieldnotes_server/config/passwords.yaml
 fieldnotes_server/config/firebase_service_account_key.json
 
@@ -84,3 +89,14 @@ fieldnotes_server/config/firebase_service_account_key.json
 .cursor/
 .codex/
 .mcp.json
+
+# Local planning, AI prompts and device QA captures
+/AGENTS.md
+/CLAUDE.md
+/docs/qa/
+/docs/notification-device-test/
+/docs/screenshots/
+/docs/architecture/
+/docs/*_PLAN.md
+/docs/*_STORY.md
+/docs/DEMO_VIDEO_SCRIPT*.md

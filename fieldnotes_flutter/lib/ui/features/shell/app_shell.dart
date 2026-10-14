@@ -1,39 +1,338 @@
 import 'dart:math' as math;
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 
 import '../../../data/repositories/fieldnote_repository.dart';
+import '../../../data/services/campaign_link_service.dart';
+import '../../../data/services/firebase_push_service.dart';
+import '../../core/error_messages.dart';
 import '../../core/fieldnote_theme.dart';
 import '../../core/widgets.dart';
+import '../../../l10n/l10n.dart';
 import '../onboarding/onboarding_view.dart';
 import '../volunteer/shared_campaign_view.dart';
 import '../profile/profile_view.dart';
 import '../sponsor/sponsor_views.dart';
+import '../trust/account_deletion.dart';
 import '../trust/trust_center_view.dart';
 import '../volunteer/volunteer_views.dart';
+import '../volunteer/volunteer_history_view.dart';
+import '../sponsor/payment_history_view.dart';
+import '../notifications/notification_view_model.dart';
+import '../discussion/campaign_discussion_view.dart';
+import '../discussion/campaign_discussion_visibility.dart';
+import '../notifications/notifications_view.dart';
+import 'package:fieldnotes_client/fieldnotes_client.dart';
 import 'fieldnote_view_model.dart';
+import 'workspace_navigation.dart';
 
 class AppShell extends StatefulWidget {
-  const AppShell({super.key, required this.campaignLink});
+  const AppShell({super.key, required this.campaignLink, this.repository});
 
-  final ValueNotifier<int?> campaignLink;
+  final ValueNotifier<CampaignLinkTarget?> campaignLink;
+  final FieldnoteRepository? repository;
 
   @override
   State<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   late final FieldnoteViewModel _viewModel;
   late final SponsorVoiceActionController _sponsorVoiceController;
   bool _openingCampaignLink = false;
+  bool _errorScheduled = false;
+  bool _deletionSignOutStarted = false;
+  late final NotificationViewModel _notifications;
+  Timer? _notificationPoll;
+  bool _notificationsStarted = false;
+  bool _openingNotification = false;
+  bool _inboxOpen = false;
 
   @override
   void initState() {
     super.initState();
     _sponsorVoiceController = SponsorVoiceActionController();
-    _viewModel = FieldnoteViewModel(FieldnoteRepository())..initialize();
+    _viewModel = FieldnoteViewModel(widget.repository ?? FieldnoteRepository())
+      ..initialize();
+    _notifications = NotificationViewModel(_viewModel.repository);
+    _notifications.live.addListener(_liveNotification);
+    WidgetsBinding.instance.addObserver(this);
+    _viewModel.addListener(_syncNotifications);
+    FirebasePushService.instance.incoming.addListener(_foregroundPush);
+    FirebasePushService.instance.opened.addListener(_openedPush);
     widget.campaignLink.addListener(_openCampaignLinkIfReady);
     _viewModel.addListener(_openCampaignLinkIfReady);
+    _viewModel.addListener(_showLastErrorIfAny);
+    _viewModel.addListener(_signOutWhenDeleted);
+  }
+
+  void _syncNotifications() {
+    if (!mounted ||
+        _viewModel.loading ||
+        _viewModel.profile == null ||
+        _viewModel.needsConsentForCurrentPolicy) {
+      return;
+    }
+    if (!_notificationsStarted) {
+      _notificationsStarted = true;
+      _notifications.start();
+      unawaited(
+        FirebasePushService.instance.attach(
+          _viewModel.repository,
+          _viewModel.profile!.authUserId.uuid,
+        ),
+      );
+      unawaited(_notifications.refreshCount());
+      _startNotificationPoll();
+    }
+    _openedPush();
+  }
+
+  void _startNotificationPoll() {
+    _notificationPoll?.cancel();
+    _notificationPoll = Timer.periodic(const Duration(seconds: 60), (_) {
+      if (_inboxOpen) {
+        unawaited(_notifications.refresh());
+      } else {
+        unawaited(_notifications.refreshCount());
+      }
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _notificationPoll?.cancel();
+    if (state == AppLifecycleState.resumed && _notificationsStarted) {
+      unawaited(FirebasePushService.instance.resume());
+      unawaited(
+        _inboxOpen ? _notifications.refresh() : _notifications.refreshCount(),
+      );
+      _startNotificationPoll();
+    }
+  }
+
+  int? _lastChatNoticeVersion;
+
+  void _liveNotification() {
+    final item = _notifications.live.value;
+    if (item == null || item.kind != 'campaignChat') return;
+    if (item.readAt != null || item.unreadCount <= 0) {
+      unawaited(FirebasePushService.instance.clearNotification(item.id));
+      return;
+    }
+    _showChatNotice(item);
+  }
+
+  void _showChatNotice(NotificationItem item) {
+    if (!mounted ||
+        item.readAt != null ||
+        item.unreadCount <= 0 ||
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed ||
+        item.chatMessageId == _lastChatNoticeVersion ||
+        CampaignDiscussionVisibility.campaignId == item.campaignId) {
+      return;
+    }
+    _lastChatNoticeVersion = item.chatMessageId;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          '${item.title} · ${context.l10n.campaignChatUnread(item.unreadCount)}',
+        ),
+        action: SnackBarAction(
+          label: context.l10n.notificationsOpen,
+          onPressed: () => unawaited(_openPush(item.id)),
+        ),
+      ),
+    );
+  }
+
+  void _foregroundPush() {
+    final id = FirebasePushService.instance.incoming.value;
+    if (!_notificationsStarted || id == null) return;
+    FirebasePushService.instance.incoming.value = null;
+    unawaited(_showForegroundPush(id));
+  }
+
+  Future<void> _showForegroundPush(int id) async {
+    try {
+      final item = await _viewModel.repository.notification(id);
+      if (!mounted || item == null) return;
+      await (_inboxOpen
+          ? _notifications.refresh()
+          : _notifications.refreshCount());
+      if (!mounted) return;
+      if (item.kind == 'campaignChat') {
+        _showChatNotice(item);
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.l10n.notificationsNewUpdate),
+          action: SnackBarAction(
+            label: context.l10n.notificationsOpen,
+            onPressed: () => unawaited(_openPush(id)),
+          ),
+        ),
+      );
+    } catch (_) {}
+  }
+
+  void _openedPush() {
+    final id = FirebasePushService.instance.opened.value;
+    if (!_notificationsStarted || id == null || _openingNotification) return;
+    FirebasePushService.instance.opened.value = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(_openPush(id));
+    });
+  }
+
+  Future<void> _openPush(int id) async {
+    if (_openingNotification) return;
+    _openingNotification = true;
+    try {
+      final item = await _viewModel.repository.notification(id);
+      if (!mounted) return;
+      if (item == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.notificationsUnavailable)),
+        );
+        return;
+      }
+      await _notifications.markRead(item);
+      if (!mounted) return;
+      if (item.kind == 'campaignChat') {
+        await _routeNotification(item);
+        return;
+      }
+      final navigate = await showNotificationDetails(context, item);
+      if (navigate == true && mounted) await _routeNotification(item);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.notificationsActionFailed)),
+        );
+      }
+    } finally {
+      _openingNotification = false;
+      if (mounted) _openedPush();
+    }
+  }
+
+  Future<void> _routeNotification(NotificationItem item) async {
+    if (item.kind == 'campaignChat' && item.campaignId != null) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      if (CampaignDiscussionVisibility.campaignId == item.campaignId) return;
+      final campaign = await _viewModel.repository.discussionCampaign(
+        item.campaignId!,
+      );
+      if (!mounted) return;
+      unawaited(
+        Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            builder: (_) => CampaignDiscussionView(
+              campaign: campaign,
+              repository: _viewModel.repository,
+              currentUserId: _viewModel.profile?.authUserId,
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+    await _viewModel.refresh();
+    if (!mounted) return;
+    if (_viewModel.isSponsor &&
+        const {
+          'volunteerJoined',
+          'volunteerLeft',
+          'volunteerCheckedIn',
+          'evidenceSubmitted',
+        }.contains(item.kind)) {
+      _viewModel.selectSection(2);
+    } else if (_viewModel.isSponsor) {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => PaymentHistoryView(viewModel: _viewModel),
+        ),
+      );
+    } else if (const {
+      'evidenceApproved',
+      'evidenceRejected',
+      'campaignCancelled',
+      'campaignExpired',
+    }.contains(item.kind)) {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => VolunteerHistoryScreen(viewModel: _viewModel),
+        ),
+      );
+    } else if (item.kind == 'invitationReceived' && item.campaignId != null) {
+      await openSharedCampaignLink(
+        context,
+        _viewModel,
+        CampaignLinkTarget.id(item.campaignId!),
+      );
+    } else {
+      _viewModel.selectSection(1);
+    }
+  }
+
+  Future<void> _openInbox() async {
+    if (_inboxOpen) return;
+    _inboxOpen = true;
+    try {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => NotificationsView(
+            viewModel: _notifications,
+            onOpen: _routeNotification,
+          ),
+        ),
+      );
+    } finally {
+      _inboxOpen = false;
+    }
+  }
+
+  /// S-7: surfaces non-fatal errors as a dismissible notice once a profile is
+  /// loaded, then clears them so each is shown once.
+  void _showLastErrorIfAny() {
+    if (_errorScheduled ||
+        _viewModel.lastError == null ||
+        _viewModel.loading ||
+        _viewModel.profile == null) {
+      return;
+    }
+    _errorScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _errorScheduled = false;
+      final message = _viewModel.lastError;
+      if (!mounted || message == null || _viewModel.profile == null) return;
+      _viewModel.clearLastError();
+      final offline = message == offlineMessage;
+      showFieldnoteNotice(
+        context,
+        title: offline
+            ? context.l10n.shellOfflineTitle
+            : context.l10n.shellErrorTitle,
+        message: message,
+        kind: FieldnoteNoticeKind.error,
+      );
+    });
+  }
+
+  /// Signs out once the server reports the account deletion completed.
+  void _signOutWhenDeleted() {
+    if (_deletionSignOutStarted ||
+        _viewModel.deletionStatus?.status != 'completed') {
+      return;
+    }
+    _deletionSignOutStarted = true;
+    accountDeletionNotice.value = true;
+    _viewModel.signOut();
   }
 
   @override
@@ -46,10 +345,10 @@ class _AppShellState extends State<AppShell> {
   }
 
   void _openCampaignLinkIfReady() {
-    final id = widget.campaignLink.value;
+    final target = widget.campaignLink.value;
     if (!mounted ||
         _openingCampaignLink ||
-        id == null ||
+        target == null ||
         _viewModel.loading ||
         _viewModel.profile == null ||
         _viewModel.needsConsentForCurrentPolicy) {
@@ -59,30 +358,8 @@ class _AppShellState extends State<AppShell> {
     widget.campaignLink.value = null;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       try {
-        final campaign = await _viewModel.repository.sharedCampaign(id);
         if (!mounted) return;
-        if (campaign == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('This campaign is no longer open.')),
-          );
-          return;
-        }
-        await Navigator.of(context).push<void>(
-          MaterialPageRoute(
-            builder: (_) => SharedCampaignView(
-              campaign: campaign,
-              viewModel: _viewModel,
-            ),
-          ),
-        );
-      } catch (_) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Could not open the campaign link. Try again.'),
-            ),
-          );
-        }
+        await openSharedCampaignLink(context, _viewModel, target);
       } finally {
         _openingCampaignLink = false;
         if (mounted) _openCampaignLinkIfReady();
@@ -92,8 +369,18 @@ class _AppShellState extends State<AppShell> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _notificationPoll?.cancel();
+    _viewModel.removeListener(_syncNotifications);
+    FirebasePushService.instance.incoming.removeListener(_foregroundPush);
+    FirebasePushService.instance.opened.removeListener(_openedPush);
+    FirebasePushService.instance.detach();
+    _notifications.live.removeListener(_liveNotification);
+    _notifications.dispose();
     widget.campaignLink.removeListener(_openCampaignLinkIfReady);
     _viewModel.removeListener(_openCampaignLinkIfReady);
+    _viewModel.removeListener(_showLastErrorIfAny);
+    _viewModel.removeListener(_signOutWhenDeleted);
     _sponsorVoiceController.dispose();
     _viewModel.dispose();
     super.dispose();
@@ -120,40 +407,62 @@ class _AppShellState extends State<AppShell> {
           return LegalConsentGate(viewModel: _viewModel);
         }
 
+        final l10n = context.l10n;
         final destinations = _viewModel.isSponsor
-            ? const [
-                _Destination('Discover', Icons.explore_outlined, Icons.explore),
-                _Destination(
-                  'Create',
-                  Icons.auto_awesome_outlined,
-                  Icons.auto_awesome,
+            ? [
+                WorkspaceDestination(
+                  l10n.navDiscover,
+                  Icons.explore_outlined,
+                  Icons.explore,
                 ),
-                _Destination('Impact', Icons.insights_outlined, Icons.insights),
-                _Destination(
-                  'Trust',
+                WorkspaceDestination(
+                  l10n.navCreate,
+                  Icons.add_box_outlined,
+                  Icons.add_box_rounded,
+                ),
+                WorkspaceDestination(
+                  l10n.navImpact,
+                  Icons.insights_outlined,
+                  Icons.insights,
+                ),
+                WorkspaceDestination(
+                  l10n.navTrust,
                   Icons.shield_outlined,
                   Icons.shield,
                 ),
-                _Destination('Profile', Icons.person_outline, Icons.person),
+                WorkspaceDestination(
+                  l10n.navProfile,
+                  Icons.person_outline,
+                  Icons.person,
+                ),
               ]
-            : const [
-                _Destination(
-                  'Matches',
+            : [
+                WorkspaceDestination(
+                  l10n.navMatches,
                   Icons.travel_explore_outlined,
                   Icons.travel_explore,
                 ),
-                _Destination('My work', Icons.hiking_outlined, Icons.hiking),
-                _Destination(
-                  'Availability',
+                WorkspaceDestination(
+                  l10n.navMyWork,
+                  Icons.hiking_outlined,
+                  Icons.hiking,
+                ),
+                WorkspaceDestination(
+                  l10n.navAvailability,
                   Icons.event_available_outlined,
                   Icons.event_available,
+                  compactLabel: l10n.navSchedule,
                 ),
-                _Destination(
-                  'Trust',
+                WorkspaceDestination(
+                  l10n.navTrust,
                   Icons.shield_outlined,
                   Icons.shield,
                 ),
-                _Destination('Profile', Icons.person_outline, Icons.person),
+                WorkspaceDestination(
+                  l10n.navProfile,
+                  Icons.person_outline,
+                  Icons.person,
+                ),
               ];
         final pages = _viewModel.isSponsor
             ? <Widget>[
@@ -194,9 +503,37 @@ class _AppShellState extends State<AppShell> {
                       bottom: false,
                       child: Stack(
                         children: [
-                          IndexedStack(
-                            index: _viewModel.selectedIndex,
-                            children: pages,
+                          Column(
+                            children: [
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: ListenableBuilder(
+                                  listenable: _notifications,
+                                  builder: (context, _) => IconButton(
+                                    tooltip: l10n.notificationsTitle,
+                                    onPressed: _openInbox,
+                                    icon: Badge(
+                                      isLabelVisible:
+                                          _notifications.unreadCount > 0,
+                                      label: Text(
+                                        _notifications.unreadCount > 99
+                                            ? '99+'
+                                            : '${_notifications.unreadCount}',
+                                      ),
+                                      child: const Icon(
+                                        Icons.notifications_outlined,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: IndexedStack(
+                                  index: _viewModel.selectedIndex,
+                                  children: pages,
+                                ),
+                              ),
+                            ],
                           ),
                           if (_viewModel.working)
                             const Positioned(
@@ -218,21 +555,12 @@ class _AppShellState extends State<AppShell> {
                       controller: _sponsorVoiceController,
                       selectedIndex: _viewModel.selectedIndex,
                       onSelected: _viewModel.selectSection,
+                      destinations: destinations,
                     )
-                  : NavigationBar(
-                      height: 72,
-                      animationDuration: const Duration(milliseconds: 180),
+                  : WorkspaceBottomNavigation(
+                      destinations: destinations,
                       selectedIndex: _viewModel.selectedIndex,
-                      onDestinationSelected: _viewModel.selectSection,
-                      destinations: destinations
-                          .map(
-                            (item) => NavigationDestination(
-                              icon: Icon(item.icon),
-                              selectedIcon: Icon(item.selectedIcon),
-                              label: item.label,
-                            ),
-                          )
-                          .toList(),
+                      onSelected: _viewModel.selectSection,
                     ),
               floatingActionButton: desktop || !_viewModel.isSponsor
                   ? null
@@ -256,8 +584,10 @@ class _SponsorBottomBar extends StatefulWidget {
     required this.controller,
     required this.selectedIndex,
     required this.onSelected,
+    required this.destinations,
   });
 
+  final List<WorkspaceDestination> destinations;
   final SponsorVoiceActionController controller;
   final int selectedIndex;
   final ValueChanged<int> onSelected;
@@ -307,99 +637,36 @@ class _SponsorBottomBarState extends State<_SponsorBottomBar>
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 92,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned(
-            left: 0,
-            right: 0,
-            top: -145,
-            height: 160,
-            child: IgnorePointer(
-              child: AnimatedBuilder(
-                animation: _wave,
-                builder: (context, _) => CustomPaint(
-                  painter: _VoiceSemicirclePainter(
-                    progress: _wave.value,
-                    visible: widget.controller.captureActive,
-                  ),
+    final c = context.fieldnoteColors;
+    const order = [0, 2, 1, 3, 4];
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          left: 0,
+          right: 0,
+          top: -145,
+          height: 160,
+          child: IgnorePointer(
+            child: AnimatedBuilder(
+              animation: _wave,
+              builder: (context, _) => CustomPaint(
+                painter: _VoiceSemicirclePainter(
+                  progress: _wave.value,
+                  visible: widget.controller.captureActive,
+                  color: c.clay,
                 ),
               ),
-            ),
-          ),
-          Positioned.fill(
-            child: BottomAppBar(
-              elevation: 12,
-              color: FieldnoteColors.mist,
-              shape: const CircularNotchedRectangle(),
-              notchMargin: 9,
-              padding: EdgeInsets.zero,
-              child: SafeArea(
-                top: false,
-                child: Row(
-                  children: [
-                    _item(0, Icons.explore_outlined, Icons.explore, 'Discover'),
-                    _item(2, Icons.insights_outlined, Icons.insights, 'Impact'),
-                    const SizedBox(width: 70),
-                    _item(3, Icons.shield_outlined, Icons.shield, 'Trust'),
-                    _item(4, Icons.person_outline, Icons.person, 'Profile'),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _item(int index, IconData icon, IconData selectedIcon, String label) {
-    final selected = widget.selectedIndex == index;
-    return Expanded(
-      child: InkResponse(
-        onTap: () => widget.onSelected(index),
-        radius: 34,
-        child: Semantics(
-          button: true,
-          selected: selected,
-          label: label,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 5, bottom: 3),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AnimatedScale(
-                  scale: selected ? 1.08 : 1,
-                  duration: const Duration(milliseconds: 180),
-                  curve: Curves.easeOutCubic,
-                  child: Icon(
-                    selected ? selectedIcon : icon,
-                    size: 21,
-                    color: selected
-                        ? FieldnoteColors.forest
-                        : FieldnoteColors.ink.withValues(alpha: .68),
-                  ),
-                ),
-                const SizedBox(height: 1),
-                AnimatedDefaultTextStyle(
-                  duration: const Duration(milliseconds: 180),
-                  curve: Curves.easeOutCubic,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                    color: selected
-                        ? FieldnoteColors.forest
-                        : FieldnoteColors.ink.withValues(alpha: .68),
-                  ),
-                  child: Text(label, maxLines: 1),
-                ),
-              ],
             ),
           ),
         ),
-      ),
+        WorkspaceBottomNavigation(
+          destinations: [for (final index in order) widget.destinations[index]],
+          selectedIndex: order.indexOf(widget.selectedIndex),
+          dockedActionIndex: 2,
+          onSelected: (index) => widget.onSelected(order[index]),
+        ),
+      ],
     );
   }
 }
@@ -472,17 +739,18 @@ class _SponsorVoiceButtonState extends State<_SponsorVoiceButton>
     final icon = widget.controller.recording
         ? Icons.stop_rounded
         : Icons.mic_rounded;
-    final idleColor = processing
-        ? FieldnoteColors.moss
-        : FieldnoteColors.forest;
+    final c = context.fieldnoteColors;
+    final l10n = context.l10n;
+    // Solid fills behind a white icon: keep the brand fills in dark mode.
+    final idleColor = processing ? FieldnoteColors.moss : c.forestFill;
     return Semantics(
       button: true,
       enabled: enabled,
       label: widget.controller.recording
-          ? 'Recording. Release to finish.'
+          ? l10n.voiceRecordingLabel
           : processing
-          ? 'Campaign generation in progress'
-          : 'Hold to record a campaign brief',
+          ? l10n.voiceProcessingLabel
+          : l10n.voiceHoldLabel,
       child: Listener(
         behavior: HitTestBehavior.opaque,
         onPointerDown: enabled ? (_) => _pressStart() : null,
@@ -499,7 +767,7 @@ class _SponsorVoiceButtonState extends State<_SponsorVoiceButton>
                 shape: BoxShape.circle,
                 color: active ? FieldnoteColors.clay : idleColor,
                 border: Border.all(
-                  color: FieldnoteColors.paper,
+                  color: c.paper,
                   width: 5,
                 ),
                 boxShadow: [
@@ -511,7 +779,7 @@ class _SponsorVoiceButtonState extends State<_SponsorVoiceButton>
                   ),
                 ],
               ),
-              child: Icon(icon, color: Colors.white, size: 27),
+              child: Icon(icon, color: c.onFill, size: 27),
             ),
           ),
         ),
@@ -524,10 +792,12 @@ class _VoiceSemicirclePainter extends CustomPainter {
   const _VoiceSemicirclePainter({
     required this.progress,
     required this.visible,
+    required this.color,
   });
 
   final double progress;
   final bool visible;
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -537,7 +807,7 @@ class _VoiceSemicirclePainter extends CustomPainter {
       final phase = (progress + (index * .22)).clamp(0.0, 1.0);
       final radius = 52 + (phase * size.width * .42);
       final paint = Paint()
-        ..color = FieldnoteColors.clay.withValues(
+        ..color = color.withValues(
           alpha: (1 - phase) * (.17 - (index * .035)),
         )
         ..style = PaintingStyle.fill;
@@ -553,7 +823,9 @@ class _VoiceSemicirclePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_VoiceSemicirclePainter oldDelegate) =>
-      oldDelegate.progress != progress || oldDelegate.visible != visible;
+      oldDelegate.progress != progress ||
+      oldDelegate.visible != visible ||
+      oldDelegate.color != color;
 }
 
 class _DesktopNavigation extends StatelessWidget {
@@ -563,110 +835,164 @@ class _DesktopNavigation extends StatelessWidget {
   });
 
   final FieldnoteViewModel viewModel;
-  final List<_Destination> destinations;
+  final List<WorkspaceDestination> destinations;
 
   @override
   Widget build(BuildContext context) {
+    final c = context.fieldnoteColors;
+    final name = viewModel.profile!.displayName.trim();
     return Container(
-      width: 250,
-      color: FieldnoteColors.ink,
-      padding: const EdgeInsets.fromLTRB(18, 28, 18, 22),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Row(
+      width: 256,
+      decoration: BoxDecoration(
+        color: c.paper,
+        border: Border(right: BorderSide(color: c.ink.withValues(alpha: .08))),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Icon(Icons.eco, color: FieldnoteColors.acid),
-              SizedBox(width: 9),
-              Text(
-                'FIELDNOTE',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.4,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            viewModel.isSponsor ? 'SPONSOR WORKSPACE' : 'VOLUNTEER WORKSPACE',
-            style: TextStyle(
-              color: FieldnoteColors.acid.withValues(alpha: .72),
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.2,
-            ),
-          ),
-          const SizedBox(height: 36),
-          ...destinations.indexed.map((entry) {
-            final index = entry.$1;
-            final item = entry.$2;
-            final selected = viewModel.selectedIndex == index;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Material(
-                color: selected
-                    ? FieldnoteColors.acid.withValues(alpha: .14)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(14),
-                child: ListTile(
-                  selected: selected,
-                  selectedColor: FieldnoteColors.acid,
-                  textColor: Colors.white70,
-                  iconColor: Colors.white54,
-                  leading: Icon(selected ? item.selectedIcon : item.icon),
-                  title: Text(item.label),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  onTap: () => viewModel.selectSection(index),
-                ),
-              ),
-            );
-          }),
-          const Spacer(),
-          Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: FieldnoteColors.acid,
-                foregroundColor: FieldnoteColors.ink,
-                child: Text(
-                  viewModel.profile!.displayName.characters.first.toUpperCase(),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Row(
                   children: [
-                    Text(
-                      viewModel.profile!.displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: c.forestFill,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(
+                        Icons.eco_outlined,
+                        color: c.onFill,
+                        size: 24,
                       ),
                     ),
-                    Text(
-                      viewModel.isSponsor
-                          ? viewModel.profile!.locationAddress ??
-                                viewModel.profile!.city
-                          : viewModel.profile!.city,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white54,
-                        fontSize: 12,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'FIELDNOTE',
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1.2,
+                                ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            viewModel.isSponsor
+                                ? context.l10n.shellSponsorWorkspace
+                                : context.l10n.shellVolunteerWorkspace,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(height: 28),
+              Expanded(
+                child: ListView(
+                  children: [
+                    for (final (index, item) in destinations.indexed)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Semantics(
+                          selected: viewModel.selectedIndex == index,
+                          child: Material(
+                            color: viewModel.selectedIndex == index
+                                ? c.mist
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(16),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 6,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              leading: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: viewModel.selectedIndex == index
+                                      ? c.forestFill
+                                      : c.ink.withValues(alpha: .04),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(
+                                  viewModel.selectedIndex == index
+                                      ? item.selectedIcon
+                                      : item.icon,
+                                  size: 21,
+                                  color: viewModel.selectedIndex == index
+                                      ? c.onFill
+                                      : c.ink.withValues(alpha: .7),
+                                ),
+                              ),
+                              title: Text(
+                                item.label,
+                                style: Theme.of(context).textTheme.titleSmall
+                                    ?.copyWith(
+                                      color: viewModel.selectedIndex == index
+                                          ? c.forest
+                                          : c.ink,
+                                      fontWeight:
+                                          viewModel.selectedIndex == index
+                                          ? FontWeight.w700
+                                          : FontWeight.w500,
+                                    ),
+                              ),
+                              onTap: () => viewModel.selectSection(index),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const Divider(height: 28),
+              Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: c.mist,
+                    foregroundColor: c.forest,
+                    child: Text(
+                      name.isEmpty ? '?' : name.characters.first.toUpperCase(),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        Text(
+                          viewModel.profile!.city,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -681,13 +1007,13 @@ class _LoadingView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.eco, size: 44, color: FieldnoteColors.forest),
-          const SizedBox(height: 18),
+          Icon(Icons.eco, size: 44, color: context.fieldnoteColors.forest),
+          const SizedBox(height: FieldnoteSpacing.md),
           Text(
-            'Preparing your impact workspace…',
+            context.l10n.shellLoading,
             style: Theme.of(context).textTheme.titleMedium,
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: FieldnoteSpacing.md),
           const SizedBox(width: 180, child: LinearProgressIndicator()),
         ],
       ),
@@ -713,14 +1039,16 @@ class _ErrorView extends StatelessWidget {
             children: [
               EmptyPanel(
                 icon: Icons.cloud_off_outlined,
-                title: 'Local server unavailable',
+                title: message == offlineMessage
+                    ? context.l10n.shellCantReach
+                    : context.l10n.shellCouldNotLoad,
                 message: message,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: FieldnoteSpacing.sm),
               FilledButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh),
-                label: const Text('Try again'),
+                label: Text(context.l10n.commonTryAgain),
               ),
             ],
           ),
@@ -728,12 +1056,4 @@ class _ErrorView extends StatelessWidget {
       ),
     );
   }
-}
-
-class _Destination {
-  const _Destination(this.label, this.icon, this.selectedIcon);
-
-  final String label;
-  final IconData icon;
-  final IconData selectedIcon;
 }

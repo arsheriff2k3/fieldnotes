@@ -1,0 +1,16 @@
+### Fixed-window counter for one user and action (A-3). Shared by every
+### server instance through the database. Old windows are purged by the sweep.
+class: RateLimitBucket
+serverOnly: true
+table: fieldnote_rate_limit_bucket
+fields:
+  authUserId: UuidValue
+  action: String
+  windowStart: DateTime
+  hits: int, default=0
+indexes:
+  fieldnote_rate_limit_bucket_key_idx:
+    fields: authUserId, action, windowStart
+    unique: true
+  fieldnote_rate_limit_bucket_window_idx:
+    fields: windowStart

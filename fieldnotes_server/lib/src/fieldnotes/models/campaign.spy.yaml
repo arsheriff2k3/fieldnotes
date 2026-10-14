@@ -9,8 +9,15 @@ fields:
   endsAt: DateTime?
   status: CampaignStatus
   createdBy: UuidValue
+  # A-4: integer paise are the source of truth. The rupee doubles are kept
+  # written as paise / 100 for clients older than this release.
   fundingGoal: double, default=0
   sponsoredAmount: double, default=0
+  fundingGoalPaise: int, default=0
+  # Net of processed refunds of credited payments (see refundedAmountPaise).
+  sponsoredAmountPaise: int, default=0
+  # Credited money returned to sponsors by processed refunds.
+  refundedAmountPaise: int, default=0
   latitude: double, default=18.5204
   longitude: double, default=73.8567
   geofenceMeters: double, default=200
@@ -31,8 +38,25 @@ fields:
   aiGenerated: bool, default=false
   coverImagePath: String?
   publishedAt: DateTime?
+  completedAt: DateTime?
+  # R-3: unguessable public share id used in /c/<slug> links. Nullable only
+  # because rows created before it existed are backfilled by the migration;
+  # every new campaign gets one at publish time.
+  shareSlug: String?
+  # Publish idempotency key chosen by the client; unique per creator.
+  clientRequestId: String?
   createdAt: DateTime, default=now
   updatedAt: DateTime, default=now
 indexes:
   fieldnote_campaign_organization_idx:
     fields: organizationId
+  fieldnote_campaign_status_starts_idx:
+    fields: status, startsAt
+  fieldnote_campaign_created_by_idx:
+    fields: createdBy
+  fieldnote_campaign_share_slug_idx:
+    fields: shareSlug
+    unique: true
+  fieldnote_campaign_client_request_idx:
+    fields: createdBy, clientRequestId
+    unique: true

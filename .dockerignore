@@ -1,0 +1,46 @@
+# Build context for `docker build -f fieldnotes_server/Dockerfile .` (repo root).
+# Secrets never enter the image: production passwords are injected at runtime
+# as SERVERPOD_PASSWORD_<key> environment variables (see docs/DEPLOYMENT.md).
+
+# Secrets and local credentials
+**/config/passwords.yaml
+**/config/firebase_service_account_key.json
+**/.env
+**/.env.*
+**/key.properties
+**/*.jks
+**/*.keystore
+**/*.p12
+**/*.pem
+**/*.mobileprovision
+
+# Version control, CI, editor and agent state
+.git
+.github
+.vscode
+.idea
+.agents
+.appstudio
+.codex
+.claude
+.dart_skills
+**/.DS_Store
+
+# Dart / Flutter caches and build outputs from the host
+**/.dart_tool
+**/.packages
+**/build
+**/coverage
+
+# Serverpod embedded PostgreSQL data, sockets and SQLite test databases
+**/.serverpod
+**/sp_*.db*
+**/*.log
+
+# Server tests and test data are not needed to compile the server
+fieldnotes_server/test
+
+# Packages the server image does not compile
+fieldnotes_flutter
+fieldnotes_client
+docs

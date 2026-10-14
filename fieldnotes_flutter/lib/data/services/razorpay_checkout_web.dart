@@ -29,6 +29,12 @@ class WebRazorpayCheckout implements RazorpayCheckoutService {
 
   Completer<RazorpayCheckoutResult>? _pending;
 
+  /// The most recent `payment.failed` reason for the open checkout. Razorpay
+  /// keeps the modal open after a failed attempt so the sponsor can retry, so
+  /// a failure is only reported if the modal is then dismissed without a
+  /// successful payment.
+  String? _lastFailure;
+
   @override
   Future<RazorpayCheckoutResult> open(RazorpayCheckoutOrder order) async {
     if (_pending != null) {
@@ -36,6 +42,7 @@ class WebRazorpayCheckout implements RazorpayCheckoutService {
     }
     final completer = Completer<RazorpayCheckoutResult>();
     _pending = completer;
+    _lastFailure = null;
 
     try {
       await _ensureCheckoutLoaded();
@@ -43,7 +50,9 @@ class WebRazorpayCheckout implements RazorpayCheckoutService {
       final modal = JSObject()
         ..setProperty(
           'ondismiss'.toJS,
-          (() => _fail('Razorpay checkout was closed before payment.')).toJS,
+          (() => _fail(
+            _lastFailure ?? 'Razorpay checkout was closed before payment.',
+          )).toJS,
         );
       final options = JSObject()
         ..setProperty('key'.toJS, order.keyId.toJS)
@@ -65,7 +74,9 @@ class WebRazorpayCheckout implements RazorpayCheckoutService {
       checkout.on(
         'payment.failed',
         ((JSObject response) {
-          _fail(_failureMessage(response));
+          // Do not complete here: the modal stays open for a retry, and a
+          // successful retry must still reach the `handler` (P0-1).
+          _lastFailure = _failureMessage(response);
         }).toJS,
       );
       checkout.open();
@@ -78,7 +89,10 @@ class WebRazorpayCheckout implements RazorpayCheckoutService {
         );
       }
     }
-    return completer.future.whenComplete(() => _pending = null);
+    return completer.future.whenComplete(() {
+      _pending = null;
+      _lastFailure = null;
+    });
   }
 
   static Future<void> _ensureCheckoutLoaded() async {
@@ -186,5 +200,6 @@ class WebRazorpayCheckout implements RazorpayCheckoutService {
       );
     }
     _pending = null;
+    _lastFailure = null;
   }
 }

@@ -1,0 +1,10 @@
+### Current policy versions and public URLs. Served without sign-in by
+### LegalEndpoint.getLegalPolicies so signup can link the documents.
+class: LegalPolicies
+fields:
+  privacyPolicyVersion: String
+  termsVersion: String
+  privacyPolicyUrl: String
+  termsUrl: String
+  ### Consent switches that must all be true in acceptLegalConsent.
+  requiredConsents: List<String>

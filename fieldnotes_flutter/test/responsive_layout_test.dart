@@ -4,6 +4,31 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('card list tiles can paint their background and tap effects', (
+    tester,
+  ) async {
+    var tapped = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildFieldnoteTheme(),
+        home: Scaffold(
+          body: SurfaceCard(
+            child: ListTile(
+              title: const Text('Payout history'),
+              tileColor: Colors.green,
+              onTap: () => tapped = true,
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('Payout history'));
+    await tester.pumpAndSettle();
+    expect(tapped, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final size in <Size>[
     const Size(320, 568),
     const Size(390, 844),

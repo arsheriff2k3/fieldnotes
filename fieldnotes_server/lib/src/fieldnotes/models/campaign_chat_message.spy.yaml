@@ -1,0 +1,19 @@
+# The campaign itself identifies its single discussion room.
+class: CampaignChatMessage
+table: fieldnote_campaign_chat_message
+fields:
+  campaignId: int, relation(parent=fieldnote_campaign)
+  senderAuthUserId: UuidValue
+  senderDisplayName: String
+  senderIsCreator: bool
+  body: String
+  clientRequestId: String
+  createdAt: DateTime, default=now
+indexes:
+  fieldnote_chat_campaign_id_idx:
+    fields: campaignId, id
+  fieldnote_chat_request_idx:
+    fields: campaignId, senderAuthUserId, clientRequestId
+    unique: true
+  fieldnote_chat_sender_idx:
+    fields: senderAuthUserId

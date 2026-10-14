@@ -1,4 +1,5 @@
 import '../../generated/protocol.dart';
+import 'money.dart';
 
 /// Deterministic helper for provider-independent impact summaries and tests.
 ///
@@ -70,6 +71,7 @@ class StructuredSummaryService {
       durationMinutes: 180,
       volunteerCapacity: capacity.clamp(2, 100).toInt(),
       fundingGoal: amount.clamp(1000, 10000000).toDouble(),
+      fundingGoalPaise: Money.toPaise(amount.clamp(1000, 10000000).toDouble()),
       requiredSkills: treeCare
           ? ['No specialist skills', 'Comfortable working outdoors']
           : ['No specialist skills'],
@@ -121,6 +123,34 @@ class StructuredSummaryService {
       confidence: results.length >= 2 ? AiConfidence.high : AiConfidence.medium,
       rationale:
           'Structured from quantities and completed actions in the volunteer’s original note. Volunteer confirmation is required.',
+    );
+  }
+
+  /// Prefix of [CompletionProposal.rationale] for the non-AI fallback, so the
+  /// client can tell it apart from a hosted model proposal.
+  static const manualRationale =
+      'AI analysis is unavailable. This summary was taken from your note';
+
+  /// P0-8: a provider-free completion proposal built only from the
+  /// volunteer's own note. The volunteer reviews and edits it before
+  /// submitting, and the resulting evidence is recorded as not AI generated.
+  CompletionProposal manualCompletionProposal(String note) {
+    final cleaned = note.trim().replaceAll(RegExp(r'\s+'), ' ');
+    final sentences = cleaned
+        .split(RegExp(r'(?<=[.!?])\s+|\n+|;\s*'))
+        .map((value) => value.trim().replaceAll(RegExp(r'[.!?]+$'), ''))
+        .where((value) => value.length >= 3)
+        .take(5)
+        .toList();
+    final summary = cleaned.length <= 280
+        ? cleaned
+        : '${cleaned.substring(0, 277).trimRight()}...';
+    return CompletionProposal(
+      summary: summary,
+      structuredResults: sentences.isEmpty ? [summary] : sentences,
+      suggestedFollowUp: '',
+      confidence: AiConfidence.low,
+      rationale: '$manualRationale. Review it before submitting.',
     );
   }
 

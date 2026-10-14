@@ -2,9 +2,12 @@ import 'dart:async';
 
 import 'package:fieldnotes_client/fieldnotes_client.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../data/repositories/fieldnote_repository.dart';
 import '../../data/services/device_location_service.dart';
+import '../../l10n/l10n.dart';
+import 'error_messages.dart';
 import 'fieldnote_map.dart';
 import 'fieldnote_theme.dart';
 import 'route_geometry.dart';
@@ -55,9 +58,10 @@ class PlaceMapScreen extends StatelessWidget {
                       ),
                   },
                   fallback: MapUnavailableNotice(
-                    message:
-                        'Location: ${latitude.toStringAsFixed(5)}, '
-                        '${longitude.toStringAsFixed(5)}',
+                    message: context.l10n.corePlaceLocation(
+                      '${latitude.toStringAsFixed(5)}, '
+                      '${longitude.toStringAsFixed(5)}',
+                    ),
                   ),
                 ),
               ),
@@ -100,7 +104,9 @@ class _TravelMapScreenState extends State<TravelMapScreen> {
   List<LatLng> _points = const [];
   double _geometryLength = 0;
   String _mode = 'WALK';
-  String? _error;
+
+  /// A message, or an error object worded in [build] for the current locale.
+  Object? _error;
   bool _loading = true;
   bool _starting = false;
   bool _travelling = false;
@@ -128,7 +134,7 @@ class _TravelMapScreenState extends State<TravelMapScreen> {
     } on Object catch (error) {
       if (mounted) {
         setState(() {
-          _error = error.toString();
+          _error = error;
           _loading = false;
         });
       }
@@ -173,8 +179,8 @@ class _TravelMapScreenState extends State<TravelMapScreen> {
       if (mounted && request == _routeRequest) {
         setState(
           () => _error = error is FieldnoteException
-              ? error.message
-              : 'A road route is unavailable. The destination pin is still shown.',
+              ? error
+              : _TravelNotice.routeUnavailable,
         );
       }
     } finally {
@@ -197,17 +203,12 @@ class _TravelMapScreenState extends State<TravelMapScreen> {
       if (!mounted) return;
       if (latest.readinessState != 'confirmed' ||
           latest.revision != widget.campaign.revision) {
-        setState(
-          () => _error =
-              'Campaign details changed. Return to My work before travelling.',
-        );
+        setState(() => _error = _TravelNotice.detailsChanged);
         return;
       }
     } on Object {
       if (mounted) {
-        setState(
-          () => _error = 'Could not confirm the event. Try again online.',
-        );
+        setState(() => _error = _TravelNotice.confirmFailed);
       }
       return;
     } finally {
@@ -238,7 +239,7 @@ class _TravelMapScreenState extends State<TravelMapScreen> {
         if (mounted) {
           setState(() {
             _travelling = false;
-            _error = error.toString();
+            _error = error;
           });
         }
       },
@@ -301,8 +302,15 @@ class _TravelMapScreenState extends State<TravelMapScreen> {
         progress != null &&
         _here != null &&
         progress.offRouteMeters > 100 + _here!.accuracyMeters;
+    final l10n = context.l10n;
+    final locale = context.localeTag;
+    String km(num meters) => NumberFormat.decimalPatternDigits(
+      locale: locale,
+      decimalDigits: 1,
+    ).format(meters / 1000);
+    final error = _error;
     return Scaffold(
-      appBar: AppBar(title: const Text('Travel to campaign')),
+      appBar: AppBar(title: Text(l10n.coreTravelTitle)),
       body: SafeArea(
         child: Column(
           children: [
@@ -310,10 +318,19 @@ class _TravelMapScreenState extends State<TravelMapScreen> {
               Padding(
                 padding: const EdgeInsets.all(12),
                 child: SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(value: 'WALK', label: Text('Walk')),
-                    ButtonSegment(value: 'DRIVE', label: Text('Drive')),
-                    ButtonSegment(value: 'BICYCLE', label: Text('Cycle')),
+                  segments: [
+                    ButtonSegment(
+                      value: 'WALK',
+                      label: Text(l10n.coreTravelWalk),
+                    ),
+                    ButtonSegment(
+                      value: 'DRIVE',
+                      label: Text(l10n.coreTravelDrive),
+                    ),
+                    ButtonSegment(
+                      value: 'BICYCLE',
+                      label: Text(l10n.coreTravelCycle),
+                    ),
                   ],
                   selected: {_mode},
                   onSelectionChanged: (value) {
@@ -346,8 +363,8 @@ class _TravelMapScreenState extends State<TravelMapScreen> {
                         icon: BitmapDescriptor.defaultMarkerWithHue(
                           FieldnoteMapPalette.volunteer,
                         ),
-                        infoWindow: const InfoWindow(
-                          title: 'Your current position',
+                        infoWindow: InfoWindow(
+                          title: l10n.coreTravelYourPosition,
                         ),
                       ),
                   },
@@ -369,9 +386,9 @@ class _TravelMapScreenState extends State<TravelMapScreen> {
                     ),
                   },
                   fallback: MapUnavailableNotice(
-                    message:
-                        'Destination: ${widget.campaign.locationName}. '
-                        'Live distance and route instructions remain below.',
+                    message: l10n.coreTravelFallback(
+                      widget.campaign.locationName,
+                    ),
                   ),
                 ),
               ),
@@ -391,19 +408,37 @@ class _TravelMapScreenState extends State<TravelMapScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     if (_loading) const LinearProgressIndicator(),
-                    if (_error != null)
+                    if (error != null)
                       Text(
-                        _error!,
-                        style: const TextStyle(color: FieldnoteColors.clay),
+                        switch (error) {
+                          _TravelNotice.routeUnavailable =>
+                            l10n.coreTravelRouteUnavailable,
+                          _TravelNotice.detailsChanged =>
+                            l10n.coreTravelDetailsChanged,
+                          _TravelNotice.confirmFailed =>
+                            l10n.coreTravelConfirmFailed,
+                          _ => userMessageFor(
+                            error,
+                            context: context,
+                            fallback: l10n.coreTravelRouteUnavailable,
+                          ),
+                        },
+                        style: TextStyle(color: context.fieldnoteColors.clay),
                       ),
                     if (route != null) ...[
                       const SizedBox(height: 8),
                       Text(
                         offRoute
-                            ? 'Off planned route · recalculating when available'
+                            ? l10n.coreTravelOffRoute
                             : roadDistanceRemaining == null
-                            ? '${(route.distanceMeters / 1000).toStringAsFixed(1)} km route · about ${(route.durationSeconds / 60).ceil()} min'
-                            : '${(roadDistanceRemaining / 1000).toStringAsFixed(1)} km remaining · about $etaMinutes min',
+                            ? l10n.coreTravelRouteSummary(
+                                km(route.distanceMeters),
+                                (route.durationSeconds / 60).ceil(),
+                              )
+                            : l10n.coreTravelRemaining(
+                                km(roadDistanceRemaining),
+                                etaMinutes ?? 0,
+                              ),
                       ),
                       if (route.steps.isNotEmpty && !offRoute)
                         Text(
@@ -438,14 +473,14 @@ class _TravelMapScreenState extends State<TravelMapScreen> {
                                         children: [
                                           Expanded(
                                             child: Text(
-                                              'Route steps',
+                                              l10n.coreTravelRouteSteps,
                                               style: Theme.of(
                                                 context,
                                               ).textTheme.titleLarge,
                                             ),
                                           ),
                                           IconButton(
-                                            tooltip: 'Close route steps',
+                                            tooltip: l10n.coreTravelCloseSteps,
                                             onPressed: () =>
                                                 Navigator.pop(sheetContext),
                                             icon: const Icon(Icons.close),
@@ -465,34 +500,37 @@ class _TravelMapScreenState extends State<TravelMapScreen> {
                                         itemCount: route.steps.length,
                                         separatorBuilder: (_, _) =>
                                             const Divider(height: 1),
-                                        itemBuilder: (context, index) => ListTile(
-                                          leading: Text('${index + 1}'),
-                                          title: Text(
-                                            route.steps[index].instruction,
-                                          ),
-                                          subtitle: Text(
-                                            '${route.steps[index].distanceMeters} m',
-                                          ),
-                                          selected: index == stepIndex,
-                                        ),
+                                        itemBuilder: (context, index) =>
+                                            ListTile(
+                                              leading: Text('${index + 1}'),
+                                              title: Text(
+                                                route.steps[index].instruction,
+                                              ),
+                                              subtitle: Text(
+                                                l10n.coreTravelStepDistance(
+                                                  NumberFormat.decimalPattern(
+                                                    locale,
+                                                  ).format(
+                                                    route
+                                                        .steps[index]
+                                                        .distanceMeters,
+                                                  ),
+                                                ),
+                                              ),
+                                              selected: index == stepIndex,
+                                            ),
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
                             ),
-                            child: const Text('View route steps'),
+                            child: Text(l10n.coreTravelViewSteps),
                           ),
                         ),
                     ],
-                    if (arrived)
-                      const Text(
-                        'Near the campaign pin. Return to My work for GPS check-in.',
-                      ),
-                    if (!widget.canStartTravel)
-                      const Text(
-                        'Join this campaign and wait for event confirmation before travelling.',
-                      ),
+                    if (arrived) Text(l10n.coreTravelArrived),
+                    if (!widget.canStartTravel) Text(l10n.coreTravelJoinFirst),
                     const SizedBox(height: 8),
                     FilledButton.icon(
                       onPressed: _travelling
@@ -508,7 +546,11 @@ class _TravelMapScreenState extends State<TravelMapScreen> {
                             ? Icons.stop_circle_outlined
                             : Icons.navigation_outlined,
                       ),
-                      label: Text(_travelling ? 'Stop travel' : 'Start travel'),
+                      label: Text(
+                        _travelling
+                            ? l10n.coreTravelStop
+                            : l10n.coreTravelStart,
+                      ),
                     ),
                     if (!_travelling &&
                         _here != null &&
@@ -516,12 +558,12 @@ class _TravelMapScreenState extends State<TravelMapScreen> {
                         route == null)
                       TextButton(
                         onPressed: () => _loadRoute(_here!),
-                        child: const Text('Retry road route'),
+                        child: Text(l10n.coreTravelRetryRoute),
                       ),
                     if (_here == null)
                       TextButton(
                         onPressed: _initialize,
-                        child: const Text('Retry location'),
+                        child: Text(l10n.coreTravelRetryLocation),
                       ),
                   ],
                 ),
@@ -532,4 +574,11 @@ class _TravelMapScreenState extends State<TravelMapScreen> {
       ),
     );
   }
+}
+
+/// Travel-screen notices worded in [TravelMapScreen]'s build.
+enum _TravelNotice {
+  routeUnavailable,
+  detailsChanged,
+  confirmFailed,
 }

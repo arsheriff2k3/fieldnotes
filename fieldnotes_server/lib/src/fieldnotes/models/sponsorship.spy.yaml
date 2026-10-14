@@ -3,19 +3,36 @@ table: fieldnote_sponsorship
 fields:
   campaignId: int, relation(parent=fieldnote_campaign)
   sponsorAuthUserId: UuidValue
+  # A-4: amountPaise is the source of truth; amount is paise / 100.
   amount: double
+  amountPaise: int, default=0
   message: String?
   paymentProvider: String, default='razorpay'
+  # Immutable checkout mode. Legacy null rows are not eligible for live payouts.
+  paymentTestMode: bool?
   paymentStatus: String, default='created'
   providerOrderId: String?
   providerPaymentId: String?
   verifiedAt: DateTime?
+  failureReason: String?
+  reconcileAttempts: int, default=0
+  lastReconciledAt: DateTime?
+  updatedAt: DateTime?
+  # Checkout idempotency key chosen by the client; unique per sponsor.
+  clientRequestId: String?
   createdAt: DateTime, default=now
 indexes:
   fieldnote_sponsorship_campaign_idx:
     fields: campaignId
+  fieldnote_sponsorship_campaign_status_idx:
+    fields: campaignId, paymentStatus
+  fieldnote_sponsorship_status_idx:
+    fields: paymentStatus, createdAt
   fieldnote_sponsorship_sponsor_idx:
     fields: sponsorAuthUserId
   fieldnote_sponsorship_provider_order_idx:
     fields: providerOrderId
+    unique: true
+  fieldnote_sponsorship_client_request_idx:
+    fields: sponsorAuthUserId, clientRequestId
     unique: true

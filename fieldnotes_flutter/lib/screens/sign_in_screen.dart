@@ -1,10 +1,19 @@
 import 'package:fieldnotes_client/fieldnotes_client.dart';
+import '../ui/core/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
 
 import '../client.dart';
+import '../l10n/l10n.dart';
+import '../data/repositories/fieldnote_repository.dart';
 import '../data/services/pending_role_service.dart';
+import '../ui/core/error_messages.dart';
 import '../ui/core/fieldnote_theme.dart';
+import '../ui/core/legal.dart';
+import '../ui/features/shell/fieldnote_view_model.dart'
+    show sessionExpiredNotice;
+import '../ui/features/trust/account_deletion.dart'
+    show accountDeletionNotice, accountDeletionSignInMessage;
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key, required this.child});
@@ -20,13 +29,55 @@ class _SignInScreenState extends State<SignInScreen> {
   bool _isSignedIn = false;
   bool _showAuth = false;
   AccountRole? _selectedRole;
+  LegalPolicies? _policies;
+  bool _loadingPolicies = false;
+
+  /// Shown above the sign-in panels (session expiry, account deletion).
+  String? _notice;
 
   @override
   void initState() {
     super.initState();
     client.auth.authInfoListenable.addListener(_updateSignedInState);
+    sessionExpiredNotice.addListener(_takeNotices);
+    accountDeletionNotice.addListener(_takeNotices);
     _isSignedIn = client.auth.isAuthenticated;
     _restorePendingRole();
+    _takeNotices();
+    _loadPolicies();
+  }
+
+  /// Copies a pending notice into [_notice] and resets the flag.
+  void _takeNotices() {
+    String? notice;
+    if (accountDeletionNotice.value) {
+      notice = accountDeletionSignInMessage;
+      accountDeletionNotice.value = false;
+      // A deletion sign-out is never also an "expired session".
+      sessionExpiredNotice.value = false;
+    } else if (sessionExpiredNotice.value) {
+      notice = sessionExpiredMessage;
+      sessionExpiredNotice.value = false;
+    }
+    if (notice == null) return;
+    if (mounted) {
+      setState(() => _notice = notice);
+    } else {
+      _notice = notice;
+    }
+  }
+
+  Future<void> _loadPolicies() async {
+    if (_loadingPolicies) return;
+    setState(() => _loadingPolicies = true);
+    try {
+      final policies = await FieldnoteRepository().legalPolicies();
+      if (mounted) setState(() => _policies = policies);
+    } on Object {
+      // The links offer a retry while the policies are unavailable.
+    } finally {
+      if (mounted) setState(() => _loadingPolicies = false);
+    }
   }
 
   Future<void> _restorePendingRole() async {
@@ -37,11 +88,17 @@ class _SignInScreenState extends State<SignInScreen> {
   @override
   void dispose() {
     client.auth.authInfoListenable.removeListener(_updateSignedInState);
+    sessionExpiredNotice.removeListener(_takeNotices);
+    accountDeletionNotice.removeListener(_takeNotices);
     super.dispose();
   }
 
   void _updateSignedInState() {
-    setState(() => _isSignedIn = client.auth.isAuthenticated);
+    final signedIn = client.auth.isAuthenticated;
+    setState(() {
+      _isSignedIn = signedIn;
+      if (signedIn) _notice = null;
+    });
   }
 
   Future<void> _chooseRole(AccountRole role) async {
@@ -57,12 +114,18 @@ class _SignInScreenState extends State<SignInScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isSignedIn) return widget.child;
+    final c = context.fieldnoteColors;
     return Scaffold(
-      backgroundColor: FieldnoteColors.paper,
+      backgroundColor: c.paper,
       body: LayoutBuilder(
         builder: (context, constraints) {
           final wide = constraints.maxWidth >= 880;
           final story = _StoryPanel(compact: !wide);
+          final legal = LegalLinks(
+            policies: _policies,
+            onRetry: _loadingPolicies ? null : _loadPolicies,
+            alignment: WrapAlignment.center,
+          );
           final action = AnimatedSwitcher(
             duration: const Duration(milliseconds: 320),
             child: _showAuth
@@ -70,9 +133,11 @@ class _SignInScreenState extends State<SignInScreen> {
                     key: const ValueKey('auth'),
                     selectedRole: _selectedRole,
                     onBack: () => setState(() => _showAuth = false),
+                    footer: legal,
                   )
                 : _RolePanel(
                     key: const ValueKey('roles'),
+                    footer: legal,
                     onRole: _chooseRole,
                     onExistingAccount: () async {
                       await _pendingRole.clear();
@@ -85,15 +150,43 @@ class _SignInScreenState extends State<SignInScreen> {
                     },
                   ),
           );
+          final notice = _notice;
+          final panel = notice == null
+              ? action
+              : Column(
+                  children: [
+                    SafeArea(
+                      bottom: false,
+                      child: MaterialBanner(
+                        backgroundColor: c.mist,
+                        leading: Icon(
+                          Icons.info_outline,
+                          color: c.forest,
+                        ),
+                        content: Semantics(
+                          liveRegion: true,
+                          child: Text(notice),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => setState(() => _notice = null),
+                            child: Text(context.l10n.commonDismiss),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(child: action),
+                  ],
+                );
           if (wide) {
             return Row(
               children: [
                 Expanded(flex: 6, child: story),
-                Expanded(flex: 5, child: action),
+                Expanded(flex: 5, child: panel),
               ],
             );
           }
-          return action;
+          return SafeArea(child: panel);
         },
       ),
     );
@@ -107,8 +200,9 @@ class _StoryPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.fieldnoteColors;
     return Container(
-      color: FieldnoteColors.ink,
+      color: c.inkFill,
       padding: EdgeInsets.all(compact ? 24 : 52),
       child: Stack(
         children: [
@@ -118,7 +212,7 @@ class _StoryPanel extends StatelessWidget {
             child: Icon(
               Icons.hub_outlined,
               size: 440,
-              color: FieldnoteColors.acid.withValues(alpha: .06),
+              color: c.acid.withValues(alpha: .06),
             ),
           ),
           Align(
@@ -131,18 +225,23 @@ class _StoryPanel extends StatelessWidget {
                 children: [
                   const _Brand(light: true),
                   const SizedBox(height: 60),
-                  Text(
-                    'Fund an idea.\nMatch the people.\nProve the impact.',
-                    style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                      color: Colors.white,
-                      fontSize: 62,
+                  // Scales down instead of clipping at large text sizes.
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      context.l10n.signInHeroTitle,
+                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                        color: c.onFill,
+                        fontSize: 62,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 22),
+                  const SizedBox(height: FieldnoteSpacing.lg),
                   Text(
-                    'AI turns sponsor intent into action. Availability and GPS find the right volunteer. Field evidence closes the loop.',
+                    context.l10n.signInHeroBody,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.white70,
+                      color: c.onFill.withValues(alpha: .7),
                       fontSize: 18,
                     ),
                   ),
@@ -161,54 +260,68 @@ class _RolePanel extends StatelessWidget {
     super.key,
     required this.onRole,
     required this.onExistingAccount,
+    required this.footer,
   });
 
   final ValueChanged<AccountRole> onRole;
   final VoidCallback onExistingAccount;
+  final Widget footer;
 
   @override
   Widget build(BuildContext context) {
+    final c = context.fieldnoteColors;
+    final l10n = context.l10n;
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(28),
+        padding: EdgeInsets.symmetric(
+          horizontal: FieldnoteSpacing.pageGutter(context),
+          vertical: FieldnoteSpacing.xl,
+        ),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 520),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const _Brand(),
-              const SizedBox(height: 34),
+              const SizedBox(height: FieldnoteSpacing.xl),
               Text(
-                'How will you create impact?',
+                l10n.signInRoleTitle,
                 style: Theme.of(context).textTheme.headlineLarge,
               ),
-              const SizedBox(height: 8),
-              const Text('Choose once while creating your FieldNote account.'),
-              const SizedBox(height: 22),
+              const SizedBox(height: FieldnoteSpacing.xs),
+              Text(l10n.signInRoleSubtitle),
+              const SizedBox(height: FieldnoteSpacing.lg),
               _RoleCard(
                 icon: Icons.volunteer_activism_outlined,
-                title: 'Create Sponsor Account',
-                subtitle:
-                    'Turn an idea into a campaign, fund it, and watch verified work arrive.',
-                accent: FieldnoteColors.clay,
+                title: l10n.signInSponsorCardTitle,
+                subtitle: l10n.signInSponsorCardSubtitle,
+                accent: c.clay,
                 onTap: () => onRole(AccountRole.sponsor),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: FieldnoteSpacing.sm),
               _RoleCard(
                 icon: Icons.directions_walk_outlined,
-                title: 'Create Volunteer Account',
-                subtitle:
-                    'Mark your availability and discover nearby campaigns matched to you.',
-                accent: FieldnoteColors.forest,
+                title: l10n.signInVolunteerCardTitle,
+                subtitle: l10n.signInVolunteerCardSubtitle,
+                accent: c.forest,
                 onTap: () => onRole(AccountRole.volunteer),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: FieldnoteSpacing.md),
               Center(
                 child: TextButton(
                   onPressed: onExistingAccount,
-                  child: const Text('I already have an account'),
+                  child: Text(l10n.signInExistingAccount),
                 ),
               ),
+              const SizedBox(height: FieldnoteSpacing.sm),
+              Center(
+                child: Text(
+                  l10n.signInCreateAgreement,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ),
+              footer,
             ],
           ),
         ),
@@ -235,7 +348,7 @@ class _RoleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white.withValues(alpha: .7),
+      color: context.fieldnoteColors.raised.withValues(alpha: .7),
       borderRadius: BorderRadius.circular(22),
       child: InkWell(
         onTap: onTap,
@@ -253,13 +366,13 @@ class _RoleCard extends StatelessWidget {
                 ),
                 child: Icon(icon, color: accent, size: 29),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: FieldnoteSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(title, style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 5),
+                    const SizedBox(height: FieldnoteSpacing.xxs),
                     Text(subtitle),
                   ],
                 ),
@@ -278,48 +391,70 @@ class _AuthPanel extends StatelessWidget {
     super.key,
     required this.selectedRole,
     required this.onBack,
+    required this.footer,
   });
 
   final AccountRole? selectedRole;
   final VoidCallback onBack;
+  final Widget footer;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(28),
+        padding: EdgeInsets.symmetric(
+          horizontal: FieldnoteSpacing.pageGutter(context),
+          vertical: FieldnoteSpacing.xl,
+        ),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 470),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               IconButton(
+                tooltip: MaterialLocalizations.of(context).backButtonTooltip,
                 onPressed: onBack,
                 icon: const Icon(Icons.arrow_back),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: FieldnoteSpacing.sm),
               Text(
-                selectedRole == null
-                    ? 'Welcome back'
-                    : 'Create your ${selectedRole!.name} account',
+                switch (selectedRole) {
+                  null => l10n.signInWelcomeBack,
+                  AccountRole.sponsor => l10n.signInCreateSponsorAccount,
+                  AccountRole.volunteer => l10n.signInCreateVolunteerAccount,
+                },
                 style: Theme.of(context).textTheme.headlineLarge,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: FieldnoteSpacing.xs),
               Text(
                 selectedRole == null
-                    ? 'Sign in with your existing email account.'
-                    : 'Use email authentication, then finish your role-specific profile.',
+                    ? l10n.signInExistingSubtitle
+                    : l10n.signInNewSubtitle,
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: FieldnoteSpacing.lg),
               SignInWidget(
                 client: client,
                 onAuthenticated: () {},
                 onError: (error) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Authentication failed: $error')),
+                    SnackBar(
+                      content: Text(
+                        isNetworkError(error)
+                            ? offlineMessage
+                            : l10n.signInAuthFailed(error.toString()),
+                      ),
+                    ),
                   );
                 },
               ),
+              const SizedBox(height: FieldnoteSpacing.md),
+              Text(
+                l10n.signInContinueAgreement,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 12),
+              ),
+              Center(child: footer),
             ],
           ),
         ),
@@ -335,6 +470,7 @@ class _Brand extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.fieldnoteColors;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -342,16 +478,16 @@ class _Brand extends StatelessWidget {
           width: 45,
           height: 45,
           decoration: BoxDecoration(
-            color: FieldnoteColors.acid,
+            color: c.acid,
             borderRadius: BorderRadius.circular(14),
           ),
-          child: const Icon(Icons.eco, color: FieldnoteColors.ink),
+          child: Icon(Icons.eco, color: c.onAcid),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: FieldnoteSpacing.sm),
         Text(
           'FIELDNOTE',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            color: light ? Colors.white : FieldnoteColors.ink,
+            color: light ? c.onFill : c.ink,
             letterSpacing: 1.4,
           ),
         ),

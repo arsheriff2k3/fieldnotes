@@ -27,6 +27,9 @@ abstract class Campaign
     required this.createdBy,
     double? fundingGoal,
     double? sponsoredAmount,
+    int? fundingGoalPaise,
+    int? sponsoredAmountPaise,
+    int? refundedAmountPaise,
     double? latitude,
     double? longitude,
     double? geofenceMeters,
@@ -47,10 +50,16 @@ abstract class Campaign
     bool? aiGenerated,
     this.coverImagePath,
     this.publishedAt,
+    this.completedAt,
+    this.shareSlug,
+    this.clientRequestId,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : fundingGoal = fundingGoal ?? 0.0,
        sponsoredAmount = sponsoredAmount ?? 0.0,
+       fundingGoalPaise = fundingGoalPaise ?? 0,
+       sponsoredAmountPaise = sponsoredAmountPaise ?? 0,
+       refundedAmountPaise = refundedAmountPaise ?? 0,
        latitude = latitude ?? 18.5204,
        longitude = longitude ?? 73.8567,
        geofenceMeters = geofenceMeters ?? 200.0,
@@ -79,6 +88,9 @@ abstract class Campaign
     required _isc.UuidValue createdBy,
     double? fundingGoal,
     double? sponsoredAmount,
+    int? fundingGoalPaise,
+    int? sponsoredAmountPaise,
+    int? refundedAmountPaise,
     double? latitude,
     double? longitude,
     double? geofenceMeters,
@@ -99,6 +111,9 @@ abstract class Campaign
     bool? aiGenerated,
     String? coverImagePath,
     DateTime? publishedAt,
+    DateTime? completedAt,
+    String? shareSlug,
+    String? clientRequestId,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) = _CampaignImpl;
@@ -125,6 +140,9 @@ abstract class Campaign
       fundingGoal: (jsonSerialization['fundingGoal'] as num?)?.toDouble(),
       sponsoredAmount: (jsonSerialization['sponsoredAmount'] as num?)
           ?.toDouble(),
+      fundingGoalPaise: jsonSerialization['fundingGoalPaise'] as int?,
+      sponsoredAmountPaise: jsonSerialization['sponsoredAmountPaise'] as int?,
+      refundedAmountPaise: jsonSerialization['refundedAmountPaise'] as int?,
       latitude: (jsonSerialization['latitude'] as num?)?.toDouble(),
       longitude: (jsonSerialization['longitude'] as num?)?.toDouble(),
       geofenceMeters: (jsonSerialization['geofenceMeters'] as num?)?.toDouble(),
@@ -172,6 +190,13 @@ abstract class Campaign
           : _isc.DateTimeJsonExtension.fromJson(
               jsonSerialization['publishedAt'],
             ),
+      completedAt: jsonSerialization['completedAt'] == null
+          ? null
+          : _isc.DateTimeJsonExtension.fromJson(
+              jsonSerialization['completedAt'],
+            ),
+      shareSlug: jsonSerialization['shareSlug'] as String?,
+      clientRequestId: jsonSerialization['clientRequestId'] as String?,
       createdAt: jsonSerialization['createdAt'] == null
           ? null
           : _isc.DateTimeJsonExtension.fromJson(jsonSerialization['createdAt']),
@@ -205,6 +230,12 @@ abstract class Campaign
   double fundingGoal;
 
   double sponsoredAmount;
+
+  int fundingGoalPaise;
+
+  int sponsoredAmountPaise;
+
+  int refundedAmountPaise;
 
   double latitude;
 
@@ -246,6 +277,12 @@ abstract class Campaign
 
   DateTime? publishedAt;
 
+  DateTime? completedAt;
+
+  String? shareSlug;
+
+  String? clientRequestId;
+
   DateTime createdAt;
 
   DateTime updatedAt;
@@ -265,6 +302,9 @@ abstract class Campaign
     _isc.UuidValue? createdBy,
     double? fundingGoal,
     double? sponsoredAmount,
+    int? fundingGoalPaise,
+    int? sponsoredAmountPaise,
+    int? refundedAmountPaise,
     double? latitude,
     double? longitude,
     double? geofenceMeters,
@@ -285,6 +325,9 @@ abstract class Campaign
     bool? aiGenerated,
     String? coverImagePath,
     DateTime? publishedAt,
+    DateTime? completedAt,
+    String? shareSlug,
+    String? clientRequestId,
     DateTime? createdAt,
     DateTime? updatedAt,
   });
@@ -303,6 +346,9 @@ abstract class Campaign
       'createdBy': createdBy.toJson(),
       'fundingGoal': fundingGoal,
       'sponsoredAmount': sponsoredAmount,
+      'fundingGoalPaise': fundingGoalPaise,
+      'sponsoredAmountPaise': sponsoredAmountPaise,
+      'refundedAmountPaise': refundedAmountPaise,
       'latitude': latitude,
       'longitude': longitude,
       'geofenceMeters': geofenceMeters,
@@ -324,6 +370,9 @@ abstract class Campaign
       'aiGenerated': aiGenerated,
       if (coverImagePath != null) 'coverImagePath': coverImagePath,
       if (publishedAt != null) 'publishedAt': publishedAt?.toJson(),
+      if (completedAt != null) 'completedAt': completedAt?.toJson(),
+      if (shareSlug != null) 'shareSlug': shareSlug,
+      if (clientRequestId != null) 'clientRequestId': clientRequestId,
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
     };
@@ -344,6 +393,9 @@ abstract class Campaign
       'createdBy': createdBy.toJson(),
       'fundingGoal': fundingGoal,
       'sponsoredAmount': sponsoredAmount,
+      'fundingGoalPaise': fundingGoalPaise,
+      'sponsoredAmountPaise': sponsoredAmountPaise,
+      'refundedAmountPaise': refundedAmountPaise,
       'latitude': latitude,
       'longitude': longitude,
       'geofenceMeters': geofenceMeters,
@@ -365,6 +417,9 @@ abstract class Campaign
       'aiGenerated': aiGenerated,
       if (coverImagePath != null) 'coverImagePath': coverImagePath,
       if (publishedAt != null) 'publishedAt': publishedAt?.toJson(),
+      if (completedAt != null) 'completedAt': completedAt?.toJson(),
+      if (shareSlug != null) 'shareSlug': shareSlug,
+      if (clientRequestId != null) 'clientRequestId': clientRequestId,
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
     };
@@ -391,6 +446,9 @@ class _CampaignImpl extends Campaign {
     required _isc.UuidValue createdBy,
     double? fundingGoal,
     double? sponsoredAmount,
+    int? fundingGoalPaise,
+    int? sponsoredAmountPaise,
+    int? refundedAmountPaise,
     double? latitude,
     double? longitude,
     double? geofenceMeters,
@@ -411,6 +469,9 @@ class _CampaignImpl extends Campaign {
     bool? aiGenerated,
     String? coverImagePath,
     DateTime? publishedAt,
+    DateTime? completedAt,
+    String? shareSlug,
+    String? clientRequestId,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : super._(
@@ -425,6 +486,9 @@ class _CampaignImpl extends Campaign {
          createdBy: createdBy,
          fundingGoal: fundingGoal,
          sponsoredAmount: sponsoredAmount,
+         fundingGoalPaise: fundingGoalPaise,
+         sponsoredAmountPaise: sponsoredAmountPaise,
+         refundedAmountPaise: refundedAmountPaise,
          latitude: latitude,
          longitude: longitude,
          geofenceMeters: geofenceMeters,
@@ -445,6 +509,9 @@ class _CampaignImpl extends Campaign {
          aiGenerated: aiGenerated,
          coverImagePath: coverImagePath,
          publishedAt: publishedAt,
+         completedAt: completedAt,
+         shareSlug: shareSlug,
+         clientRequestId: clientRequestId,
          createdAt: createdAt,
          updatedAt: updatedAt,
        );
@@ -465,6 +532,9 @@ class _CampaignImpl extends Campaign {
     _isc.UuidValue? createdBy,
     double? fundingGoal,
     double? sponsoredAmount,
+    int? fundingGoalPaise,
+    int? sponsoredAmountPaise,
+    int? refundedAmountPaise,
     double? latitude,
     double? longitude,
     double? geofenceMeters,
@@ -485,6 +555,9 @@ class _CampaignImpl extends Campaign {
     bool? aiGenerated,
     Object? coverImagePath = _Undefined,
     Object? publishedAt = _Undefined,
+    Object? completedAt = _Undefined,
+    Object? shareSlug = _Undefined,
+    Object? clientRequestId = _Undefined,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -500,6 +573,9 @@ class _CampaignImpl extends Campaign {
       createdBy: createdBy ?? this.createdBy,
       fundingGoal: fundingGoal ?? this.fundingGoal,
       sponsoredAmount: sponsoredAmount ?? this.sponsoredAmount,
+      fundingGoalPaise: fundingGoalPaise ?? this.fundingGoalPaise,
+      sponsoredAmountPaise: sponsoredAmountPaise ?? this.sponsoredAmountPaise,
+      refundedAmountPaise: refundedAmountPaise ?? this.refundedAmountPaise,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       geofenceMeters: geofenceMeters ?? this.geofenceMeters,
@@ -526,6 +602,11 @@ class _CampaignImpl extends Campaign {
           ? coverImagePath
           : this.coverImagePath,
       publishedAt: publishedAt is DateTime? ? publishedAt : this.publishedAt,
+      completedAt: completedAt is DateTime? ? completedAt : this.completedAt,
+      shareSlug: shareSlug is String? ? shareSlug : this.shareSlug,
+      clientRequestId: clientRequestId is String?
+          ? clientRequestId
+          : this.clientRequestId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

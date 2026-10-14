@@ -11,5 +11,13 @@ fields:
   latitude: double?
   longitude: double?
   locationLabel: String
+  # V-5: the volunteer's IANA zone name (display only) and UTC offset in
+  # minutes. Matching uses the offset; null means the server default
+  # (FieldnoteTime.defaultUtcOffsetMinutes, IST).
+  timezone: String?
+  utcOffsetMinutes: int?
+  # The local yyyy-MM-dd that availableToday applies to. availableToday is
+  # ignored on any other date.
+  availableTodayDate: String?
   updatedAt: DateTime, default=now
 

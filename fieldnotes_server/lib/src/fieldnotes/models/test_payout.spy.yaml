@@ -1,10 +1,17 @@
+# A simulated release of one verified sponsorship of a completed campaign to
+# the campaign creator (the organising sponsor, creatorAuthUserId). Rows are a
+# ledger only: no Razorpay Route/RazorpayX transfer or bank payout is made.
+# Simulation runs only with rzp_test_ keys; in live mode payouts are settled
+# manually by FieldNote operations (docs/DEPLOYMENT.md).
 class: TestPayout
 table: fieldnote_test_payout
 fields:
   campaignId: int, relation(parent=fieldnote_campaign)
   sponsorshipId: int, relation(parent=fieldnote_sponsorship)
   creatorAuthUserId: UuidValue
+  # A-4: amountPaise is the source of truth; amount is paise / 100.
   amount: double
+  amountPaise: int, default=0
   sourcePaymentId: String
   status: String, default='simulated'
   simulatedAt: DateTime, default=now
