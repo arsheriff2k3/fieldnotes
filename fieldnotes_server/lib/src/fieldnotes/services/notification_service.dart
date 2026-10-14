@@ -93,6 +93,10 @@ abstract final class NotificationKind {
   static const refundProcessed = 'refundProcessed';
   static const evidenceApproved = 'evidenceApproved';
   static const evidenceRejected = 'evidenceRejected';
+  static const volunteerJoined = 'volunteerJoined';
+  static const volunteerLeft = 'volunteerLeft';
+  static const volunteerCheckedIn = 'volunteerCheckedIn';
+  static const evidenceSubmitted = 'evidenceSubmitted';
   static const accountDeleted = 'accountDeleted';
 }
 
@@ -114,6 +118,47 @@ typedef NotificationRunResult = ({int sent, int skipped, int failed});
 /// send a second email for the same event.
 class NotificationService {
   const NotificationService();
+
+  /// Campaign team activity is private to the creator. Never include names,
+  /// coordinates, photographs, or evidence notes in these alerts.
+  Future<void> volunteerActivity(
+    Session session, {
+    required int campaignId,
+    required String kind,
+    required String eventKey,
+  }) async {
+    try {
+      final campaign = await Campaign.db.findById(session, campaignId);
+      if (campaign == null) return;
+      final description = switch (kind) {
+        NotificationKind.volunteerJoined => 'A volunteer joined your campaign.',
+        NotificationKind.volunteerLeft =>
+          'A volunteer left your campaign. A place is available again.',
+        NotificationKind.volunteerCheckedIn =>
+          'A volunteer checked in to your campaign.',
+        NotificationKind.evidenceSubmitted =>
+          'A volunteer submitted completion evidence for your review.',
+        _ => throw ArgumentError.value(kind, 'kind'),
+      };
+      await enqueue(
+        session,
+        recipient: campaign.createdBy,
+        kind: kind,
+        dedupeKey: 'campaign:$campaignId:$kind:$eventKey',
+        subject: '${campaign.name}: volunteer activity',
+        text:
+            '$description Open FieldNote to view campaign impact and the team.',
+        campaignId: campaignId,
+      );
+    } catch (error, stackTrace) {
+      session.log(
+        'Campaign activity notification could not be queued.',
+        level: LogLevel.warning,
+        exception: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
 
   static const maxAttempts = 5;
   static const sendingLease = Duration(minutes: 10);

@@ -817,6 +817,97 @@ void main() {
     });
 
     group('volunteer places', () {
+      test('check-in alerts reach the creator once', () async {
+        final campaign = await publish();
+        await volunteerProfile(volunteer);
+        final joined = await endpoints.fieldnote.joinCampaign(
+          volunteer,
+          campaign.id!,
+        );
+        await update(campaign.id!, (c) {
+          c.readinessState = 'confirmed';
+          c.startsAt = DateTime.now().toUtc().subtract(
+            const Duration(minutes: 5),
+          );
+          c.endsAt = DateTime.now().toUtc().add(const Duration(hours: 1));
+        });
+        for (var attempt = 0; attempt < 2; attempt++) {
+          await endpoints.fieldnote.checkIn(
+            volunteer,
+            joined.id!,
+            _siteLatitude,
+            _siteLongitude,
+            8,
+            false,
+            false,
+            DateTime.now().toUtc(),
+          );
+        }
+        final inbox = await endpoints.fieldnote.getMyNotifications(
+          sponsor,
+          limit: 20,
+          unreadOnly: false,
+        );
+        expect(
+          inbox.where((n) => n.kind == 'volunteerCheckedIn'),
+          hasLength(1),
+        );
+        expect(inbox.first.campaignId, campaign.id);
+      });
+
+      test(
+        'creator alerts cover join, leave, rejoin and ignore retries',
+        () async {
+          final campaign = await publish();
+          await volunteerProfile(volunteer);
+          await sponsorProfile(funder, 'Other Sponsor');
+          final first = await endpoints.fieldnote.joinCampaign(
+            volunteer,
+            campaign.id!,
+          );
+          await endpoints.fieldnote.joinCampaign(volunteer, campaign.id!);
+          await endpoints.fieldnote.leaveCampaign(volunteer, first.id!);
+          await endpoints.fieldnote.leaveCampaign(volunteer, first.id!);
+          final rejoined = await endpoints.fieldnote.joinCampaign(
+            volunteer,
+            campaign.id!,
+          );
+          expect(rejoined.id, first.id);
+          await endpoints.fieldnote.joinCampaign(volunteer, campaign.id!);
+          final inbox = await endpoints.fieldnote.getMyNotifications(
+            sponsor,
+            limit: 20,
+            unreadOnly: false,
+          );
+          expect(inbox.map((n) => n.kind), [
+            'volunteerJoined',
+            'volunteerLeft',
+            'volunteerJoined',
+          ]);
+          expect(inbox.every((n) => n.campaignId == campaign.id), isTrue);
+          for (final account in [volunteer, funder]) {
+            expect(
+              await endpoints.fieldnote.getMyNotifications(
+                account,
+                limit: 20,
+                unreadOnly: false,
+              ),
+              isEmpty,
+            );
+            expect(
+              await endpoints.fieldnote.getMyNotification(
+                account,
+                inbox.first.id,
+              ),
+              isNull,
+            );
+          }
+          final rows = await NotificationOutbox.db.find(sessionBuilder.build());
+          expect(rows.where((n) => n.kind == 'volunteerJoined'), hasLength(2));
+          expect(rows.where((n) => n.kind == 'volunteerLeft'), hasLength(1));
+        },
+      );
+
       test(
         'leaving frees the seat; leaving after check-in is refused',
         () async {
@@ -980,6 +1071,16 @@ void main() {
           manualSummary: true,
         );
         expect(repeated.id, evidence.id);
+        final alerts = await endpoints.fieldnote.getMyNotifications(
+          sponsor,
+          limit: 20,
+          unreadOnly: false,
+        );
+        expect(
+          alerts.where((n) => n.kind == 'evidenceSubmitted'),
+          hasLength(1),
+        );
+        expect(alerts.first.kind, 'evidenceSubmitted');
         await expectLater(
           endpoints.fieldnote.getEvidenceUploadDescription(
             volunteer,

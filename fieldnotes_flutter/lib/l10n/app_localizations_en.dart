@@ -4253,4 +4253,109 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get campaignDiscussionSend => 'Send message';
+
+  @override
+  String get campaignDiscussionTeam => 'Campaign team';
+
+  @override
+  String get campaignDiscussionInfo => 'About this discussion';
+
+  @override
+  String get campaignDiscussionToday => 'Today';
+
+  @override
+  String get campaignDiscussionYesterday => 'Yesterday';
+
+  @override
+  String get campaignDiscussionArchived => 'Read-only';
+
+  @override
+  String get campaignDiscussionConnected => 'Connected';
+
+  @override
+  String get campaignDiscussionNewMessages => 'New messages';
+
+  @override
+  String get campaignDiscussionMessageHint => 'Message your team…';
+
+  @override
+  String get campaignDiscussionConnecting => 'Connecting…';
+
+  @override
+  String get campaignDiscussionUnavailable => 'Unavailable';
+
+  @override
+  String get notificationsCaughtUpTitle => 'You’re all caught up';
+
+  @override
+  String notificationsUnreadCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count unread updates',
+      one: '1 unread update',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notificationsSubtitle =>
+      'Campaign activity, invitations and updates.';
+
+  @override
+  String get notificationsAll => 'All';
+
+  @override
+  String get notificationsUnread => 'Unread';
+
+  @override
+  String get notificationsStayUpdated => 'Stay in the loop';
+
+  @override
+  String get notificationsEnablePushDescription =>
+      'Enable device alerts to receive updates when FieldNote is closed.';
+
+  @override
+  String get notificationsConnectionTitle => 'Unable to refresh';
+
+  @override
+  String get notificationsEmptyTitle => 'No updates yet';
+
+  @override
+  String get notificationsToday => 'Today';
+
+  @override
+  String get notificationsYesterday => 'Yesterday';
+
+  @override
+  String get notificationsCategoryInvitation => 'Invitation';
+
+  @override
+  String get notificationsCategoryTeam => 'Team activity';
+
+  @override
+  String get notificationsCategoryCheckIn => 'Check-in';
+
+  @override
+  String get notificationsCategoryPayment => 'Payments';
+
+  @override
+  String get notificationsCategoryEvidence => 'Evidence';
+
+  @override
+  String get notificationsCategoryCampaign => 'Campaign update';
+
+  @override
+  String get navSchedule => 'Schedule';
+
+  @override
+  String campaignChatUnread(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count unread messages',
+      one: '1 unread message',
+    );
+    return '$_temp0';
+  }
 }

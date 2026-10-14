@@ -20,6 +20,7 @@ class FakePushSender implements PushSender {
   Future<PushSendResult> send({
     required String token,
     required int notificationId,
+    int unreadCount = 1,
   }) async {
     sent.add(notificationId);
     return result;

@@ -460,6 +460,11 @@ class Endpoints extends _is.EndpointDispatch {
               type: _is.getType<int>(),
               nullable: false,
             ),
+            'throughChatMessageId': _is.ParameterDescription(
+              name: 'throughChatMessageId',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
           },
           call:
               (
@@ -469,6 +474,51 @@ class Endpoints extends _is.EndpointDispatch {
                   .markMyNotificationRead(
                     session,
                     params['notificationId'],
+                    throughChatMessageId: params['throughChatMessageId'],
+                  ),
+        ),
+        'markCampaignChatRead': _is.MethodConnector(
+          name: 'markCampaignChatRead',
+          params: {
+            'campaignId': _is.ParameterDescription(
+              name: 'campaignId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'throughMessageId': _is.ParameterDescription(
+              name: 'throughMessageId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .markCampaignChatRead(
+                    session,
+                    params['campaignId'],
+                    params['throughMessageId'],
+                  ),
+        ),
+        'getDiscussionCampaign': _is.MethodConnector(
+          name: 'getDiscussionCampaign',
+          params: {
+            'campaignId': _is.ParameterDescription(
+              name: 'campaignId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .getDiscussionCampaign(
+                    session,
+                    params['campaignId'],
                   ),
         ),
         'markMyNotificationsReadThrough': _is.MethodConnector(
@@ -2583,6 +2633,19 @@ class Endpoints extends _is.EndpointDispatch {
                     limit: params['limit'],
                     offset: params['offset'],
                   ),
+        ),
+        'watchMyNotifications': _is.MethodStreamConnector(
+          name: 'watchMyNotifications',
+          params: {},
+          streamParams: {},
+          returnType: _is.MethodStreamReturnType.streamType,
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+                Map<String, Stream> streamParams,
+              ) => (endpoints['fieldnote'] as _i4pdwwji.FieldnoteEndpoint)
+                  .watchMyNotifications(session),
         ),
         'watchCampaignChat': _is.MethodStreamConnector(
           name: 'watchCampaignChat',

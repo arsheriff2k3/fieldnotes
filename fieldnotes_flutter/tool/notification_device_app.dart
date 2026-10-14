@@ -53,12 +53,14 @@ Future<String> _command(String? value) async {
         'pushEnabled': FirebasePushService.instance.enabled,
         'unreadCount': await repository.unreadNotificationCount(),
         'notifications': notifications
-            .where((n) => n.title.contains(_prefix))
+            .where((n) => n.title.contains(_prefix) || n.kind == 'campaignChat')
             .map(
               (n) => {
                 'id': n.id,
                 'kind': n.kind,
                 'campaignId': n.campaignId,
+                'unreadCount': n.unreadCount,
+                'chatMessageId': n.chatMessageId,
                 'createdAt': n.createdAt.toIso8601String(),
                 'readAt': n.readAt?.toIso8601String(),
               },
@@ -67,6 +69,36 @@ Future<String> _command(String? value) async {
         'foreground': _foreground,
         'opened': _opened,
       });
+    }
+    if (action == 'discussionCampaigns') {
+      final profile = await repository.profile();
+      final campaigns = profile?.role == AccountRole.sponsor
+          ? await repository.myCreatedCampaigns()
+          : await repository.myCampaigns();
+      return jsonEncode(
+        campaigns
+            .where((c) => c.name.startsWith('[Discussion QA]'))
+            .map((c) => {'id': c.id, 'name': c.name})
+            .toList(),
+      );
+    }
+    if (action == 'sendChat') {
+      final campaign = await repository.discussionCampaign(
+        command['campaignId'] as int,
+      );
+      if (!campaign.name.startsWith('[Discussion QA]')) {
+        throw StateError('Only discussion QA campaigns can be used.');
+      }
+      final message = await repository.sendCampaignMessage(
+        campaign.id!,
+        command['body'] as String,
+        command['requestId'] as String,
+      );
+      return jsonEncode({'messageId': message.id, 'campaignId': campaign.id});
+    }
+    if (action == 'invitationFixture') {
+      final availability = await repository.availability();
+      return jsonEncode(availability?.toJson());
     }
     if (action == 'enablePush') {
       await FirebasePushService.instance.enable();
@@ -91,7 +123,9 @@ Future<String> _command(String? value) async {
           description:
               'Temporary two-device notification test. No real-world activity will take place.',
           locationName: 'Notification QA simulated venue',
-          startsAt: DateTime.now().toUtc().add(const Duration(days: 3)),
+          startsAt: command['startsAt'] == null
+              ? DateTime.now().toUtc().add(const Duration(days: 3))
+              : DateTime.parse(command['startsAt'] as String),
           durationMinutes: 60,
           volunteerCapacity: 10,
           minimumVolunteers: 1,
@@ -103,8 +137,8 @@ Future<String> _command(String? value) async {
           tags: ['community'],
           rationale: 'Dedicated device QA campaign, created without AI.',
         ),
-        18.5204,
-        73.8567,
+        (command['latitude'] as num?)?.toDouble() ?? 18.5204,
+        (command['longitude'] as num?)?.toDouble() ?? 73.8567,
         clientRequestId: 'notification-qa-${command['requestId']}',
       );
       return jsonEncode({
@@ -134,6 +168,11 @@ Future<String> _command(String? value) async {
           'participationId': participation.id,
           'status': participation.status.name,
         });
+      case 'leave':
+        final participation = await repository.leaveCampaign(
+          command['participationId'] as int,
+        );
+        return jsonEncode({'status': participation.status.name});
       case 'reconfirm':
         final participation = await repository.reconfirmParticipation(
           command['participationId'] as int,

@@ -1,0 +1,23 @@
+{
+  "campaignId": 8,
+  "campaign": "[Discussion QA] A16 and A23",
+  "devices": {
+    "a16": "sponsor",
+    "a23": "volunteer"
+  },
+  "automated": {
+    "serverTestsPassed": 20,
+    "flutterTestsPassed": 25,
+    "hundredMessages": "one group with unreadCount 100; only newest push delivered"
+  },
+  "physical": {
+    "sponsorToVolunteer": "two replies update one Android notification; tap opens campaign chat; unread becomes 0",
+    "volunteerToSponsor": "Android notification received; tap opens same campaign chat; unread becomes 0",
+    "foregroundInbox": "count and direct chat routing verified",
+    "visibleRoom": "incoming reply displayed without snackbar; unread becomes 0",
+    "resumeRoom": "Android group records 1 before resume, 0 after resume; unread 0",
+    "runtimeErrors": 0
+  },
+  "migration": "20261014063030151-grouped-chat-notifications",
+  "localBuild": "USB forwarding to localhost:8080; accounts preserved"
+}

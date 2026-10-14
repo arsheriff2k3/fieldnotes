@@ -1202,8 +1202,9 @@ class _MissionCardState extends State<_MissionCard> {
             ParticipationStatus.checkedIn,
             ParticipationStatus.completed,
             ParticipationStatus.incomplete,
-          }.contains(status))
-            OutlinedButton.icon(
+          }.contains(status)) ...[
+            const SizedBox(height: FieldnoteSpacing.md),
+            FieldnoteCardAction(
               onPressed: () => Navigator.of(context).push<void>(
                 MaterialPageRoute(
                   builder: (_) => CampaignDiscussionView(
@@ -1213,9 +1214,10 @@ class _MissionCardState extends State<_MissionCard> {
                   ),
                 ),
               ),
-              icon: const Icon(Icons.forum_outlined),
-              label: Text(context.l10n.campaignDiscussionTitle),
+              icon: Icons.forum_outlined,
+              label: context.l10n.campaignDiscussionTitle,
             ),
+          ],
           FutureBuilder<List<CampaignPost>>(
             future: _posts,
             builder: (context, snapshot) {
@@ -1238,20 +1240,18 @@ class _MissionCardState extends State<_MissionCard> {
             ),
           ],
           const SizedBox(height: FieldnoteSpacing.sm),
-          OutlinedButton.icon(
+          FieldnoteCardAction(
             onPressed: _loadingContact
                 ? null
                 : _contactPhone == null
                 ? () => _loadContact(showResult: true)
                 : _callCreator,
-            icon: const Icon(Icons.call_outlined),
-            label: Text(
-              _loadingContact
-                  ? l10n.volunteerContactLoading
-                  : _contactPhone == null
-                  ? l10n.volunteerContactRefresh
-                  : l10n.volunteerContactCall,
-            ),
+            icon: Icons.call_outlined,
+            label: _loadingContact
+                ? l10n.volunteerContactLoading
+                : _contactPhone == null
+                ? l10n.volunteerContactRefresh
+                : l10n.volunteerContactCall,
           ),
           if (!_loadingContact && _contactPhone == null) ...[
             const SizedBox(height: FieldnoteSpacing.xs),

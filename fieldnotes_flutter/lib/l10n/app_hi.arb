@@ -219,5 +219,41 @@
   "campaignDiscussionCampaigner": "अभियान संचालक",
   "campaignDiscussionVolunteer": "स्वयंसेवक",
   "campaignDiscussionCompose": "सवाल पूछें या संदेश लिखें",
-  "campaignDiscussionSend": "संदेश भेजें"
+  "campaignDiscussionSend": "संदेश भेजें",
+  "campaignDiscussionTeam": "अभियान टीम",
+  "campaignDiscussionInfo": "इस चर्चा के बारे में",
+  "campaignDiscussionToday": "आज",
+  "campaignDiscussionYesterday": "कल",
+  "campaignDiscussionArchived": "केवल पढ़ें",
+  "campaignDiscussionConnected": "जुड़ा हुआ",
+  "campaignDiscussionNewMessages": "नए संदेश",
+  "campaignDiscussionMessageHint": "अपनी टीम को संदेश लिखें…",
+  "campaignDiscussionConnecting": "जुड़ रहा है…",
+  "campaignDiscussionUnavailable": "अनुपलब्ध",
+  "notificationsCaughtUpTitle": "आपने सभी अपडेट पढ़ लिए हैं",
+  "notificationsUnreadCount": "{count, plural, =1{1 अपठित अपडेट} other{{count} अपठित अपडेट}}",
+  "notificationsSubtitle": "अभियान की गतिविधियाँ, आमंत्रण और अपडेट।",
+  "notificationsAll": "सभी",
+  "notificationsUnread": "अपठित",
+  "notificationsStayUpdated": "अपडेट पाते रहें",
+  "notificationsEnablePushDescription": "FieldNote बंद होने पर भी अपडेट पाने के लिए डिवाइस अलर्ट चालू करें।",
+  "notificationsConnectionTitle": "रीफ़्रेश नहीं हो सका",
+  "notificationsEmptyTitle": "अभी कोई अपडेट नहीं",
+  "notificationsToday": "आज",
+  "notificationsYesterday": "कल",
+  "notificationsCategoryInvitation": "आमंत्रण",
+  "notificationsCategoryTeam": "टीम गतिविधि",
+  "notificationsCategoryCheckIn": "चेक-इन",
+  "notificationsCategoryPayment": "भुगतान",
+  "notificationsCategoryEvidence": "प्रमाण",
+  "notificationsCategoryCampaign": "अभियान अपडेट",
+  "navSchedule": "समय",
+  "campaignChatUnread": "{count} अपठित संदेश",
+  "@campaignChatUnread": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

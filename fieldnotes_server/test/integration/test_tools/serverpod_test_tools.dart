@@ -255,6 +255,8 @@ class _InternalTestEndpoints extends TestEndpoints
 }
 
 class _FutureCalls {
+  late final campaignChatPush = _CampaignChatPushFutureCall();
+
   late final campaignReadiness = _CampaignReadinessFutureCall();
 
   late final fieldnoteOutbox = _FieldnoteOutboxFutureCall();
@@ -913,10 +915,43 @@ class _FieldnoteEndpoint {
     });
   }
 
+  _ida.Stream<_iy2z50hz.NotificationItem> watchMyNotifications(
+    _ist.TestSessionBuilder sessionBuilder,
+  ) {
+    var _localTestStreamManager =
+        _ist.TestStreamManager<_iy2z50hz.NotificationItem>();
+    _ist.callStreamFunctionAndHandleExceptions(
+      () async {
+        var _localUniqueSession =
+            (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+              endpoint: 'fieldnote',
+              method: 'watchMyNotifications',
+            );
+        var _localCallContext = await _endpointDispatch
+            .getMethodStreamCallContext(
+              createSessionCallback: (_) => _localUniqueSession,
+              endpointPath: 'fieldnote',
+              methodName: 'watchMyNotifications',
+              arguments: {},
+              requestedInputStreams: [],
+              serializationManager: _serializationManager,
+            );
+        await _localTestStreamManager.callStreamMethod(
+          _localCallContext,
+          _localUniqueSession,
+          {},
+        );
+      },
+      _localTestStreamManager.outputStreamController,
+    );
+    return _localTestStreamManager.outputStreamController.stream;
+  }
+
   _ida.Future<void> markMyNotificationRead(
     _ist.TestSessionBuilder sessionBuilder,
-    int notificationId,
-  ) async {
+    int notificationId, {
+    int? throughChatMessageId,
+  }) async {
     return _ist.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
           (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
@@ -928,7 +963,10 @@ class _FieldnoteEndpoint {
           createSessionCallback: (_) => _localUniqueSession,
           endpointPath: 'fieldnote',
           methodName: 'markMyNotificationRead',
-          parameters: _ist.testObjectToJson({'notificationId': notificationId}),
+          parameters: _ist.testObjectToJson({
+            'notificationId': notificationId,
+            'throughChatMessageId': throughChatMessageId,
+          }),
           serializationManager: _serializationManager,
         );
         var _localReturnValue =
@@ -937,6 +975,72 @@ class _FieldnoteEndpoint {
                   _localCallContext.arguments,
                 )
                 as _ida.Future<void>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<void> markCampaignChatRead(
+    _ist.TestSessionBuilder sessionBuilder,
+    int campaignId,
+    int throughMessageId,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'markCampaignChatRead',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'markCampaignChatRead',
+          parameters: _ist.testObjectToJson({
+            'campaignId': campaignId,
+            'throughMessageId': throughMessageId,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<void>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<_iuzdi22u.Campaign> getDiscussionCampaign(
+    _ist.TestSessionBuilder sessionBuilder,
+    int campaignId,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'fieldnote',
+            method: 'getDiscussionCampaign',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'fieldnote',
+          methodName: 'getDiscussionCampaign',
+          parameters: _ist.testObjectToJson({'campaignId': campaignId}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_iuzdi22u.Campaign>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -3741,6 +3845,21 @@ class _LegalEndpoint {
         await _localUniqueSession.close();
       }
     });
+  }
+}
+
+class _CampaignChatPushFutureCall {
+  Future<void> deliver(_ist.TestSessionBuilder sessionBuilder) async {
+    var _localUniqueSession =
+        (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild();
+    try {
+      await _ivhm99lh.CampaignChatPushDeliverFutureCall().invoke(
+        _localUniqueSession,
+        null,
+      );
+    } finally {
+      await _localUniqueSession.close();
+    }
   }
 }
 

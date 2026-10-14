@@ -38,8 +38,18 @@ class FieldnoteRepository {
       client.fieldnote.getMyNotification(id);
   Future<int> unreadNotificationCount() =>
       client.fieldnote.getMyUnreadNotificationCount();
-  Future<void> markNotificationRead(int id) =>
-      client.fieldnote.markMyNotificationRead(id);
+  Future<void> markNotificationRead(int id, {int? throughChatMessageId}) =>
+      client.fieldnote.markMyNotificationRead(
+        id,
+        throughChatMessageId: throughChatMessageId,
+      );
+
+  Stream<NotificationItem> watchMyNotifications() =>
+      client.fieldnote.watchMyNotifications();
+  Future<Campaign> discussionCampaign(int id) =>
+      client.fieldnote.getDiscussionCampaign(id);
+  Future<void> markCampaignChatRead(int id, int throughMessageId) =>
+      client.fieldnote.markCampaignChatRead(id, throughMessageId);
   Future<void> markNotificationsReadThrough(int id) =>
       client.fieldnote.markMyNotificationsReadThrough(id);
   Future<void> registerPushDevice(String token, String platform) =>

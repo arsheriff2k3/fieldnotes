@@ -14,7 +14,8 @@
 import 'dart:async' as _ida;
 import 'package:clock/clock.dart' as _io0w16m8;
 import 'package:serverpod/serverpod.dart' as _is;
-import '../fieldnotes/fieldnote_endpoint.dart' as _i4pdwwji;
+import '../fieldnotes/campaign_chat_push_future_call.dart' as _ig3vasjz;
+import '../fieldnotes/campaign_readiness_future_call.dart' as _i4buoasa;
 import '../fieldnotes/fieldnote_outbox_future_call.dart' as _ic8d0e82;
 
 /// Invokes a future call.
@@ -59,6 +60,7 @@ class FutureCalls extends _is.FutureCallDispatch<_FutureCallRef> {
     String serverId,
   ) {
     var registeredFutureCalls = <String, _is.InvokableFutureCall>{
+      'CampaignChatPushDeliverFutureCall': CampaignChatPushDeliverFutureCall(),
       'CampaignReadinessSweepFutureCall': CampaignReadinessSweepFutureCall(),
       'FieldnoteOutboxRunFutureCall': FieldnoteOutboxRunFutureCall(),
     };
@@ -181,6 +183,10 @@ class _FutureCallRef {
 
   final _InvokeFutureCall _invokeFutureCall;
 
+  late final campaignChatPush = _CampaignChatPushFutureCallDispatcher(
+    _invokeFutureCall,
+  );
+
   late final campaignReadiness = _CampaignReadinessFutureCallDispatcher(
     _invokeFutureCall,
   );
@@ -188,6 +194,19 @@ class _FutureCallRef {
   late final fieldnoteOutbox = _FieldnoteOutboxFutureCallDispatcher(
     _invokeFutureCall,
   );
+}
+
+class _CampaignChatPushFutureCallDispatcher {
+  _CampaignChatPushFutureCallDispatcher(this._invokeFutureCall);
+
+  final _InvokeFutureCall _invokeFutureCall;
+
+  Future<void> deliver() {
+    return _invokeFutureCall(
+      'CampaignChatPushDeliverFutureCall',
+      null,
+    );
+  }
 }
 
 class _CampaignReadinessFutureCallDispatcher {
@@ -216,6 +235,17 @@ class _FieldnoteOutboxFutureCallDispatcher {
   }
 }
 
+class CampaignChatPushDeliverFutureCall extends _is.FutureCall
+    implements _is.InvokableFutureCall {
+  @override
+  _ida.Future<void> invoke(
+    _is.Session session,
+    _is.SerializableModel? object,
+  ) async {
+    await _ig3vasjz.CampaignChatPushFutureCall().deliver(session);
+  }
+}
+
 class CampaignReadinessSweepFutureCall extends _is.FutureCall
     implements _is.InvokableFutureCall {
   @override
@@ -223,7 +253,7 @@ class CampaignReadinessSweepFutureCall extends _is.FutureCall
     _is.Session session,
     _is.SerializableModel? object,
   ) async {
-    await _i4pdwwji.CampaignReadinessFutureCall().sweep(session);
+    await _i4buoasa.CampaignReadinessFutureCall().sweep(session);
   }
 }
 

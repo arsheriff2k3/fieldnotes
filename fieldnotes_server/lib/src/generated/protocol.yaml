@@ -20,7 +20,10 @@ fieldnote:
   - getMyNotifications:
   - getMyNotification:
   - getMyUnreadNotificationCount:
+  - watchMyNotifications:
   - markMyNotificationRead:
+  - markCampaignChatRead:
+  - getDiscussionCampaign:
   - markMyNotificationsReadThrough:
   - registerMyPushDevice:
   - unregisterMyPushDevice:

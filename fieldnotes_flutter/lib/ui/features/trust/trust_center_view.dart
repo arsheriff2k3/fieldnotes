@@ -360,8 +360,6 @@ class _TrustCenterViewState extends State<TrustCenterView> {
                 ],
               ),
             ),
-            const SizedBox(height: FieldnoteSpacing.md),
-            AccountDeletionCard(viewModel: viewModel),
           ],
         ],
       ),

@@ -28,6 +28,9 @@ class DiscussionRepository extends FieldnoteRepository {
   Completer<List<CampaignChatMessage>>? initialPage;
 
   @override
+  Future<void> markCampaignChatRead(int id, int throughMessageId) async {}
+
+  @override
   Stream<CampaignChatEvent> watchCampaignChat(int campaignId) {
     final controller = StreamController<CampaignChatEvent>();
     controllers.add(controller);
@@ -193,8 +196,9 @@ void main() {
         find.byType(TextField),
         'Does anyone have gloves?',
       );
-      await tester.tap(find.byTooltip('Send message'));
       await tester.pump();
+      await tester.tap(find.byTooltip('Send message'));
+      await tester.pumpAndSettle();
       expect(find.text('Does anyone have gloves?'), findsOneWidget);
       expect(find.text('You · Volunteer'), findsOneWidget);
       expect(tester.takeException(), isNull);
@@ -225,4 +229,122 @@ void main() {
     );
     await tester.pumpWidget(const SizedBox.shrink());
   });
+  for (final brightness in Brightness.values) {
+    testWidgets('discussion supports large text and keyboard in $brightness', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(320, 568);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final repository = DiscussionRepository()
+        ..saved.addAll(
+          List.generate(
+            3,
+            (i) => message(
+              i + 1,
+              body: 'A longer message to check wrapping in a small window.',
+            ),
+          ),
+        );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(brightness: brightness),
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: const TextScaler.linear(1.6),
+              disableAnimations: true,
+            ),
+            child: child!,
+          ),
+          home: CampaignDiscussionView(
+            campaign: campaign,
+            repository: repository,
+            currentUserId: userId,
+          ),
+        ),
+      );
+      repository.ready();
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      tester.view.viewInsets = const FakeViewPadding(bottom: 220);
+      await tester.tap(find.byType(TextField));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.byTooltip('Send message'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  }
+
+  testWidgets('empty sends are disabled and failed sends preserve the draft', (
+    tester,
+  ) async {
+    final repository = DiscussionRepository();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CampaignDiscussionView(
+          campaign: campaign,
+          repository: repository,
+          currentUserId: userId,
+        ),
+      ),
+    );
+    repository.ready();
+    await tester.pumpAndSettle();
+    final button = tester.widget<IconButton>(
+      find
+          .ancestor(
+            of: find.byTooltip('Send message'),
+            matching: find.byType(IconButton),
+          )
+          .first,
+    );
+    expect(button.onPressed, isNull);
+    repository.failNextSend = true;
+    await tester.enterText(find.byType(TextField), 'Keep this draft');
+    await tester.pump();
+    await tester.tap(find.byTooltip('Send message'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      'Keep this draft',
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets(
+    'incoming messages preserve the reading position and offer a jump to latest',
+    (tester) async {
+      final repository = DiscussionRepository()
+        ..saved.addAll(List.generate(35, (i) => message(i + 1)));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: CampaignDiscussionView(
+            campaign: campaign,
+            repository: repository,
+            currentUserId: userId,
+          ),
+        ),
+      );
+      repository.ready();
+      await tester.pumpAndSettle();
+      await tester.drag(find.byType(ListView), const Offset(0, 500));
+      await tester.pumpAndSettle();
+      final scroll = tester.widget<ListView>(find.byType(ListView)).controller!;
+      final previousOffset = scroll.offset;
+      repository.controllers.last.add(
+        CampaignChatEvent(
+          campaignId: 1,
+          readOnly: false,
+          message: message(36).copyWith(senderAuthUserId: campaign.createdBy),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(scroll.offset, greaterThanOrEqualTo(previousOffset));
+      expect(find.text('New messages'), findsOneWidget);
+      await tester.tap(find.text('New messages'));
+      await tester.pumpAndSettle();
+      expect(scroll.offset, 0);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
 }

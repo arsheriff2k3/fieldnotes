@@ -7,3 +7,5 @@ fields:
   campaignId: int?
   createdAt: DateTime
   readAt: DateTime?
+  unreadCount: int, default=1
+  chatMessageId: int?

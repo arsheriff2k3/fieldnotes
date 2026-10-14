@@ -330,6 +330,35 @@ class FieldnoteActionRow extends StatelessWidget {
   );
 }
 
+/// A full-width card action with consistent icon, label and touch spacing.
+class FieldnoteCardAction extends StatelessWidget {
+  const FieldnoteCardAction({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: double.infinity,
+    child: OutlinedButton.icon(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        alignment: AlignmentDirectional.centerStart,
+        minimumSize: const Size.fromHeight(48),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
+      icon: Icon(icon, size: 20),
+      label: Text(label, textAlign: TextAlign.start),
+    ),
+  );
+}
+
 class FieldnoteSectionTab {
   const FieldnoteSectionTab(this.label, this.icon);
 

@@ -398,7 +398,7 @@ class EndpointFieldnote extends _isc.EndpointRef {
         {},
       );
 
-  /// Inbox IDs are an immutable keyset cursor, newest first.
+  /// Groups move to the top on new messages; the cursor uses timestamp and ID.
   _ida.Future<List<_ild3wtsx.NotificationItem>> getMyNotifications({
     required int limit,
     int? beforeId,
@@ -428,11 +428,46 @@ class EndpointFieldnote extends _isc.EndpointRef {
         {},
       );
 
-  _ida.Future<void> markMyNotificationRead(int notificationId) =>
-      caller.callServerEndpoint<void>(
+  _ida.Stream<_ild3wtsx.NotificationItem> watchMyNotifications() =>
+      caller.callStreamingServerEndpoint<
+        _ida.Stream<_ild3wtsx.NotificationItem>,
+        _ild3wtsx.NotificationItem
+      >(
         'fieldnote',
-        'markMyNotificationRead',
-        {'notificationId': notificationId},
+        'watchMyNotifications',
+        {},
+        {},
+      );
+
+  _ida.Future<void> markMyNotificationRead(
+    int notificationId, {
+    int? throughChatMessageId,
+  }) => caller.callServerEndpoint<void>(
+    'fieldnote',
+    'markMyNotificationRead',
+    {
+      'notificationId': notificationId,
+      'throughChatMessageId': throughChatMessageId,
+    },
+  );
+
+  _ida.Future<void> markCampaignChatRead(
+    int campaignId,
+    int throughMessageId,
+  ) => caller.callServerEndpoint<void>(
+    'fieldnote',
+    'markCampaignChatRead',
+    {
+      'campaignId': campaignId,
+      'throughMessageId': throughMessageId,
+    },
+  );
+
+  _ida.Future<_i6ar8a32.Campaign> getDiscussionCampaign(int campaignId) =>
+      caller.callServerEndpoint<_i6ar8a32.Campaign>(
+        'fieldnote',
+        'getDiscussionCampaign',
+        {'campaignId': campaignId},
       );
 
   /// Newer arrivals remain unread even if the request races with insertion.

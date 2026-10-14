@@ -1554,7 +1554,7 @@ class _ImpactCard extends StatelessWidget {
           ),
           if (value != null) ...[
             const SizedBox(height: FieldnoteSpacing.md),
-            OutlinedButton.icon(
+            FieldnoteCardAction(
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
                   builder: (_) => CampaignImpactReportView(
@@ -1563,12 +1563,13 @@ class _ImpactCard extends StatelessWidget {
                   ),
                 ),
               ),
-              icon: const Icon(Icons.description_outlined),
-              label: Text(l10n.impactReportTitle),
+              icon: Icons.description_outlined,
+              label: l10n.impactReportTitle,
             ),
           ],
-          if (isCreator)
-            OutlinedButton.icon(
+          if (isCreator) ...[
+            const SizedBox(height: 12),
+            FieldnoteCardAction(
               onPressed: () => Navigator.of(context).push<void>(
                 MaterialPageRoute(
                   builder: (_) => CampaignDiscussionView(
@@ -1578,9 +1579,10 @@ class _ImpactCard extends StatelessWidget {
                   ),
                 ),
               ),
-              icon: const Icon(Icons.forum_outlined),
-              label: Text(context.l10n.campaignDiscussionTitle),
+              icon: Icons.forum_outlined,
+              label: context.l10n.campaignDiscussionTitle,
             ),
+          ],
           if (isCreator) ...[
             const Divider(height: 24),
             LayoutBuilder(
